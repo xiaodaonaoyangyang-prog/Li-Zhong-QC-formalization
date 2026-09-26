@@ -1,4 +1,4 @@
-# 李忠《拟共形映射及其在黎曼曲面论中的应用》— Lean 4 formalization (statement level)
+# 李忠《拟共形映射与Teichmuller空间》— Lean 4 formalization (statement level)
 
 A statement-level ("skeleton") formalization of
 
