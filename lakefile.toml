@@ -1,0 +1,20 @@
+name = "lizhong_quasiconformal_teichmuller"
+version = "0.1.0"
+defaultTargets = ["LiZhongQC"]
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[lean_lib]]
+name = "LiZhongQC"
+
+[[require]]
+name = "mathlib"
+path = "D:/lean/mathlib4-latest"
+
+[[lean_lib]]
+name = "JordanCurveTheorem"
+# Vendored from github.com/epfl-lara/jordan-curve-theorem (HOLLight-Lean); see JordanCurveTheorem/PROVENANCE.md.
+# Upstream options: autoImplicit left at its default, relaxedAutoImplicit = false, maxSynthPendingDepth = 3.
+leanOptions = { autoImplicit = true, relaxedAutoImplicit = false, maxSynthPendingDepth = 3 }

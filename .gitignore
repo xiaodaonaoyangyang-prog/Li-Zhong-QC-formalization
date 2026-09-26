@@ -1,0 +1,12 @@
+# Lake build output (rebuilt by `lake build`)
+/.lake/
+/.lake_old_*/
+
+# Local tool settings
+/.claude/
+
+# Scratch files in the project root (not part of the library)
+/Scratch*.lean
+/*_TEMP*.lean
+/newtext.txt
+/wd_scratch_test.lean
