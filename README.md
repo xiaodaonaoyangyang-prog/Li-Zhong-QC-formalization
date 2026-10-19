@@ -942,3 +942,11 @@ answer of a total function silently readmits the degenerate case it was meant to
 * **Notation.** `ω` is Mathlib's notation for analytic smoothness (`IsManifold 𝓘(ℂ) ω S`), so the
   quadratic differential `ω` of the book is called `q` in Lean; `π` is `Real.pi`, so projections
   are called `p`, `pr`.
+
+## License
+
+Copyright 2026 Wu Xiaobin. Licensed under the Apache License, Version 2.0 (see `LICENSE`).
+
+The vendored folders keep their upstream licenses and notices: `JordanCurveTheorem/`, `Jacobians/`, `RMT4/`,
+`RiemannDynamics/` and the subfolders of `LiZhongExternal/` (see the `LICENSE*`, `NOTICE*` and `PROVENANCE.md` files
+in each).
