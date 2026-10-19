@@ -15,12 +15,16 @@ is normalized at prime ends.
   are joined by arcs of vanishing diameter.
 * the converse of Theorem C2, `isJordanCurve_frontier_of_isHomeoExtension`.  Theorem C2 itself
   (`caratheodory_jordan`) is proved in `Lemmas/CaratheodoryJordan.lean` (moved there 2026-09-25).
-* `caratheodory_continuous_iff` (Theorem C1).
+* Theorem C1, `caratheodory_continuous_iff`, is stated and proved in `Lemmas/PrimeEnds.lean` (moved there
+  2026-09-27: its proof uses §20).
 
 **Part II.** Crosscuts (`IsCrosscut`), null-chains (`IsNullChain`, with ends `chainEnd`),
-their equivalence, prime ends (`PrimeEnd`), impressions and principal points, and
-`caratheodory_primeEnd`: prime ends correspond bijectively to boundary points of the disc,
-with impression equal to the cluster set.
+their equivalence, prime ends (`PrimeEnd`), impressions (`chainImpression_isCompact_isConnected`) and principal
+points.  `crosscut_separates` (proved with the Jordan curve theorem through `Lemmas/CaratheodoryJordan.lean`,
+which is downstream of this file) and the open `principalPoints_isCompact_isConnected`, `caratheodory_primeEnd`
+(prime ends correspond bijectively to boundary points of the disc, with impression equal to the cluster set) and
+`locallyConnectedSpace_frontier_iff` are stated in `Lemmas/PrimeEnds.lean` (moved there 2026-09-27, so that the
+proofs can use §20).
 
 Deviations from the write-up, all for correctness:
 * The end `Vₙ` of a null-chain is the component of `Ω ∖ Cₙ` containing `Cₙ₊₁` (the write-up's
@@ -402,7 +406,7 @@ theorem tendsto_diam_image_circleShortArc {φ : Circle → ℂ} (hφ : Continuou
       _ < δ := by linarith
   exact (hδε hpq).le
 
-/-! ## Part I: Theorems C2 and C1 -/
+/-! ## Part I: the converse of Theorem C2 (Theorem C1 is in `Lemmas/PrimeEnds.lean`) -/
 
 /-- **Theorem C2, converse.**  If a conformal map of the disc onto `Ω` extends to a homeomorphism
 of the closures in `ℂ̄`, the boundary of `Ω` in `ℂ̄` is a Jordan curve. -/
@@ -457,21 +461,6 @@ theorem isJordanCurve_frontier_of_isHomeoExtension {Ω : Set ℂ} {f : ℂ → �
     · rintro ⟨_, ⟨z, hz, rfl⟩, rfl⟩
       exact ⟨⟨z, hz⟩, rfl⟩
 
-/-- **Theorem C1.**  For a conformal map `f` of the disc onto a bounded domain `Ω`, the following
-are equivalent: `f` extends continuously from the closed disc onto `closure Ω`; `∂Ω` is locally
-connected; `∂Ω` is a continuous image of the circle.
-
-Not proved (kept as `sorry`): Carathéodory–Torhorst (the LZ3 argument with local connectivity in
-place of the Jordan input) and the Hahn–Mazurkiewicz theorem, neither in Mathlib. -/
-theorem caratheodory_continuous_iff {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω) {f : ℂ → ℂ}
-    (hf : IsConformalOnto f unitDisc Ω) :
-    List.TFAE
-      [∃ F : ℂ → ℂ, (∀ z ∈ unitDisc, F z = f z) ∧ ContinuousOn F (closedBall 0 1) ∧
-          F '' closedBall 0 1 = closure Ω,
-        LocallyConnectedSpace (frontier Ω),
-        ∃ γ : Circle → ℂ, Continuous γ ∧ range γ = frontier Ω] := by
-  sorry
-
 /-! ## Part II: crosscuts, null-chains and prime ends -/
 
 /-- A **crosscut** of `Ω`: an open Jordan arc in `Ω` whose closure adds two (possibly equal)
@@ -479,19 +468,6 @@ boundary points of `Ω`. -/
 def IsCrosscut (Ω C : Set ℂ) : Prop :=
   ∃ γ : ℝ → ℂ, ContinuousOn γ (Icc 0 1) ∧ InjOn γ (Ioo 0 1) ∧ γ '' Ioo 0 1 = C ∧ C ⊆ Ω ∧
     γ 0 ∈ frontier Ω ∧ γ 1 ∈ frontier Ω
-
-/-- A crosscut of a bounded simply connected domain separates it into exactly two components.
-
-Not proved (kept as `sorry`): this needs the θ-curve theorem, i.e. the Jordan curve theorem
-together with the inside/outside frontier statement (`frontier A = frontier B = C`), which
-neither Mathlib nor the vendored Hales Jordan curve theorem provides (`Lemmas/JordanBridge.lean`
-transports what is available: the two open connected pieces, inside/outside, and the component
-count); for a general crosscut one also needs that `f⁻¹ ∘ γ` has endpoints on `∂Δ` (Pommerenke,
-Cor. 2.17, via `wolff_length_area`). -/
-theorem crosscut_separates {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω) {f : ℂ → ℂ}
-    (hf : IsConformalOnto f unitDisc Ω) {C : Set ℂ} (hC : IsCrosscut Ω C) :
-    Nat.card (ConnectedComponents ↥(Ω \ C)) = 2 := by
-  sorry
 
 /-- The `n`-th **end** of a chain of crosscuts: the component of `Ω ∖ Cₙ` containing `Cₙ₊₁`. -/
 def chainEnd (Ω : Set ℂ) (C : ℕ → Set ℂ) (n : ℕ) : Set ℂ :=
@@ -540,52 +516,337 @@ theorem chainImpression_eq_of_nullChainEquiv {Ω : Set ℂ} {C C' : ℕ → Set 
     obtain ⟨n, hn⟩ := h2 m
     exact (Set.iInter_subset _ n).trans (closure_mono hn)
 
+/-- The intersection of a decreasing sequence of compact preconnected subsets of a Hausdorff space
+is preconnected. -/
+theorem isPreconnected_iInter_of_antitone_isCompact {X : Type*} [TopologicalSpace X] [T2Space X]
+    {K : ℕ → Set X} (hd : ∀ n, K (n + 1) ⊆ K n) (hc : ∀ n, IsCompact (K n))
+    (hp : ∀ n, IsPreconnected (K n)) : IsPreconnected (⋂ n, K n) := by
+  rw [isPreconnected_iff_subset_of_disjoint_closed]
+  intro u v hu hv hsuv hdisj
+  set S : Set X := ⋂ n, K n with hS
+  have hSc : IsCompact S :=
+    (hc 0).of_isClosed_subset (isClosed_iInter fun n => (hc n).isClosed) (Set.iInter_subset _ 0)
+  have hAc : IsCompact (S ∩ u) := hSc.inter_right hu
+  have hBc : IsCompact (S ∩ v) := hSc.inter_right hv
+  have hAB : Disjoint (S ∩ u) (S ∩ v) := by
+    rw [Set.disjoint_left]
+    intro x hxu hxv
+    have h : x ∈ S ∩ (u ∩ v) := ⟨hxu.1, hxu.2, hxv.2⟩
+    rw [hdisj] at h
+    exact h
+  by_cases hA : (S ∩ u).Nonempty
+  · by_cases hB : (S ∩ v).Nonempty
+    · exfalso
+      obtain ⟨U, V, hU, hV, hAU, hBV, hUV⟩ := SeparatedNhds.of_isCompact_isCompact hAc hBc hAB
+      -- no `Kₙ` lies in `U ∪ V`, so the sets `Kₙ \ (U ∪ V)` form a decreasing sequence of
+      -- nonempty compact sets
+      have hT : ∀ n, (K n \ (U ∪ V)).Nonempty := by
+        intro n
+        by_contra hcon
+        rw [Set.not_nonempty_iff_eq_empty, Set.diff_eq_empty] at hcon
+        rcases (hp n).subset_or_subset hU hV hUV hcon with h | h
+        · obtain ⟨x, hx⟩ := hB
+          exact Set.disjoint_left.mp hUV (h (Set.iInter_subset _ n hx.1)) (hBV hx)
+        · obtain ⟨x, hx⟩ := hA
+          exact Set.disjoint_left.mp hUV (hAU hx) (h (Set.iInter_subset _ n hx.1))
+      obtain ⟨x, hx⟩ := IsCompact.nonempty_iInter_of_sequence_nonempty_isCompact_isClosed
+        (fun n => K n \ (U ∪ V)) (fun n => Set.diff_subset_diff_left (hd n)) hT
+        ((hc 0).diff (hU.union hV)) (fun n => (hc n).isClosed.sdiff (hU.union hV))
+      rw [Set.mem_iInter] at hx
+      have hxS : x ∈ S := Set.mem_iInter.mpr fun n => (hx n).1
+      have hxUV : x ∉ U ∪ V := (hx 0).2
+      rcases hsuv hxS with hxu | hxv
+      · exact hxUV (Or.inl (hAU ⟨hxS, hxu⟩))
+      · exact hxUV (Or.inr (hBV ⟨hxS, hxv⟩))
+    · left
+      intro x hx
+      rcases hsuv hx with h | h
+      · exact h
+      · exact absurd ⟨x, hx, h⟩ hB
+  · right
+    intro x hx
+    rcases hsuv hx with h | h
+    · exact absurd ⟨x, hx, h⟩ hA
+    · exact h
+
+/-- The closure of a crosscut adds only frontier points of `Ω`: `closure C ⊆ C ∪ ∂Ω`. -/
+theorem car3_closure_crosscut_subset {Ω C : Set ℂ} (h : IsCrosscut Ω C) :
+    closure C ⊆ C ∪ frontier Ω := by
+  obtain ⟨γ, hγc, -, hγC, -, h0, h1⟩ := h
+  have hK : IsCompact (γ '' Icc 0 1) := isCompact_Icc.image_of_continuousOn hγc
+  have hsub : C ⊆ γ '' Icc 0 1 := hγC ▸ image_mono Ioo_subset_Icc_self
+  intro x hx
+  obtain ⟨t, ht, rfl⟩ := closure_minimal hsub hK.isClosed hx
+  rcases eq_or_lt_of_le ht.1 with h | h
+  · right
+    rw [← h]
+    exact h0
+  · rcases eq_or_lt_of_le ht.2 with h' | h'
+    · right
+      rw [h']
+      exact h1
+    · left
+      rw [← hγC]
+      exact ⟨t, ⟨h, h'⟩, rfl⟩
+
+/-- A crosscut of `Ω` lies in `Ω`. -/
+theorem car3_crosscut_subset {Ω C : Set ℂ} (h : IsCrosscut Ω C) : C ⊆ Ω := by
+  obtain ⟨γ, -, -, -, hCΩ, -⟩ := h
+  exact hCΩ
+
+/-- Removing a crosscut from an open set leaves an open set. -/
+theorem car3_isOpen_diff_crosscut {Ω C : Set ℂ} (hΩo : IsOpen Ω) (h : IsCrosscut Ω C) :
+    IsOpen (Ω \ C) := by
+  have e : Ω \ C = Ω \ closure C := by
+    apply Subset.antisymm
+    · rintro x ⟨hxΩ, hxC⟩
+      refine ⟨hxΩ, fun hcl => ?_⟩
+      rcases car3_closure_crosscut_subset h hcl with h1 | h1
+      · exact hxC h1
+      · rw [hΩo.frontier_eq] at h1
+        exact h1.2 hxΩ
+    · exact Set.sdiff_subset_sdiff_right subset_closure
+  rw [e]
+  exact hΩo.sdiff isClosed_closure
+
+/-- A crosscut is preconnected (a continuous image of `(0, 1)`). -/
+theorem car3_crosscut_isPreconnected {Ω C : Set ℂ} (h : IsCrosscut Ω C) : IsPreconnected C := by
+  obtain ⟨γ, hγc, -, hγC, -⟩ := h
+  rw [← hγC]
+  exact isPreconnected_Ioo.image γ (hγc.mono Ioo_subset_Icc_self)
+
+/-- A crosscut is nonempty. -/
+theorem car3_crosscut_nonempty {Ω C : Set ℂ} (h : IsCrosscut Ω C) : C.Nonempty := by
+  obtain ⟨γ, -, -, hγC, -⟩ := h
+  rw [← hγC]
+  exact (nonempty_Ioo.2 zero_lt_one).image γ
+
+/-- The closure of a component of `Ω ∖ C` meets the crosscut `C` (else the component is clopen in
+`Ω`). -/
+theorem car3_closure_cc_inter {Ω C : Set ℂ} (hΩo : IsOpen Ω) (hΩc : IsPreconnected Ω)
+    (h : IsCrosscut Ω C) {x : ℂ} (hx : x ∈ Ω \ C) :
+    (closure (connectedComponentIn (Ω \ C) x) ∩ C).Nonempty := by
+  by_contra hcon
+  rw [not_nonempty_iff_eq_empty] at hcon
+  have hO := car3_isOpen_diff_crosscut hΩo h
+  set W := connectedComponentIn (Ω \ C) x with hWdef
+  have hWo : IsOpen W := hO.connectedComponentIn
+  have hWcl : ∀ z ∈ Ω, z ∈ closure W → z ∈ W := by
+    intro z hzΩ hzcl
+    have hzC : z ∉ C := fun hzC => by
+      have : z ∈ closure W ∩ C := ⟨hzcl, hzC⟩
+      rw [hcon] at this
+      exact this
+    have hzo : IsOpen (connectedComponentIn (Ω \ C) z) := hO.connectedComponentIn
+    obtain ⟨u, hu1, hu2⟩ := mem_closure_iff.1 hzcl _ hzo (mem_connectedComponentIn ⟨hzΩ, hzC⟩)
+    have e1 := connectedComponentIn_eq hu1
+    have e2 := connectedComponentIn_eq hu2
+    rw [hWdef, e2, ← e1]
+    exact mem_connectedComponentIn ⟨hzΩ, hzC⟩
+  obtain ⟨c, hc⟩ := car3_crosscut_nonempty h
+  have hcW : c ∉ closure W := fun hcW => by
+    have : c ∈ closure W ∩ C := ⟨hcW, hc⟩
+    rw [hcon] at this
+    exact this
+  have hcov : Ω ⊆ W ∪ (closure W)ᶜ := by
+    intro z hz
+    by_cases hzcl : z ∈ closure W
+    · exact Or.inl (hWcl z hz hzcl)
+    · exact Or.inr hzcl
+  obtain ⟨z, -, hzW, hzW'⟩ := hΩc W (closure W)ᶜ hWo isClosed_closure.isOpen_compl hcov
+    ⟨x, hx.1, mem_connectedComponentIn hx⟩ ⟨c, car3_crosscut_subset h hc, hcW⟩
+  exact hzW' (subset_closure hzW)
+
+/-- A chain end is a single component: that of any point of the next crosscut. -/
+theorem car3_chainEnd_eq {Ω : Set ℂ} {C : ℕ → Set ℂ} (hC : IsNullChain Ω C) (n : ℕ) {y : ℂ}
+    (hy : y ∈ C (n + 1)) : chainEnd Ω C n = connectedComponentIn (Ω \ C n) y := by
+  obtain ⟨hcc, hdisj, -, -⟩ := hC
+  have hsub : C (n + 1) ⊆ Ω \ C n := fun z hz =>
+    ⟨car3_crosscut_subset (hcc (n + 1)) hz,
+      fun hzn => disjoint_left.1 (hdisj n) (subset_closure hzn) (subset_closure hz)⟩
+  have hcomp : C (n + 1) ⊆ connectedComponentIn (Ω \ C n) y :=
+    (car3_crosscut_isPreconnected (hcc (n + 1))).subset_connectedComponentIn hy hsub
+  apply Subset.antisymm
+  · intro z hz
+    simp only [chainEnd, mem_iUnion] at hz
+    obtain ⟨y', hy', hz⟩ := hz
+    rw [connectedComponentIn_eq (hcomp hy')]
+    exact hz
+  · intro z hz
+    exact mem_iUnion₂.2 ⟨y, hy, hz⟩
+
+/-- A point of the crosscut `Cₙ₊₁` of a null-chain lies in `Ω ∖ Cₙ`. -/
+theorem car3_mem_diff_of_succ {Ω : Set ℂ} {C : ℕ → Set ℂ} (hC : IsNullChain Ω C) (n : ℕ) {y : ℂ}
+    (hy : y ∈ C (n + 1)) : y ∈ Ω \ C n :=
+  ⟨car3_crosscut_subset (hC.1 (n + 1)) hy,
+    fun hyn => disjoint_left.1 (hC.2.1 n) (subset_closure hyn) (subset_closure hy)⟩
+
+/-- **Nesting of the ends** of a null-chain of an open connected `Ω`, `Vₙ₊₁ ⊆ Vₙ`, from the null-chain clauses alone
+(no crosscut separation theorem). -/
+theorem car3_chainEnd_succ_subset {Ω : Set ℂ} (hΩo : IsOpen Ω) (hΩc : IsPreconnected Ω)
+    {C : ℕ → Set ℂ} (hC : IsNullChain Ω C) (n : ℕ) : chainEnd Ω C (n + 1) ⊆ chainEnd Ω C n := by
+  have hC' := hC
+  obtain ⟨hcc, hdisj, hsep, -⟩ := hC
+  obtain ⟨y1, hy1⟩ := car3_crosscut_nonempty (hcc (n + 1))
+  obtain ⟨y2, hy2⟩ := car3_crosscut_nonempty (hcc (n + 2))
+  obtain ⟨x0, hx0⟩ := car3_crosscut_nonempty (hcc 0)
+  rw [car3_chainEnd_eq hC' (n + 1) hy2, car3_chainEnd_eq hC' n hy1]
+  set V₁ := connectedComponentIn (Ω \ C (n + 1)) y2 with hV₁
+  have hy2' : y2 ∈ Ω \ C (n + 1) := car3_mem_diff_of_succ hC' (n + 1) hy2
+  have hsep1 := (hsep (n + 1) (by omega)).2
+  -- `V₁` misses `C n`
+  have hmiss : ∀ x ∈ C n, x ∉ V₁ := by
+    intro x hxn hxV
+    rcases Nat.eq_zero_or_pos n with h0 | hpos
+    · subst h0
+      exact hsep1 x hxn y2 hy2 (connectedComponentIn_eq hxV).symm
+    · have hsep0 := (hsep n hpos)
+      have hx0n : x0 ∈ Ω \ C n := ⟨car3_crosscut_subset (hcc 0) hx0, disjoint_left.1 hsep0.1 hx0⟩
+      set W0 := connectedComponentIn (Ω \ C n) x0 with hW0
+      obtain ⟨c, hcW, hcn⟩ := car3_closure_cc_inter hΩo hΩc (hcc n) hx0n
+      have hT : IsPreconnected ((W0 ∪ {c}) ∪ C n) := by
+        have h1 : IsPreconnected (W0 ∪ {c}) :=
+          isPreconnected_connectedComponentIn.subset_closure subset_union_left
+            (union_subset subset_closure (singleton_subset_iff.2 hcW))
+        exact h1.union' ⟨c, Or.inr rfl, hcn⟩ (car3_crosscut_isPreconnected (hcc n))
+      have hC1comp : C (n + 1) ⊆ connectedComponentIn (Ω \ C n) y1 :=
+        (car3_crosscut_isPreconnected (hcc (n + 1))).subset_connectedComponentIn hy1
+          (fun z hz => car3_mem_diff_of_succ hC' n hz)
+      have hTsub : (W0 ∪ {c}) ∪ C n ⊆ Ω \ C (n + 1) := by
+        rintro z ((hz | hz) | hz)
+        · refine ⟨(connectedComponentIn_subset _ _ hz).1, fun hz1 => ?_⟩
+          have e1 : W0 = connectedComponentIn (Ω \ C n) z := connectedComponentIn_eq hz
+          have e2 := connectedComponentIn_eq (hC1comp hz1)
+          exact hsep0.2 x0 hx0 y1 hy1 (by rw [← hW0, e1, e2])
+        · rw [mem_singleton_iff.1 hz]
+          exact ⟨car3_crosscut_subset (hcc n) hcn,
+            fun h1 => disjoint_left.1 (hdisj n) (subset_closure hcn) (subset_closure h1)⟩
+        · exact ⟨car3_crosscut_subset (hcc n) hz,
+            fun h1 => disjoint_left.1 (hdisj n) (subset_closure hz) (subset_closure h1)⟩
+      have hTcc :=
+        hT.subset_connectedComponentIn (Or.inl (Or.inl (mem_connectedComponentIn hx0n))) hTsub
+      have hxT : x ∈ connectedComponentIn (Ω \ C (n + 1)) x0 := hTcc (Or.inr hxn)
+      have e1 := connectedComponentIn_eq hxT
+      have e2 := connectedComponentIn_eq hxV
+      exact hsep1 x0 hx0 y2 hy2 (by rw [e1, ← e2])
+  -- `V₁` meets `V₀` near `C (n+1)`
+  have hV₀o : IsOpen (connectedComponentIn (Ω \ C n) y1) :=
+    (car3_isOpen_diff_crosscut hΩo (hcc n)).connectedComponentIn
+  have hC1comp : C (n + 1) ⊆ connectedComponentIn (Ω \ C n) y1 :=
+    (car3_crosscut_isPreconnected (hcc (n + 1))).subset_connectedComponentIn hy1
+      (fun z hz => car3_mem_diff_of_succ hC' n hz)
+  obtain ⟨c', hc'cl, hc'⟩ := car3_closure_cc_inter hΩo hΩc (hcc (n + 1)) hy2'
+  obtain ⟨u, hu0, hu1⟩ := mem_closure_iff.1 hc'cl _ hV₀o (hC1comp hc')
+  have hV₁sub : V₁ ⊆ Ω \ C n := fun z hz =>
+    ⟨(connectedComponentIn_subset _ _ hz).1, fun hzn => hmiss z hzn hz⟩
+  have h := isPreconnected_connectedComponentIn.subset_connectedComponentIn hu1 hV₁sub
+  rw [← connectedComponentIn_eq hu0] at h
+  exact h
+
 /-- The impression of a null-chain of a bounded simply connected domain is a nonempty compact
 connected subset of `∂Ω`.
 
-Not proved (kept as `sorry`): that the ends leave every compact subset of `Ω` needs the
-separation properties of crosscuts. -/
+Proof (s21r, 2026-09-27): the null-chain clauses alone give the nesting `chainEnd (n+1) ⊆ chainEnd n`
+(a clopen argument in the connected `Ω`), so the impression is a decreasing intersection of continua
+(`isPreconnected_iInter_of_antitone_isCompact`); it misses `Ω`: a point `z ∈ Ω` of the impression is joined to `C₀`
+by a path in `Ω`, which a late crosscut `Cₙ` (small diameter, endpoints on `∂Ω`) misses, so `C₀` would meet the end
+`Vₙ`, against the separation clause.  No crosscut separation theorem is needed. -/
 theorem chainImpression_isCompact_isConnected {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω)
     {f : ℂ → ℂ} (hf : IsConformalOnto f unitDisc Ω) {C : ℕ → Set ℂ} (hC : IsNullChain Ω C) :
     IsCompact (chainImpression Ω C) ∧ IsConnected (chainImpression Ω C) ∧
       chainImpression Ω C ⊆ frontier Ω := by
-  sorry
+  have hΩo : IsOpen Ω := hf.isOpen isOpen_ball
+  have hΩc : IsPreconnected Ω := by
+    rw [← hf.2.2]
+    exact (convex_ball (0 : ℂ) 1).isPreconnected.image f hf.1.continuousOn
+  set K : ℕ → Set ℂ := fun n => closure (chainEnd Ω C n) with hK
+  have hEsub : ∀ n, chainEnd Ω C n ⊆ Ω := fun n =>
+    iUnion₂_subset fun y _ => (connectedComponentIn_subset _ _).trans Set.sdiff_subset
+  have hKc : ∀ n, IsCompact (K n) := fun n => (hΩ.subset (hEsub n)).isCompact_closure
+  have hKd : ∀ n, K (n + 1) ⊆ K n := fun n => closure_mono (car3_chainEnd_succ_subset hΩo hΩc hC n)
+  have hKne : ∀ n, (K n).Nonempty := fun n => by
+    obtain ⟨y, hy⟩ := car3_crosscut_nonempty (hC.1 (n + 1))
+    refine ⟨y, subset_closure ?_⟩
+    rw [car3_chainEnd_eq hC n hy]
+    exact mem_connectedComponentIn (car3_mem_diff_of_succ hC n hy)
+  have hKp : ∀ n, IsPreconnected (K n) := fun n => by
+    obtain ⟨y, hy⟩ := car3_crosscut_nonempty (hC.1 (n + 1))
+    show IsPreconnected (closure (chainEnd Ω C n))
+    rw [car3_chainEnd_eq hC n hy]
+    exact isPreconnected_connectedComponentIn.closure
+  have hI : chainImpression Ω C = ⋂ n, K n := rfl
+  refine ⟨?_, ⟨?_, ?_⟩, ?_⟩
+  · rw [hI]
+    exact (hKc 0).of_isClosed_subset (isClosed_iInter fun n => isClosed_closure) (iInter_subset _ 0)
+  · rw [hI]
+    exact IsCompact.nonempty_iInter_of_sequence_nonempty_isCompact_isClosed K hKd hKne (hKc 0)
+      (fun n => isClosed_closure)
+  · rw [hI]
+    exact isPreconnected_iInter_of_antitone_isCompact hKd hKc hKp
+  · intro z hz
+    rw [hI, mem_iInter] at hz
+    have hzcl : z ∈ closure Ω := closure_mono (hEsub 0) (hz 0)
+    rw [hΩo.frontier_eq]
+    refine ⟨hzcl, fun hzΩ => ?_⟩
+    have hcc := hC.1
+    have hsep := hC.2.2.1
+    have hdiam := hC.2.2.2
+    obtain ⟨x0, hx0⟩ := car3_crosscut_nonempty (hcc 0)
+    have hx0Ω : x0 ∈ Ω := car3_crosscut_subset (hcc 0) hx0
+    -- a path from `z` to `x0` in `Ω`, and a margin `δ` around it
+    have hΩconn : IsConnected Ω := ⟨⟨z, hzΩ⟩, hΩc⟩
+    have hJ : JoinedIn Ω z x0 :=
+      (hΩo.isConnected_iff_isPathConnected.1 hΩconn).joinedIn z hzΩ x0 hx0Ω
+    set P := hJ.somePath with hP
+    have hPΩ : ∀ t, P t ∈ Ω := hJ.somePath_mem
+    have hPc : IsCompact (range P) := isCompact_range P.continuous
+    obtain ⟨δ, hδ, hδsub⟩ := hPc.exists_cthickening_subset_open hΩo (range_subset_iff.2 hPΩ)
+    -- a late crosscut misses the path
+    obtain ⟨n, hn1, hnd⟩ : ∃ n, 1 ≤ n ∧ Metric.diam (C n) < δ := by
+      obtain ⟨N, hN⟩ := (hdiam.eventually_lt_const hδ).exists_forall_of_atTop
+      exact ⟨max N 1, le_max_right _ _, hN _ (le_max_left _ _)⟩
+    have hmiss : ∀ t, P t ∉ C n := by
+      intro t hPt
+      obtain ⟨γ, hγc, -, hγC, -, h0, -⟩ := hcc n
+      have hγ0 : γ 0 ∈ closure (C n) := by
+        have hc : ContinuousOn γ (closure (Ioo (0 : ℝ) 1)) := by rwa [closure_Ioo zero_ne_one]
+        rw [← hγC]
+        exact hc.image_closure ⟨0, by rw [closure_Ioo zero_ne_one]; exact ⟨le_rfl, zero_le_one⟩, rfl⟩
+      have hbd : Bornology.IsBounded (C n) := hΩ.subset (car3_crosscut_subset (hcc n))
+      have hd : dist (P t) (γ 0) ≤ Metric.diam (C n) := by
+        rw [← Metric.diam_closure]
+        exact Metric.dist_le_diam_of_mem hbd.closure (subset_closure hPt) hγ0
+      have hmem : γ 0 ∈ cthickening δ (range P) :=
+        mem_cthickening_of_dist_le _ _ δ _ ⟨t, rfl⟩ (by rw [dist_comm]; linarith)
+      have h0Ω := hδsub hmem
+      rw [hΩo.frontier_eq] at h0
+      exact h0.2 h0Ω
+    have hrange : range P ⊆ Ω \ C n := range_subset_iff.2 fun t => ⟨hPΩ t, hmiss t⟩
+    have hx0cc : x0 ∈ connectedComponentIn (Ω \ C n) z := by
+      have := (isPreconnected_range P.continuous).subset_connectedComponentIn (x := z)
+        ⟨0, P.source⟩ hrange
+      exact this ⟨1, P.target⟩
+    obtain ⟨y, hy⟩ := car3_crosscut_nonempty (hcc (n + 1))
+    have hzK : z ∈ closure (chainEnd Ω C n) := hz n
+    rw [car3_chainEnd_eq hC n hy] at hzK
+    have hzn : z ∈ Ω \ C n := ⟨hzΩ, by have := hmiss 0; rwa [P.source] at this⟩
+    have hzo : IsOpen (connectedComponentIn (Ω \ C n) z) :=
+      (car3_isOpen_diff_crosscut hΩo (hcc n)).connectedComponentIn
+    obtain ⟨u, hu1, hu2⟩ := mem_closure_iff.1 hzK _ hzo (mem_connectedComponentIn hzn)
+    have e1 := connectedComponentIn_eq hu1
+    have e2 := connectedComponentIn_eq hu2
+    have e3 := connectedComponentIn_eq hx0cc
+    exact (hsep n hn1).2 x0 hx0 y hy (by rw [← e3, e1, ← e2])
 
-/-- A **principal point** of a prime end `p`: a point of its impression every neighbourhood of
-which contains a crosscut of some null-chain representing `p`. -/
+/-- A **principal point** of a prime end `p`: the limit of some null-chain representing `p`, i.e.
+the crosscuts of that chain eventually lie in every ball around `w`.
+
+Correction (2026-09-27, user-approved): the earlier definition asked, for each `ε`, only for ONE
+crosscut (of any index, `n = 0` included) of some representing chain inside `B(w, ε)`.  That
+makes every point of the impression principal (put a small pocket crosscut of a comb domain at
+index `0` or `1`), so `caratheodory_primeEnd_principal` was false. -/
 def IsPrincipalPoint (Ω : Set ℂ) (p : PrimeEnd Ω) (w : ℂ) : Prop :=
-  (∀ c : {C : ℕ → Set ℂ // IsNullChain Ω C}, Quot.mk _ c = p → w ∈ chainImpression Ω c.1) ∧
-    ∀ ε > (0 : ℝ), ∃ c : {C : ℕ → Set ℂ // IsNullChain Ω C}, Quot.mk _ c = p ∧
-      ∃ n, c.1 n ⊆ ball w ε
-
-/-- The principal points of a prime end form a nonempty compact connected set.
-
-Not proved (kept as `sorry`): Carathéodory's theory of principal points. -/
-theorem principalPoints_isCompact_isConnected {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω)
-    {f : ℂ → ℂ} (hf : IsConformalOnto f unitDisc Ω) (p : PrimeEnd Ω) :
-    IsCompact {w | IsPrincipalPoint Ω p w} ∧ IsConnected {w | IsPrincipalPoint Ω p w} := by
-  sorry
-
-/-- **Theorem (Carathéodory, prime-end form).**  For a conformal map `f` of the disc onto a bounded
-domain `Ω`, the prime ends of `Ω` correspond bijectively to the points of the unit circle, the
-prime end at `ζ` having impression equal to the cluster set of `f` at `ζ`.
-
-Not proved (kept as `sorry`): the full prime-end theory. -/
-theorem caratheodory_primeEnd {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω) {f : ℂ → ℂ}
-    (hf : IsConformalOnto f unitDisc Ω) :
-    ∃ P : Circle → PrimeEnd Ω, Function.Bijective P ∧
-      ∀ ζ : Circle, ∀ c : {C : ℕ → Set ℂ // IsNullChain Ω C}, Quot.mk _ c = P ζ →
-        chainImpression Ω c.1 = clusterSet f unitDisc ζ := by
-  sorry
-
-/-- **Local connectivity and impressions.**  The boundary of a bounded simply connected domain is
-locally connected iff every null-chain has a one-point impression.
-
-Not proved (kept as `sorry`): it combines Theorem C1 with `caratheodory_primeEnd`. -/
-theorem locallyConnectedSpace_frontier_iff {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω)
-    {f : ℂ → ℂ} (hf : IsConformalOnto f unitDisc Ω) :
-    LocallyConnectedSpace (frontier Ω) ↔
-      ∀ C : ℕ → Set ℂ, IsNullChain Ω C → (chainImpression Ω C).Subsingleton := by
-  sorry
+  ∃ c : {C : ℕ → Set ℂ // IsNullChain Ω C}, Quot.mk _ c = p ∧
+    ∀ ε > (0 : ℝ), ∀ᶠ n in atTop, c.1 n ⊆ ball w ε
 
 end LiZhongQC

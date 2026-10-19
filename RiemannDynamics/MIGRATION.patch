@@ -1,0 +1,30 @@
+--- a/RiemannDynamics/Uniformization/Perron/GreenSymmetry/Transport.lean
++++ b/RiemannDynamics/Uniformization/Perron/GreenSymmetry/Transport.lean
+@@ -96,7 +96,7 @@
+     -- compactness of the shell extracts a single clopen neighborhood
+     obtain ⟨u, hu⟩ := hW'cpt.elim_finite_subfamily_closed
+       (fun Z : {Z : Set K // IsClopen Z ∧ z' ∈ Z} => (Z : Set K))
+-      (fun Z => Z.2.1.isClosed) hdisj
++      (fun Z => Z.2.1.isClosed) (Set.disjoint_iff_inter_eq_empty.mpr hdisj)
+     set A'' : Set K := ⋂ Z ∈ u, (Z : Set K) with hA''def
+     have hA''clopen : IsClopen A'' := by
+       apply Set.Finite.isClopen_biInter u.finite_toSet
+@@ -118,7 +118,7 @@
+       rintro ⟨y, hyA'', rfl⟩ hxW
+       have hmem : y ∈ (Subtype.val ⁻¹' W : Set K) ∩ ⋂ Z ∈ u, (Z : Set K) :=
+         ⟨hxW, hyA''⟩
+-      rw [hu] at hmem
++      rw [Set.disjoint_iff_inter_eq_empty.mp hu] at hmem
+       exact hmem
+     -- `A` is relatively open in `F`
+     obtain ⟨V, hVopen, hVeq⟩ := isOpen_induced_iff.mp hA''clopen.isOpen
+--- a/RiemannDynamics/Uniformization/Perron/BipolarGreen/Pieces.lean
++++ b/RiemannDynamics/Uniformization/Perron/BipolarGreen/Pieces.lean
+@@ -1059,7 +1059,6 @@
+         have hDharm : HarmonicOnNhd (fun w ↦ Q w - V w) (ball cx ρ) := by
+           have := hQharm.sub hVharm
+           convert this using 1
+-          rfl
+         have hDnn : ∀ w ∈ ball cx ρ, 0 ≤ Q w - V w := fun w hw ↦ by
+           linarith [hQgeV w hw]
+         have hD0 : Q (ex x) - V (ex x) = 0 := by rw [hQcx, hVcx, sub_self]

@@ -1408,21 +1408,322 @@ theorem thm17_2_beurling_ahlfors {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymme
   refine isKQC_of_isC1Quasiconformal ⟨isOpen_upperHalf, by nlinarith, hC1, hhom', fun z hz => ?_⟩
   exact ⟨(ba_f2_dilatation hh hz).2.1, (ba_f2_dilatation hh hz).2.2⟩
 
-/-- (17.7): with a suitable choice of the parameter `r`, the Beurling–Ahlfors extension satisfies
-`K ≤ ρ²`. -/
-theorem eq17_7 {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) :
-    ∃ r : ℝ, 0 < r ∧ HasQCExtensionH h (beurlingAhlfors h r) (ρ ^ 2) := by
-  sorry
+/-! ### (17.7) track (s21u P1, prover Q17): the Beurling–Ahlfors extension with `r = 2` has `K ≤ ρ²` -/
 
-/-- (17.13): a `ρ`-quasisymmetric `h` normalized by `h(0) = 0`, `h(1) = 1` satisfies
-`1/(1+ρ) ≤ h(1/2) ≤ ρ/(1+ρ)`. -/
-theorem eq17_13 {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) (h0 : h 0 = 0) (h1 : h 1 = 1) :
+/-- The normalized dilatation defect of the Beurling–Ahlfors map with `r = 2`: with `ξ = b/a`, `A = p/a`, `B = n/b`
+(`a = h(x+y) - h(x)`, `b = h(x) - h(x-y)`, `p`, `n` the one-sided means), the normalized partials are
+`U_x = (1+ξ)/2`, `U_y = (1-ξ)/2 - (A - ξB)/2`, `V_x = 1 - ξ`, `V_y = (1+ξ) - (A + ξB)`, and
+`Dba = ρ²(U_x² + U_y² + V_x² + V_y²) - (ρ⁴ + 1)(U_x V_y - U_y V_x)`; `Dba ≤ 0` means `K ≤ ρ²`. -/
+def s17p_Dba (ρ ξ A B : ℝ) : ℝ :=
+  ρ ^ 2 * (((1 + ξ) / 2) ^ 2 + ((1 - ξ) / 2 - (A - ξ * B) / 2) ^ 2 + (1 - ξ) ^ 2 +
+      ((1 + ξ) - (A + ξ * B)) ^ 2)
+    - (ρ ^ 4 + 1) * (((1 + ξ) / 2) * ((1 + ξ) - (A + ξ * B)) - ((1 - ξ) / 2 - (A - ξ * B) / 2) * (1 - ξ))
+
+/-- A quadratic with nonnegative leading coefficient is bounded on `[lo, hi]` by its endpoint values. -/
+theorem s17p_quad_le_max {f : ℝ → ℝ} {α lo hi t : ℝ} (hα : 0 ≤ α) (hlo : lo ≤ t) (hhi : t ≤ hi)
+    (hid : (hi - t) * f lo + (t - lo) * f hi - (hi - lo) * f t =
+      α * (t - lo) * (hi - t) * (hi - lo)) :
+    f t ≤ max (f lo) (f hi) := by
+  rcases eq_or_lt_of_le (hlo.trans hhi) with heq | hlt
+  · have h1 : t = lo := le_antisymm (heq ▸ hhi) hlo
+    rw [h1]
+    exact le_max_left _ _
+  · have hpos : 0 < hi - lo := sub_pos.2 hlt
+    have hM1 : f lo ≤ max (f lo) (f hi) := le_max_left _ _
+    have hM2 : f hi ≤ max (f lo) (f hi) := le_max_right _ _
+    have h3 : 0 ≤ α * (t - lo) * (hi - t) * (hi - lo) :=
+      mul_nonneg (mul_nonneg (mul_nonneg hα (sub_nonneg.2 hlo)) (sub_nonneg.2 hhi)) hpos.le
+    have key : (hi - lo) * f t ≤ (hi - lo) * max (f lo) (f hi) := by
+      nlinarith [mul_le_mul_of_nonneg_left hM1 (sub_nonneg.2 hhi),
+        mul_le_mul_of_nonneg_left hM2 (sub_nonneg.2 hlo)]
+    exact le_of_mul_le_mul_left key hpos
+
+/-- If `D s = -P` with `s > 0` and `P ≥ 0`, then `D ≤ 0`. -/
+theorem s17p_nonpos_of_mul_sq {D s P : ℝ} (hs : 0 < s) (hP : 0 ≤ P) (h : D * s = -P) : D ≤ 0 := by
+  by_contra hc
+  push Not at hc
+  have := mul_pos hc hs
+  linarith
+
+/-- Vertex `ξ = 1/ρ`, `A = 1/(1+ρ)`, `B = 1/(1+ρ)` (`ρ = 1 + t`): `Dba = -P(t)/((1+t)(2+t))²`, `P ≥ 0`. -/
+theorem s17p_v_inv_lo_lo {t : ℝ} (ht : 0 ≤ t) :
+    s17p_Dba (1 + t) (1 / (1 + t)) (1 / (1 + (1 + t))) (1 / (1 + (1 + t))) ≤ 0 := by
+  have h1 : (0 : ℝ) < 1 + t := by linarith
+  have h2 : (0 : ℝ) < 1 + (1 + t) := by linarith
+  refine s17p_nonpos_of_mul_sq (s := ((1 + t) * (1 + (1 + t))) ^ 2) (by positivity)
+    (P := (35/4:ℝ) * t^2 + (33:ℝ) * t^3 + (197/4:ℝ) * t^4 + (73/2:ℝ) * t^5 + (27/2:ℝ) * t^6 + (2:ℝ) * t^7)
+    (by positivity) ?_
+  unfold s17p_Dba
+  field_simp
+  ring
+
+/-- Vertex `ξ = 1/ρ`, `A = 1/(1+ρ)`, `B = ρ/(1+ρ)` (`ρ = 1 + t`): `Dba = -P(t)/((1+t)(2+t))²`, `P ≥ 0`. -/
+theorem s17p_v_inv_lo_hi {t : ℝ} (ht : 0 ≤ t) :
+    s17p_Dba (1 + t) (1 / (1 + t)) (1 / (1 + (1 + t))) ((1 + t) / (1 + (1 + t))) ≤ 0 := by
+  have h1 : (0 : ℝ) < 1 + t := by linarith
+  have h2 : (0 : ℝ) < 1 + (1 + t) := by linarith
+  refine s17p_nonpos_of_mul_sq (s := ((1 + t) * (1 + (1 + t))) ^ 2) (by positivity)
+    (P := (7:ℝ) * t^2 + (21:ℝ) * t^3 + (53/2:ℝ) * t^4 + (18:ℝ) * t^5 + (13/2:ℝ) * t^6 + (1:ℝ) * t^7)
+    (by positivity) ?_
+  unfold s17p_Dba
+  field_simp
+  ring
+
+/-- Vertex `ξ = 1/ρ`, `A = ρ/(1+ρ)`, `B = 1/(1+ρ)` (`ρ = 1 + t`): `Dba = -P(t)/((1+t)(2+t))²`, `P ≥ 0`. -/
+theorem s17p_v_inv_hi_lo {t : ℝ} (ht : 0 ≤ t) :
+    s17p_Dba (1 + t) (1 / (1 + t)) ((1 + t) / (1 + (1 + t))) (1 / (1 + (1 + t))) ≤ 0 := by
+  have h1 : (0 : ℝ) < 1 + t := by linarith
+  have h2 : (0 : ℝ) < 1 + (1 + t) := by linarith
+  refine s17p_nonpos_of_mul_sq (s := ((1 + t) * (1 + (1 + t))) ^ 2) (by positivity)
+    (P := (12:ℝ) * t^2 + (36:ℝ) * t^3 + (171/4:ℝ) * t^4 + (51/2:ℝ) * t^5 + (31/4:ℝ) * t^6 + (1:ℝ) * t^7)
+    (by positivity) ?_
+  unfold s17p_Dba
+  field_simp
+  ring
+
+/-- Vertex `ξ = 1/ρ`, `A = ρ/(1+ρ)`, `B = ρ/(1+ρ)` (`ρ = 1 + t`): `Dba = -P(t)/((1+t)(2+t))²`, `P ≥ 0`. -/
+theorem s17p_v_inv_hi_hi {t : ℝ} (ht : 0 ≤ t) :
+    s17p_Dba (1 + t) (1 / (1 + t)) ((1 + t) / (1 + (1 + t))) ((1 + t) / (1 + (1 + t))) ≤ 0 := by
+  have h1 : (0 : ℝ) < 1 + t := by linarith
+  have h2 : (0 : ℝ) < 1 + (1 + t) := by linarith
+  refine s17p_nonpos_of_mul_sq (s := ((1 + t) * (1 + (1 + t))) ^ 2) (by positivity)
+    (P := (35/4:ℝ) * t^2 + (39/2:ℝ) * t^3 + (31/2:ℝ) * t^4 + (11/2:ℝ) * t^5 + (3/4:ℝ) * t^6)
+    (by positivity) ?_
+  unfold s17p_Dba
+  field_simp
+  ring
+
+/-- Vertex `ξ = ρ`, `A = 1/(1+ρ)`, `B = 1/(1+ρ)` (`ρ = 1 + t`): `Dba = -P(t)/((1+t)(2+t))²`, `P ≥ 0`. -/
+theorem s17p_v_rho_lo_lo {t : ℝ} (ht : 0 ≤ t) :
+    s17p_Dba (1 + t) (1 + t) (1 / (1 + (1 + t))) (1 / (1 + (1 + t))) ≤ 0 := by
+  have h1 : (0 : ℝ) < 1 + t := by linarith
+  have h2 : (0 : ℝ) < 1 + (1 + t) := by linarith
+  refine s17p_nonpos_of_mul_sq (s := ((1 + t) * (1 + (1 + t))) ^ 2) (by positivity)
+    (P := (35/4:ℝ) * t^2 + (101/2:ℝ) * t^3 + (124:ℝ) * t^4 + (168:ℝ) * t^5 + (543/4:ℝ) * t^6 +
+      (131/2:ℝ) * t^7 + (35/2:ℝ) * t^8 + (2:ℝ) * t^9)
+    (by positivity) ?_
+  unfold s17p_Dba
+  field_simp
+  ring
+
+/-- Vertex `ξ = ρ`, `A = 1/(1+ρ)`, `B = ρ/(1+ρ)` (`ρ = 1 + t`): `Dba = -P(t)/((1+t)(2+t))²`, `P ≥ 0`. -/
+theorem s17p_v_rho_lo_hi {t : ℝ} (ht : 0 ≤ t) :
+    s17p_Dba (1 + t) (1 + t) (1 / (1 + (1 + t))) ((1 + t) / (1 + (1 + t))) ≤ 0 := by
+  have h1 : (0 : ℝ) < 1 + t := by linarith
+  have h2 : (0 : ℝ) < 1 + (1 + t) := by linarith
+  refine s17p_nonpos_of_mul_sq (s := ((1 + t) * (1 + (1 + t))) ^ 2) (by positivity)
+    (P := (12:ℝ) * t^2 + (60:ℝ) * t^3 + (507/4:ℝ) * t^4 + (147:ℝ) * t^5 + (203/2:ℝ) * t^6 +
+      (42:ℝ) * t^7 + (39/4:ℝ) * t^8 + (1:ℝ) * t^9)
+    (by positivity) ?_
+  unfold s17p_Dba
+  field_simp
+  ring
+
+/-- Vertex `ξ = ρ`, `A = ρ/(1+ρ)`, `B = 1/(1+ρ)` (`ρ = 1 + t`): `Dba = -P(t)/((1+t)(2+t))²`, `P ≥ 0`. -/
+theorem s17p_v_rho_hi_lo {t : ℝ} (ht : 0 ≤ t) :
+    s17p_Dba (1 + t) (1 + t) ((1 + t) / (1 + (1 + t))) (1 / (1 + (1 + t))) ≤ 0 := by
+  have h1 : (0 : ℝ) < 1 + t := by linarith
+  have h2 : (0 : ℝ) < 1 + (1 + t) := by linarith
+  refine s17p_nonpos_of_mul_sq (s := ((1 + t) * (1 + (1 + t))) ^ 2) (by positivity)
+    (P := (7:ℝ) * t^2 + (35:ℝ) * t^3 + (151/2:ℝ) * t^4 + (92:ℝ) * t^5 + (69:ℝ) * t^6 +
+      (32:ℝ) * t^7 + (17/2:ℝ) * t^8 + (1:ℝ) * t^9)
+    (by positivity) ?_
+  unfold s17p_Dba
+  field_simp
+  ring
+
+/-- Vertex `ξ = ρ`, `A = ρ/(1+ρ)`, `B = ρ/(1+ρ)` (`ρ = 1 + t`): `Dba = -P(t)/((1+t)(2+t))²`, `P ≥ 0`. -/
+theorem s17p_v_rho_hi_hi {t : ℝ} (ht : 0 ≤ t) :
+    s17p_Dba (1 + t) (1 + t) ((1 + t) / (1 + (1 + t))) ((1 + t) / (1 + (1 + t))) ≤ 0 := by
+  have h1 : (0 : ℝ) < 1 + t := by linarith
+  have h2 : (0 : ℝ) < 1 + (1 + t) := by linarith
+  refine s17p_nonpos_of_mul_sq (s := ((1 + t) * (1 + (1 + t))) ^ 2) (by positivity)
+    (P := (35/4:ℝ) * t^2 + (37:ℝ) * t^3 + (253/4:ℝ) * t^4 + (56:ℝ) * t^5 + (109/4:ℝ) * t^6 +
+      (7:ℝ) * t^7 + (3/4:ℝ) * t^8)
+    (by positivity) ?_
+  unfold s17p_Dba
+  field_simp
+  ring
+
+/-- `Dba` is a convex quadratic in `ξ`: on `[1/ρ, ρ]` it is bounded by its endpoint values. -/
+theorem s17p_step_xi {ρ ξ A B : ℝ} (hρ : 0 < ρ) (h1 : 1 / ρ ≤ ξ) (h2 : ξ ≤ ρ) :
+    s17p_Dba ρ ξ A B ≤ max (s17p_Dba ρ (1 / ρ) A B) (s17p_Dba ρ ρ A B) :=
+  s17p_quad_le_max (f := fun ξ => s17p_Dba ρ ξ A B) (α := 5 * ρ ^ 2 * (1 + (1 - B) ^ 2) / 4) (by positivity)
+    h1 h2 (by simp only [s17p_Dba]; ring)
+
+/-- `Dba` is a convex quadratic in `B`: on `[lo, hi]` it is bounded by its endpoint values. -/
+theorem s17p_step_B {ρ ξ A B lo hi : ℝ} (h1 : lo ≤ B) (h2 : B ≤ hi) :
+    s17p_Dba ρ ξ A B ≤ max (s17p_Dba ρ ξ A lo) (s17p_Dba ρ ξ A hi) :=
+  s17p_quad_le_max (f := fun B => s17p_Dba ρ ξ A B) (α := 5 * ρ ^ 2 * ξ ^ 2 / 4) (by positivity)
+    h1 h2 (by simp only [s17p_Dba]; ring)
+
+/-- `Dba` is a convex quadratic in `A`: on `[lo, hi]` it is bounded by its endpoint values. -/
+theorem s17p_step_A {ρ ξ A B lo hi : ℝ} (h1 : lo ≤ A) (h2 : A ≤ hi) :
+    s17p_Dba ρ ξ A B ≤ max (s17p_Dba ρ ξ lo B) (s17p_Dba ρ ξ hi B) :=
+  s17p_quad_le_max (f := fun A => s17p_Dba ρ ξ A B) (α := 5 * ρ ^ 2 / 4) (by positivity)
+    h1 h2 (by simp only [s17p_Dba]; ring)
+
+/-- **The algebraic core of (17.7)**: on the box `ξ ∈ [1/ρ, ρ]`, `A, B ∈ [1/(1+ρ), ρ/(1+ρ)]`, `Dba ≤ 0`, i.e. the
+Beurling–Ahlfors map with `r = 2` has `K + 1/K ≤ ρ² + ρ⁻²` (separate convexity reduces to the 8 vertices). -/
+theorem s17p_ba_core {ρ ξ A B : ℝ} (hρ : 1 ≤ ρ) (hξ1 : 1 / ρ ≤ ξ) (hξ2 : ξ ≤ ρ)
+    (hA1 : 1 / (1 + ρ) ≤ A) (hA2 : A ≤ ρ / (1 + ρ)) (hB1 : 1 / (1 + ρ) ≤ B) (hB2 : B ≤ ρ / (1 + ρ)) :
+    s17p_Dba ρ ξ A B ≤ 0 := by
+  obtain ⟨t, ht, rfl⟩ : ∃ t, 0 ≤ t ∧ ρ = 1 + t := ⟨ρ - 1, by linarith, by ring⟩
+  have hρ0 : (0 : ℝ) < 1 + t := by linarith
+  have hvx : ∀ A' B' : ℝ, (A' = 1 / (1 + (1 + t)) ∨ A' = (1 + t) / (1 + (1 + t))) →
+      (B' = 1 / (1 + (1 + t)) ∨ B' = (1 + t) / (1 + (1 + t))) → s17p_Dba (1 + t) ξ A' B' ≤ 0 := by
+    intro A' B' hA' hB'
+    refine (s17p_step_xi hρ0 hξ1 hξ2).trans (max_le ?_ ?_) <;>
+      rcases hA' with rfl | rfl <;> rcases hB' with rfl | rfl
+    exacts [s17p_v_inv_lo_lo ht, s17p_v_inv_lo_hi ht, s17p_v_inv_hi_lo ht, s17p_v_inv_hi_hi ht,
+      s17p_v_rho_lo_lo ht, s17p_v_rho_lo_hi ht, s17p_v_rho_hi_lo ht, s17p_v_rho_hi_hi ht]
+  have hvB : ∀ A' : ℝ, (A' = 1 / (1 + (1 + t)) ∨ A' = (1 + t) / (1 + (1 + t))) →
+      s17p_Dba (1 + t) ξ A' B ≤ 0 := fun A' hA' =>
+    (s17p_step_B hB1 hB2).trans (max_le (hvx A' _ hA' (Or.inl rfl)) (hvx A' _ hA' (Or.inr rfl)))
+  exact (s17p_step_A hA1 hA2).trans (max_le (hvB _ (Or.inl rfl)) (hvB _ (Or.inr rfl)))
+
+/-- (17.7) in the raw variables `A₁ = h(x+y)`, `B₁ = h(x-y)`, `C₁ = h(x)`, `I₊ = ∫_x^{x+y} h`, `I₋ = ∫_{x-y}^x h`: under
+the quasisymmetry bounds at `x` and the mean-value bounds, the partials of `beurlingAhlfors h 2`
+(`u_x`, `u_y`, `v_x`, `v_y`, from `ba_f1_partials` with `v` doubled) satisfy
+`ρ²(u_x² + u_y² + v_x² + v_y²) ≤ (ρ⁴ + 1)(u_x v_y - u_y v_x)` and `u_x v_y - u_y v_x > 0`. -/
+theorem s17p_alg {ρ y A1 B1 C1 Ip Im : ℝ} (hρ : 1 ≤ ρ) (hy : 0 < y) (hBC : B1 < C1) (hCA : C1 < A1)
+    (hq1 : A1 - C1 ≤ ρ * (C1 - B1)) (hq2 : C1 - B1 ≤ ρ * (A1 - C1))
+    (hP1 : 1 / (1 + ρ) * (A1 - C1) ≤ Ip / y - C1) (hP2 : Ip / y - C1 ≤ ρ / (1 + ρ) * (A1 - C1))
+    (hN1 : 1 / (1 + ρ) * (C1 - B1) ≤ C1 - Im / y) (hN2 : C1 - Im / y ≤ ρ / (1 + ρ) * (C1 - B1)) :
+    ρ ^ 2 * (((A1 - B1) / (2 * y)) ^ 2 + ((A1 + B1) / (2 * y) - (Im + Ip) / (2 * y ^ 2)) ^ 2 +
+        (2 * ((A1 - 2 * C1 + B1) / (2 * y))) ^ 2 +
+        (2 * ((A1 - B1) / (2 * y) - (Ip - Im) / (2 * y ^ 2))) ^ 2) ≤
+      (ρ ^ 4 + 1) * ((A1 - B1) / (2 * y) * (2 * ((A1 - B1) / (2 * y) - (Ip - Im) / (2 * y ^ 2))) -
+        ((A1 + B1) / (2 * y) - (Im + Ip) / (2 * y ^ 2)) * (2 * ((A1 - 2 * C1 + B1) / (2 * y)))) ∧
+    0 < (A1 - B1) / (2 * y) * (2 * ((A1 - B1) / (2 * y) - (Ip - Im) / (2 * y ^ 2))) -
+        ((A1 + B1) / (2 * y) - (Im + Ip) / (2 * y ^ 2)) * (2 * ((A1 - 2 * C1 + B1) / (2 * y))) := by
+  have ha : 0 < A1 - C1 := sub_pos.2 hCA
+  have hb : 0 < C1 - B1 := sub_pos.2 hBC
+  have hρ0 : 0 < ρ := by linarith
+  have ha0 : A1 - C1 ≠ 0 := ha.ne'
+  have hb0 : C1 - B1 ≠ 0 := hb.ne'
+  have hy0 : y ≠ 0 := hy.ne'
+  -- the normalized variables
+  have hξ1 : 1 / ρ ≤ (C1 - B1) / (A1 - C1) := by
+    rw [div_le_div_iff₀ hρ0 ha]
+    linarith
+  have hξ2 : (C1 - B1) / (A1 - C1) ≤ ρ := by
+    rw [div_le_iff₀ ha]
+    linarith
+  have hA1 : 1 / (1 + ρ) ≤ (Ip / y - C1) / (A1 - C1) := by
+    rw [le_div_iff₀ ha]
+    linarith
+  have hA2 : (Ip / y - C1) / (A1 - C1) ≤ ρ / (1 + ρ) := by
+    rw [div_le_iff₀ ha]
+    linarith
+  have hB1 : 1 / (1 + ρ) ≤ (C1 - Im / y) / (C1 - B1) := by
+    rw [le_div_iff₀ hb]
+    linarith
+  have hB2 : (C1 - Im / y) / (C1 - B1) ≤ ρ / (1 + ρ) := by
+    rw [div_le_iff₀ hb]
+    linarith
+  have hcore := s17p_ba_core hρ hξ1 hξ2 hA1 hA2 hB1 hB2
+  have hid : s17p_Dba ρ ((C1 - B1) / (A1 - C1)) ((Ip / y - C1) / (A1 - C1)) ((C1 - Im / y) / (C1 - B1)) *
+      ((A1 - C1) / y) ^ 2 =
+      ρ ^ 2 * (((A1 - B1) / (2 * y)) ^ 2 + ((A1 + B1) / (2 * y) - (Im + Ip) / (2 * y ^ 2)) ^ 2 +
+        (2 * ((A1 - 2 * C1 + B1) / (2 * y))) ^ 2 +
+        (2 * ((A1 - B1) / (2 * y) - (Ip - Im) / (2 * y ^ 2))) ^ 2) -
+      (ρ ^ 4 + 1) * ((A1 - B1) / (2 * y) * (2 * ((A1 - B1) / (2 * y) - (Ip - Im) / (2 * y ^ 2))) -
+        ((A1 + B1) / (2 * y) - (Im + Ip) / (2 * y ^ 2)) * (2 * ((A1 - 2 * C1 + B1) / (2 * y)))) := by
+    unfold s17p_Dba
+    field_simp
+    ring
+  have hsq : 0 < ((A1 - C1) / y) ^ 2 := by positivity
+  have hle := mul_nonpos_of_nonpos_of_nonneg hcore hsq.le
+  rw [hid] at hle
+  have hux : 0 < (A1 - B1) / (2 * y) := div_pos (by linarith) (by positivity)
+  have hS : 0 < ρ ^ 2 * (((A1 - B1) / (2 * y)) ^ 2 + ((A1 + B1) / (2 * y) - (Im + Ip) / (2 * y ^ 2)) ^ 2 +
+        (2 * ((A1 - 2 * C1 + B1) / (2 * y))) ^ 2 +
+        (2 * ((A1 - B1) / (2 * y) - (Ip - Im) / (2 * y ^ 2))) ^ 2) := by positivity
+  refine ⟨by linarith, ?_⟩
+  by_contra hcon
+  push Not at hcon
+  have h4 : 0 < ρ ^ 4 + 1 := by positivity
+  nlinarith [mul_le_mul_of_nonneg_left hcon h4.le]
+
+/-- If `|f_z̄| < |f_z|`, `K ≥ 1` and `2K(|f_z|² + |f_z̄|²) ≤ (K² + 1)(|f_z|² - |f_z̄|²)` (i.e. `D + 1/D ≤ K + 1/K`),
+then `D_f ≤ K`: the hypothesis is `((K+1)|f_z̄|)² ≤ ((K-1)|f_z|)²`. -/
+theorem s17p_dq_le {f : ℂ → ℂ} {z : ℂ} {K : ℝ} (hK : 1 ≤ K) (hlt : ‖dzbar f z‖ < ‖dz f z‖)
+    (hle : K * (2 * (‖dz f z‖ ^ 2 + ‖dzbar f z‖ ^ 2)) ≤ (K ^ 2 + 1) * (‖dz f z‖ ^ 2 - ‖dzbar f z‖ ^ 2)) :
+    dilatationQuotient f z ≤ K := by
+  have hB := norm_nonneg (dzbar f z)
+  have hA : 0 < ‖dz f z‖ := hB.trans_lt hlt
+  have hAB : 0 < ‖dz f z‖ - ‖dzbar f z‖ := sub_pos.2 hlt
+  have hD : dilatationQuotient f z = (‖dz f z‖ + ‖dzbar f z‖) / (‖dz f z‖ - ‖dzbar f z‖) := by
+    unfold dilatationQuotient complexDilatation
+    rw [norm_div]
+    field_simp
+  rw [hD, div_le_iff₀ hAB]
+  have hsq : ((K + 1) * ‖dzbar f z‖) ^ 2 ≤ ((K - 1) * ‖dz f z‖) ^ 2 := by nlinarith
+  have h2 : (K + 1) * ‖dzbar f z‖ ≤ (K - 1) * ‖dz f z‖ :=
+    (sq_le_sq₀ (by positivity) (mul_nonneg (by linarith) hA.le)).1 hsq
+  nlinarith
+
+/-- Quasisymmetry is invariant under affine changes of variable: if `h` is `ρ`-quasisymmetric, `α > 0` and `γ > 0`,
+then so is `t ↦ γ (h(αt + β) - δ)` (its ratio `Δ(x, t)` is `Δ_h(αx + β, αt)`). -/
+theorem s17p_qs_affine {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) {α γ : ℝ} (hα : 0 < α) (hγ : 0 < γ)
+    (β δ : ℝ) : IsQuasisymmetric (fun t => γ * (h (α * t + β) - δ)) ρ := by
+  obtain ⟨hmono, hcont, htop, hbot, hqs⟩ := hh
+  have hlin : Tendsto (fun t : ℝ => α * t + β) atTop atTop :=
+    tendsto_atTop_add_const_right _ β (tendsto_id.const_mul_atTop hα)
+  have hlin' : Tendsto (fun t : ℝ => α * t + β) atBot atBot :=
+    tendsto_atBot_add_const_right _ β (tendsto_id.const_mul_atBot hα)
+  refine ⟨fun s t hst => ?_, by fun_prop, ?_, ?_, fun x t ht => ?_⟩
+  · have h1 : h (α * s + β) < h (α * t + β) := hmono (by nlinarith)
+    show γ * (h (α * s + β) - δ) < γ * (h (α * t + β) - δ)
+    nlinarith
+  · have h1 := tendsto_atTop_add_const_right _ (-δ) (htop.comp hlin)
+    refine (h1.const_mul_atTop hγ).congr fun t => ?_
+    simp only [Function.comp, sub_eq_add_neg]
+  · have h1 := tendsto_atBot_add_const_right _ (-δ) (hbot.comp hlin')
+    refine (h1.const_mul_atBot hγ).congr fun t => ?_
+    simp only [Function.comp, sub_eq_add_neg]
+  · have e : qsRatio (fun t => γ * (h (α * t + β) - δ)) x t = qsRatio h (α * x + β) (α * t) := by
+      simp only [qsRatio]
+      rw [show α * (x + t) + β = α * x + β + α * t by ring, show α * (x - t) + β = α * x + β - α * t by ring]
+      rw [show γ * (h (α * x + β + α * t) - δ) - γ * (h (α * x + β) - δ) =
+          γ * (h (α * x + β + α * t) - h (α * x + β)) by ring,
+        show γ * (h (α * x + β) - δ) - γ * (h (α * x + β - α * t) - δ) =
+          γ * (h (α * x + β) - h (α * x + β - α * t)) by ring,
+        mul_div_mul_left _ _ hγ.ne']
+    rw [e]
+    exact hqs _ _ (mul_pos hα ht)
+
+/-- If `h` is `ρ`-quasisymmetric, so is `s ↦ -h(-s)` (its ratio `Δ(x, t)` is `1/Δ_h(-x, t)`). -/
+theorem s17p_qs_reflect {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) :
+    IsQuasisymmetric (fun s => -h (-s)) ρ := by
+  have hρ := ba_f2h_rho_pos hh
+  obtain ⟨hmono, hcont, htop, hbot, hqs⟩ := hh
+  refine ⟨fun s t hst => neg_lt_neg (hmono (neg_lt_neg hst)), by fun_prop,
+    tendsto_neg_atBot_atTop.comp (hbot.comp tendsto_neg_atTop_atBot),
+    tendsto_neg_atTop_atBot.comp (htop.comp tendsto_neg_atBot_atTop), fun x t ht => ?_⟩
+  obtain ⟨h1, h2⟩ := hqs (-x) t ht
+  have hA : 0 < h (-x + t) - h (-x) := sub_pos.2 (hmono (by linarith))
+  have hB : 0 < h (-x) - h (-x - t) := sub_pos.2 (hmono (by linarith))
+  have e : qsRatio (fun s => -h (-s)) x t = (qsRatio h (-x) t)⁻¹ := by
+    simp only [qsRatio]
+    rw [show -(x + t) = -x - t by ring, show -(x - t) = -x + t by ring, inv_div]
+    congr 1 <;> ring
+  rw [e]
+  have hq : 0 < qsRatio h (-x) t := div_pos hA hB
+  refine ⟨inv_anti₀ hq h2, ?_⟩
+  calc (qsRatio h (-x) t)⁻¹ ≤ (ρ⁻¹)⁻¹ := inv_anti₀ (inv_pos.2 hρ) h1
+    _ = ρ := inv_inv ρ
+
+/-- (17.13), proved here ahead of (17.7), which uses it (the book statement `eq17_13` below is a one-line wrapper): a
+`ρ`-quasisymmetric `h` with `h(0) = 0`, `h(1) = 1` satisfies `1/(1+ρ) ≤ h(1/2) ≤ ρ/(1+ρ)` (quasisymmetry at
+`x = t = 1/2`). -/
+theorem s17p_half_bounds {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) (h0 : h 0 = 0) (h1 : h 1 = 1) :
     1 / (1 + ρ) ≤ h (1 / 2) ∧ h (1 / 2) ≤ ρ / (1 + ρ) := by
   obtain ⟨hmono, -, -, -, hqs⟩ := hh
   obtain ⟨hlow, hhigh⟩ := hqs (1 / 2) (1 / 2) (by norm_num)
   simp only [qsRatio] at hlow hhigh
   norm_num [h0, h1] at hlow hhigh
-  -- `0 < h(1/2) < 1` by strict monotonicity
   have hu0 : 0 < h (1 / 2) := by
     have := hmono (show (0 : ℝ) < 1 / 2 by norm_num)
     rwa [h0] at this
@@ -1440,6 +1741,302 @@ theorem eq17_13 {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) (h0 : 
     rw [← mul_assoc, mul_inv_cancel₀ hρ.ne', one_mul] at hmul
     rw [le_div_iff₀ hden]
     linarith
+
+/-- The dyadic splitting of the mean: for a `ρ`-quasisymmetric `g` with `g 0 = 0`, `g 1 = 1` and `θ = g(1/2)`,
+`∫₀¹ g = (θ m₁ + (1 - θ) m₂ + θ)/2`, where `m₁ = ∫₀¹ g₁`, `m₂ = ∫₀¹ g₂` for the normalized `ρ`-quasisymmetric maps
+`g₁(t) = g(t/2)/θ` and `g₂(t) = (g((t+1)/2) - θ)/(1 - θ)`. -/
+theorem s17p_mean_split {g : ℝ → ℝ} {ρ : ℝ} (hg : IsQuasisymmetric g ρ) (h0 : g 0 = 0) (h1 : g 1 = 1) :
+    ∃ g₁ g₂ : ℝ → ℝ, (IsQuasisymmetric g₁ ρ ∧ g₁ 0 = 0 ∧ g₁ 1 = 1) ∧
+      (IsQuasisymmetric g₂ ρ ∧ g₂ 0 = 0 ∧ g₂ 1 = 1) ∧
+      ∫ t in (0 : ℝ)..1, g t =
+        (g (1 / 2) * (∫ t in (0 : ℝ)..1, g₁ t) + (1 - g (1 / 2)) * (∫ t in (0 : ℝ)..1, g₂ t) + g (1 / 2)) / 2 := by
+  have hθ0 : 0 < g (1 / 2) := by
+    rw [← h0]
+    exact hg.1 (by norm_num)
+  have hθ1 : g (1 / 2) < 1 := by
+    have h2 := hg.1 (show (1 / 2 : ℝ) < 1 by norm_num)
+    rwa [h1] at h2
+  have hc := hg.2.1
+  have hθ0' : g (1 / 2) ≠ 0 := hθ0.ne'
+  have hθ1' : 1 - g (1 / 2) ≠ 0 := (sub_pos.2 hθ1).ne'
+  refine ⟨fun t => (g (1 / 2))⁻¹ * (g ((1 / 2) * t + 0) - 0),
+    fun t => (1 - g (1 / 2))⁻¹ * (g ((1 / 2) * t + 1 / 2) - g (1 / 2)),
+    ⟨s17p_qs_affine hg (by norm_num) (inv_pos.2 hθ0) 0 0, ?_, ?_⟩,
+    ⟨s17p_qs_affine hg (by norm_num) (inv_pos.2 (sub_pos.2 hθ1)) (1 / 2) (g (1 / 2)), ?_, ?_⟩, ?_⟩
+  · simp [h0]
+  · show (g (1 / 2))⁻¹ * (g ((1 / 2) * 1 + 0) - 0) = 1
+    rw [show (1 / 2 : ℝ) * 1 + 0 = 1 / 2 by norm_num, sub_zero, inv_mul_cancel₀ hθ0']
+  · show (1 - g (1 / 2))⁻¹ * (g ((1 / 2) * 0 + 1 / 2) - g (1 / 2)) = 0
+    rw [show (1 / 2 : ℝ) * 0 + 1 / 2 = 1 / 2 by norm_num, sub_self, mul_zero]
+  · show (1 - g (1 / 2))⁻¹ * (g ((1 / 2) * 1 + 1 / 2) - g (1 / 2)) = 1
+    rw [show (1 / 2 : ℝ) * 1 + 1 / 2 = 1 by norm_num, h1, inv_mul_cancel₀ hθ1']
+  · have hsplit := intervalIntegral.integral_add_adjacent_intervals
+      (hc.intervalIntegrable (μ := volume) 0 (1 / 2)) (hc.intervalIntegrable (1 / 2) 1)
+    have I1 : ∫ t in (0 : ℝ)..1, (g (1 / 2))⁻¹ * (g ((1 / 2) * t + 0) - 0) =
+        (g (1 / 2))⁻¹ * (2 * ∫ t in (0 : ℝ)..(1 / 2), g t) := by
+      rw [intervalIntegral.integral_const_mul]
+      congr 1
+      simp only [sub_zero]
+      rw [intervalIntegral.integral_comp_mul_add g (by norm_num : (1 / 2 : ℝ) ≠ 0) 0]
+      norm_num
+    have I2 : ∫ t in (0 : ℝ)..1, (1 - g (1 / 2))⁻¹ * (g ((1 / 2) * t + 1 / 2) - g (1 / 2)) =
+        (1 - g (1 / 2))⁻¹ * (2 * (∫ t in (1 / 2 : ℝ)..1, g t) - g (1 / 2)) := by
+      have hI : IntervalIntegrable (fun t : ℝ => g ((1 / 2) * t + 1 / 2)) volume 0 1 :=
+        (by fun_prop : Continuous fun t : ℝ => g ((1 / 2) * t + 1 / 2)).intervalIntegrable 0 1
+      rw [intervalIntegral.integral_const_mul]
+      congr 1
+      rw [intervalIntegral.integral_sub hI intervalIntegrable_const,
+        intervalIntegral.integral_comp_mul_add g (by norm_num : (1 / 2 : ℝ) ≠ 0) (1 / 2)]
+      norm_num
+    rw [I1, I2, ← hsplit]
+    field_simp
+    ring
+
+/-- **The Beurling–Ahlfors mean-value bound** (sharp form of (17.13) for means): a `ρ`-quasisymmetric `g` with
+`g 0 = 0`, `g 1 = 1` has `1/(1+ρ) ≤ ∫₀¹ g ≤ ρ/(1+ρ)`.  The supremum `M` and the infimum `m` of `∫₀¹ k` over all such
+`k` satisfy `M ≤ (M + ρ/(1+ρ))/2` and `m ≥ (m + 1/(1+ρ))/2` by `s17p_mean_split` and (17.13) (`s17p_half_bounds`). -/
+theorem s17p_mean_bound {g : ℝ → ℝ} {ρ : ℝ} (hg : IsQuasisymmetric g ρ) (h0 : g 0 = 0) (h1 : g 1 = 1) :
+    1 / (1 + ρ) ≤ ∫ t in (0 : ℝ)..1, g t ∧ ∫ t in (0 : ℝ)..1, g t ≤ ρ / (1 + ρ) := by
+  have hρ := ba_f2h_rho_pos hg
+  set S : Set ℝ := {m | ∃ k : ℝ → ℝ, IsQuasisymmetric k ρ ∧ k 0 = 0 ∧ k 1 = 1 ∧ m = ∫ t in (0 : ℝ)..1, k t}
+    with hS
+  have hmem : (∫ t in (0 : ℝ)..1, g t) ∈ S := ⟨g, hg, h0, h1, rfl⟩
+  have hbd : ∀ m ∈ S, 0 ≤ m ∧ m ≤ 1 := by
+    rintro m ⟨k, hk, hk0, hk1, rfl⟩
+    have hle : ∀ t ∈ Icc (0 : ℝ) 1, 0 ≤ k t ∧ k t ≤ 1 := fun t ht =>
+      ⟨by rw [← hk0]; exact hk.1.monotone ht.1, by rw [← hk1]; exact hk.1.monotone ht.2⟩
+    refine ⟨intervalIntegral.integral_nonneg zero_le_one fun t ht => (hle t ht).1, ?_⟩
+    have := intervalIntegral.integral_mono_on zero_le_one (hk.2.1.intervalIntegrable 0 1)
+      (intervalIntegrable_const : IntervalIntegrable (fun _ : ℝ => (1 : ℝ)) volume 0 1) fun t ht => (hle t ht).2
+    simpa using this
+  have hne : S.Nonempty := ⟨_, hmem⟩
+  have hup : BddAbove S := ⟨1, fun m hm => (hbd m hm).2⟩
+  have hlo : BddBelow S := ⟨0, fun m hm => (hbd m hm).1⟩
+  have hsplit : ∀ m ∈ S, ∃ θ m₁ m₂ : ℝ, m₁ ∈ S ∧ m₂ ∈ S ∧ 1 / (1 + ρ) ≤ θ ∧ θ ≤ ρ / (1 + ρ) ∧
+      m = (θ * m₁ + (1 - θ) * m₂ + θ) / 2 := by
+    rintro m ⟨k, hk, hk0, hk1, rfl⟩
+    obtain ⟨g₁, g₂, ⟨hg₁, hg₁0, hg₁1⟩, ⟨hg₂, hg₂0, hg₂1⟩, heq⟩ := s17p_mean_split hk hk0 hk1
+    obtain ⟨hθ1, hθ2⟩ := s17p_half_bounds hk hk0 hk1
+    exact ⟨k (1 / 2), _, _, ⟨g₁, hg₁, hg₁0, hg₁1, rfl⟩, ⟨g₂, hg₂, hg₂0, hg₂1, rfl⟩, hθ1, hθ2, heq⟩
+  have hc1 : ρ / (1 + ρ) ≤ 1 := by
+    rw [div_le_one (by linarith)]
+    linarith
+  have hd0 : 0 ≤ 1 / (1 + ρ) := by positivity
+  have hM : sSup S ≤ ρ / (1 + ρ) := by
+    have key : sSup S ≤ (sSup S + ρ / (1 + ρ)) / 2 := csSup_le hne fun m hm => by
+      obtain ⟨θ, m₁, m₂, hm₁, hm₂, hθ1, hθ2, rfl⟩ := hsplit m hm
+      have e1 := le_csSup hup hm₁
+      have e2 := le_csSup hup hm₂
+      nlinarith [mul_le_mul_of_nonneg_left e1 (hd0.trans hθ1), mul_le_mul_of_nonneg_left e2
+        (show 0 ≤ 1 - θ by linarith)]
+    linarith
+  have hm : 1 / (1 + ρ) ≤ sInf S := by
+    have key : (sInf S + 1 / (1 + ρ)) / 2 ≤ sInf S := le_csInf hne fun m hm => by
+      obtain ⟨θ, m₁, m₂, hm₁, hm₂, hθ1, hθ2, rfl⟩ := hsplit m hm
+      have e1 := csInf_le hlo hm₁
+      have e2 := csInf_le hlo hm₂
+      nlinarith [mul_le_mul_of_nonneg_left e1 (hd0.trans hθ1), mul_le_mul_of_nonneg_left e2
+        (show 0 ≤ 1 - θ by linarith)]
+    linarith
+  exact ⟨hm.trans (csInf_le hlo hmem), (le_csSup hup hmem).trans hM⟩
+
+/-- The right-hand mean-value bound: for `ρ`-quasisymmetric `h` and `y > 0`,
+`(h(x+y) - h(x))/(1+ρ) ≤ (1/y)∫_x^{x+y} h - h(x) ≤ ρ(h(x+y) - h(x))/(1+ρ)`. -/
+theorem s17p_mean_plus {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) (x : ℝ) {y : ℝ} (hy : 0 < y) :
+    1 / (1 + ρ) * (h (x + y) - h x) ≤ (∫ t in x..(x + y), h t) / y - h x ∧
+      (∫ t in x..(x + y), h t) / y - h x ≤ ρ / (1 + ρ) * (h (x + y) - h x) := by
+  have ha : 0 < h (x + y) - h x := sub_pos.2 (hh.1 (by linarith))
+  have hg := s17p_qs_affine hh hy (inv_pos.2 ha) x (h x)
+  have e : (fun t => (h (x + y) - h x)⁻¹ * (h (y * t + x) - h x)) =
+      fun t => (h (x + y) - h x)⁻¹ * (h (x + t * y) - h x) := by
+    funext t
+    rw [show y * t + x = x + t * y by ring]
+  rw [e] at hg
+  have hg0 : (h (x + y) - h x)⁻¹ * (h (x + 0 * y) - h x) = 0 := by simp
+  have hg1 : (h (x + y) - h x)⁻¹ * (h (x + 1 * y) - h x) = 1 := by
+    rw [one_mul]
+    exact inv_mul_cancel₀ ha.ne'
+  obtain ⟨b1, b2⟩ := s17p_mean_bound hg hg0 hg1
+  have hint : ∫ t in (0 : ℝ)..1, (h (x + y) - h x)⁻¹ * (h (x + t * y) - h x) =
+      (h (x + y) - h x)⁻¹ * ((∫ t in x..(x + y), h t) / y - h x) := by
+    have hc := hh.2.1
+    have hI : IntervalIntegrable (fun t : ℝ => h (x + t * y)) volume 0 1 :=
+      (by fun_prop : Continuous fun t : ℝ => h (x + t * y)).intervalIntegrable 0 1
+    rw [intervalIntegral.integral_const_mul, intervalIntegral.integral_sub hI intervalIntegrable_const,
+      ba_f1h_int_plus hc x hy.ne', ba_f1h_prim_sub hc]
+    simp
+  rw [hint] at b1 b2
+  have c1 := mul_le_mul_of_nonneg_left b1 ha.le
+  have c2 := mul_le_mul_of_nonneg_left b2 ha.le
+  rw [← mul_assoc, mul_inv_cancel₀ ha.ne', one_mul] at c1 c2
+  constructor <;> linarith
+
+/-- The left-hand mean-value bound: for `ρ`-quasisymmetric `h` and `y > 0`,
+`(h(x) - h(x-y))/(1+ρ) ≤ h(x) - (1/y)∫_{x-y}^x h ≤ ρ(h(x) - h(x-y))/(1+ρ)` (apply `s17p_mean_bound` to the
+normalized reflection `t ↦ (h(x) - h(x - ty))/(h(x) - h(x-y))`). -/
+theorem s17p_mean_minus {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) (x : ℝ) {y : ℝ} (hy : 0 < y) :
+    1 / (1 + ρ) * (h x - h (x - y)) ≤ h x - (∫ t in (x - y)..x, h t) / y ∧
+      h x - (∫ t in (x - y)..x, h t) / y ≤ ρ / (1 + ρ) * (h x - h (x - y)) := by
+  have hb : 0 < h x - h (x - y) := sub_pos.2 (hh.1 (by linarith))
+  have hg := s17p_qs_affine (s17p_qs_reflect hh) hy (inv_pos.2 hb) (-x) (-h x)
+  have e : (fun t => (h x - h (x - y))⁻¹ * ((fun s => -h (-s)) (y * t + -x) - -h x)) =
+      fun t => (h x - h (x - y))⁻¹ * (h x - h (x - t * y)) := by
+    funext t
+    beta_reduce
+    rw [show -(y * t + -x) = x - t * y by ring]
+    ring
+  rw [e] at hg
+  have hg0 : (h x - h (x - y))⁻¹ * (h x - h (x - 0 * y)) = 0 := by simp
+  have hg1 : (h x - h (x - y))⁻¹ * (h x - h (x - 1 * y)) = 1 := by
+    rw [one_mul]
+    exact inv_mul_cancel₀ hb.ne'
+  obtain ⟨b1, b2⟩ := s17p_mean_bound hg hg0 hg1
+  have hint : ∫ t in (0 : ℝ)..1, (h x - h (x - y))⁻¹ * (h x - h (x - t * y)) =
+      (h x - h (x - y))⁻¹ * (h x - (∫ t in (x - y)..x, h t) / y) := by
+    have hc := hh.2.1
+    have hI : IntervalIntegrable (fun t : ℝ => h (x - t * y)) volume 0 1 :=
+      (by fun_prop : Continuous fun t : ℝ => h (x - t * y)).intervalIntegrable 0 1
+    rw [intervalIntegral.integral_const_mul, intervalIntegral.integral_sub intervalIntegrable_const hI,
+      ba_f1h_int_minus hc x hy.ne', ba_f1h_prim_sub hc]
+    simp
+  rw [hint] at b1 b2
+  have c1 := mul_le_mul_of_nonneg_left b1 hb.le
+  have c2 := mul_le_mul_of_nonneg_left b2 hb.le
+  rw [← mul_assoc, mul_inv_cancel₀ hb.ne', one_mul] at c1 c2
+  constructor <;> linarith
+
+/-- The real-linear stretch `S₂ w = w + (Im w) i = Re w + 2i Im w`; `beurlingAhlfors h 2 = S₂ ∘ beurlingAhlfors h 1`. -/
+def s17p_stretch : ℂ →L[ℝ] ℂ := ContinuousLinearMap.id ℝ ℂ + imCLM.smulRight I
+
+/-- `Re (S₂ w) = Re w` and `Im (S₂ w) = 2 Im w`. -/
+theorem s17p_stretch_re_im (w : ℂ) : (s17p_stretch w).re = w.re ∧ (s17p_stretch w).im = 2 * w.im := by
+  refine ⟨by simp [s17p_stretch], ?_⟩
+  simp [s17p_stretch, Complex.real_smul]
+  ring
+
+/-- `S₂ (u + v i) = u + (2v) i` for real `u`, `v`. -/
+theorem s17p_stretch_mk (u v : ℝ) : s17p_stretch ((u : ℂ) + (v : ℂ) * I) = (u : ℂ) + ((2 * v : ℝ) : ℂ) * I := by
+  apply Complex.ext
+  · rw [(s17p_stretch_re_im _).1]
+    simp
+  · rw [(s17p_stretch_re_im _).2]
+    simp
+
+/-- `|w| ≤ |S₂ w|`. -/
+theorem s17p_norm_le_stretch (w : ℂ) : ‖w‖ ≤ ‖s17p_stretch w‖ := by
+  have h1 : ‖w‖ ^ 2 ≤ ‖s17p_stretch w‖ ^ 2 := by
+    rw [Complex.sq_norm, Complex.sq_norm, Complex.normSq_apply, Complex.normSq_apply,
+      (s17p_stretch_re_im w).1, (s17p_stretch_re_im w).2]
+    nlinarith [sq_nonneg w.im]
+  exact (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).1 h1
+
+/-- The Beurling–Ahlfors extension with `r = 2` is the stretch of the one with `r = 1`:
+`beurlingAhlfors h 2 z = S₂ (beurlingAhlfors h 1 z)`. -/
+theorem s17p_ba2_apply (h : ℝ → ℝ) (z : ℂ) :
+    beurlingAhlfors h 2 z = s17p_stretch (beurlingAhlfors h 1 z) := by
+  apply Complex.ext
+  · rw [(s17p_stretch_re_im _).1]
+    simp [beurlingAhlfors]
+  · rw [(s17p_stretch_re_im _).2]
+    simp [beurlingAhlfors]
+
+/-- The pointwise dilatation bound for `beurlingAhlfors h 2` (`ρ`-quasisymmetric `h`): at every `z ∈ ℍ`,
+`J > 0`, `|f_z̄| < |f_z|` and `D_f ≤ ρ²` (the partials are those of `ba_f1_partials` with `v` doubled; then
+`s17p_alg` and `s17p_dq_le`). -/
+theorem s17p_ba2_pointwise {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) {z : ℂ} (hz : z ∈ upperHalf) :
+    0 < jacobian (beurlingAhlfors h 2) z ∧ ‖dzbar (beurlingAhlfors h 2) z‖ < ‖dz (beurlingAhlfors h 2) z‖ ∧
+      dilatationQuotient (beurlingAhlfors h 2) z ≤ ρ ^ 2 := by
+  have hy : 0 < z.im := hz
+  have hρ := ba_one_le_rho hh
+  have hcont := hh.2.1
+  obtain ⟨hfx, hfy⟩ := ba_f1_partials hcont hz
+  rw [← intervalIntegral.integral_add_adjacent_intervals (hcont.intervalIntegrable (z.re - z.im) z.re)
+    (hcont.intervalIntegrable z.re (z.re + z.im))] at hfy
+  have hdiff : DifferentiableAt ℝ (beurlingAhlfors h 1) z :=
+    ((ba_f1h_contDiffOn hcont).contDiffAt (isOpen_upperHalf.mem_nhds hz)).differentiableAt one_ne_zero
+  have hfun : beurlingAhlfors h 2 = fun w => s17p_stretch (beurlingAhlfors h 1 w) :=
+    funext fun w => s17p_ba2_apply h w
+  have hD : fderiv ℝ (beurlingAhlfors h 2) z = s17p_stretch.comp (fderiv ℝ (beurlingAhlfors h 1) z) := by
+    rw [hfun]
+    exact (s17p_stretch.hasFDerivAt.comp z hdiff.hasFDerivAt).fderiv
+  have hfx3 : fderiv ℝ (beurlingAhlfors h 2) z 1 = s17p_stretch (fderiv ℝ (beurlingAhlfors h 1) z 1) := by
+    rw [hD]
+    rfl
+  have hfy3 : fderiv ℝ (beurlingAhlfors h 2) z I = s17p_stretch (fderiv ℝ (beurlingAhlfors h 1) z I) := by
+    rw [hD]
+    rfl
+  rw [hfx, s17p_stretch_mk] at hfx3
+  rw [hfy, s17p_stretch_mk] at hfy3
+  obtain ⟨hJ, hS⟩ := ba_f2h_wirtinger hfx3 hfy3
+  obtain ⟨hq1, hq2⟩ := ba_f2h_qs_mul hh z.re hy
+  obtain ⟨hP1, hP2⟩ := s17p_mean_plus hh z.re hy
+  obtain ⟨hN1, hN2⟩ := s17p_mean_minus hh z.re hy
+  obtain ⟨hkey, hJpos⟩ := s17p_alg hρ hy (hh.1 (by linarith)) (hh.1 (by linarith)) hq1 hq2 hP1 hP2 hN1 hN2
+  have hJ0 : 0 < jacobian (beurlingAhlfors h 2) z := by
+    rw [jacobian, hJ]
+    exact hJpos
+  have hlt : ‖dzbar (beurlingAhlfors h 2) z‖ < ‖dz (beurlingAhlfors h 2) z‖ := by
+    have h2 : ‖dzbar (beurlingAhlfors h 2) z‖ ^ 2 < ‖dz (beurlingAhlfors h 2) z‖ ^ 2 := by
+      rw [jacobian] at hJ0
+      linarith
+    exact lt_of_pow_lt_pow_left₀ 2 (norm_nonneg _) h2
+  refine ⟨hJ0, hlt, s17p_dq_le (by nlinarith) hlt ?_⟩
+  rw [hJ, hS, show (ρ ^ 2) ^ 2 = ρ ^ 4 by ring]
+  linarith
+
+/-- **(17.7), uniform form** (non-book lemma recording what is actually proved): for every `ρ`-quasisymmetric `h`,
+the Beurling–Ahlfors extension with `r = 2` is a `ρ²`-q.c. self-map of `ℍ` with boundary values `h`. -/
+theorem s17p_beurlingAhlfors_two {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) :
+    HasQCExtensionH h (beurlingAhlfors h 2) (ρ ^ 2) := by
+  have hcont := hh.2.1
+  have hfun : beurlingAhlfors h 2 = fun w => s17p_stretch (beurlingAhlfors h 1 w) :=
+    funext fun w => s17p_ba2_apply h w
+  have hC1 : ContDiffOn ℝ 1 (beurlingAhlfors h 2) upperHalf := by
+    rw [hfun]
+    exact s17p_stretch.contDiff.comp_contDiffOn (ba_f1h_contDiffOn hcont)
+  have hcont2 : Continuous (beurlingAhlfors h 2) := ba_f1h_continuous hcont 2
+  have hJ : ∀ z ∈ upperHalf, 0 < jacobian (beurlingAhlfors h 2) z := fun z hz => (s17p_ba2_pointwise hh hz).1
+  have hbd : ∀ x : ℝ, beurlingAhlfors h 2 x = h x := fun x => by
+    rw [s17p_ba2_apply, ba_f1h_real, show (h x : ℂ) = (h x : ℂ) + ((0 : ℝ) : ℂ) * I by simp, s17p_stretch_mk]
+    simp
+  have hmaps : MapsTo (beurlingAhlfors h 2) upperHalf upperHalf := fun z hz => by
+    have h1 : 0 < (beurlingAhlfors h 1 z).im := (ba_f1_basic hh.1 hcont).2.2.2 hz
+    show 0 < (beurlingAhlfors h 2 z).im
+    rw [s17p_ba2_apply, (s17p_stretch_re_im _).2]
+    linarith
+  have hinf : Tendsto (beurlingAhlfors h 2) (cocompact ℂ ⊓ 𝓟 {z : ℂ | 0 ≤ z.im}) (cocompact ℂ) := by
+    have h1 := ba_f3_tendsto hh.1 hcont hh.2.2.1 hh.2.2.2.1
+    rw [← Metric.cobounded_eq_cocompact, ← tendsto_norm_atTop_iff_cobounded] at h1 ⊢
+    refine tendsto_atTop_mono (fun z => ?_) h1
+    rw [s17p_ba2_apply]
+    exact s17p_norm_le_stretch _
+  obtain ⟨himg, G, hG, hGinf, hGx⟩ := ba_homeo_package hC1 hJ hcont2.continuousOn hmaps hbd hh.1 hinf
+  refine ⟨?_, himg, G, hG, hGinf, hGx⟩
+  have hHsub : upperHalf ⊆ {z : ℂ | 0 ≤ z.im} := fun z hz => le_of_lt (show (0 : ℝ) < z.im from hz)
+  have hreal : ∀ x : ℝ, (beurlingAhlfors h 2 x).im = 0 := fun x => by
+    rw [hbd x]
+    simp
+  have hhom := ba_homeomorph_upperHalf_of_contDiff hC1 hJ hmaps
+    (hinf.mono_left (inf_le_inf_left _ (principal_mono.2 hHsub)))
+    (ba_bdry_of_continuousWithinAt (fun x => hcont2.continuousAt.continuousWithinAt) hreal)
+  have hhom' : IsHomeomorphOnto (beurlingAhlfors h 2) upperHalf (beurlingAhlfors h 2 '' upperHalf) := by
+    rw [himg]
+    exact hhom
+  have hρ := ba_one_le_rho hh
+  refine isKQC_of_isC1Quasiconformal ⟨isOpen_upperHalf, by nlinarith, hC1, hhom', fun z hz => ?_⟩
+  exact ⟨(s17p_ba2_pointwise hh hz).2.1, (s17p_ba2_pointwise hh hz).2.2⟩
+
+/-- (17.7): with a suitable choice of the parameter `r`, the Beurling–Ahlfors extension satisfies
+`K ≤ ρ²`. -/
+theorem eq17_7 {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) :
+    ∃ r : ℝ, 0 < r ∧ HasQCExtensionH h (beurlingAhlfors h r) (ρ ^ 2) := by
+  exact ⟨2, two_pos, s17p_beurlingAhlfors_two hh⟩
+
+/-- (17.13): a `ρ`-quasisymmetric `h` normalized by `h(0) = 0`, `h(1) = 1` satisfies
+`1/(1+ρ) ≤ h(1/2) ≤ ρ/(1+ρ)`. -/
+theorem eq17_13 {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h ρ) (h0 : h 0 = 0) (h1 : h 1 = 1) :
+    1 / (1 + ρ) ≤ h (1 / 2) ∧ h (1 / 2) ≤ ρ / (1 + ρ) := by
+  exact s17p_half_bounds hh h0 h1
 
 /-- (17.20): the Beurling–Ahlfors extension `f` is quasi-isometric for the Poincaré metric of `ℍ`:
 `|df(z)|/Im f(z) ≤ C |dz|/Im z` with `C` depending only on `ρ`. -/

@@ -10,3 +10,13 @@
 /*_TEMP*.lean
 /newtext.txt
 /wd_scratch_test.lean
+
+# Log written by lake_progress.py
+/lake_build.log
+
+# Local Python environments
+/.venv/
+/.venv-*/
+
+# Scratch files from file-move checks
+/FAR_*.lean

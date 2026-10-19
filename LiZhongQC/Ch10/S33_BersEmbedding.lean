@@ -416,6 +416,87 @@ def TeichGamma (Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)) : Type :=
 
 variable {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
 
+/-! ### Stage T3 (s27t, coordinator 553e2d): glue for `teichGamma_equiv_teichSpace` (prefix `s33v_`)
+
+`e [μ] = [X^μ, id]`, where `X^μ` is a marked surface of `S = ℍ/Γ` whose lifted coefficient is `μ` a.e. on `ℍ` (S27
+`s27v_exists_marked`, from the S27 T3 stubs [A1], [A2]).  Well defined and injective: Theorem 27.1 through the
+uniformization transport (S27 `s27v_equiv_iff_fSym`) and U11 (`s27u_fSym_congr_ae`); surjective: the lifted coefficient
+of a marked surface lies in `M(Γ)` (`s27u_liftCoeff_beltramiH`) and its `X^μ` is equivalent to it; the characterization
+clause is Theorem 27.1 again, with the UT data of `m` and of `X^μ`.  No new stub. -/
+
+/-- S27's verbatim copy `s27u_fSym` of `f^μ` is S33's `fMuSym`. -/
+theorem s33v_fSym_eq : s27u_fSym = fMuSym := by
+  rfl
+
+/-- **`X^μ` for `μ ∈ M(Γ₀)`** (S27 `s27v_exists_marked` + U11): a marked surface of `S = ℍ/Γ₀` whose symmetric solution
+is `f^μ` (its lifted coefficient is `μ` a.e. on `ℍ`). -/
+theorem s33v_marked {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S] [ConnectedSpace S]
+    [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p : UpperHalfPlane → S} (hp : IsUniformization Γ₀ p) (μ : BeltramiGamma Γ₀) :
+    ∃ m : MarkedRS S, s27u_fSym (s27u_liftCoeff p m.marking) = s27u_fSym μ.1.1 := by
+  obtain ⟨k, hk0, hk1, hμ⟩ := bg_beltramiH_upper μ.1
+  obtain ⟨m, hm⟩ := s27v_exists_marked hp hk0 hk1 hμ μ.2
+  obtain ⟨k', hk0', hk1', hμ'⟩ := s27v_liftCoeff_bound hp m
+  exact ⟨m, s27u_fSym_congr_ae hk0' hk1' hμ' hk0 hk1 hμ hm⟩
+
+/-- **§33.1: `T(G₀) ≅ T(S₀)`** (proved glue; the statement of `teichGamma_equiv_teichSpace`).  `e [μ] = [X^μ]`
+(`s33v_marked`); the inverse sends `[m]` to the class of its lifted coefficient (`s27u_liftCoeff_beltramiH`); both are
+well defined and mutually inverse by `s27v_equiv_iff_fSym` (Theorem 27.1 through UT); `e [μ] = [m]` iff the normalized
+lift of `m` (from UT) has the boundary values `f^μ` on `ℝ`, again by Theorem 27.1. -/
+theorem s33v_teichGamma_equiv_teichSpace {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {g : ℕ} (hg : 1 < g) (hS : HasGenus S g)
+    (hΓ : IsFuchsian Γ) (hfree : ActsFreely Γ) {p : UpperHalfPlane → S} (hp : IsUniformization Γ p) :
+    ∃ e : TeichGamma Γ ≃ TeichSpace S, ∀ (μ : BeltramiGamma Γ) (m : MarkedRS S),
+      e (Quotient.mk _ μ) = Quot.mk _ m ↔
+        ∃ (Γ' : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)) (p' : UpperHalfPlane → m.X.carrier)
+          (F : UpperHalfPlane ≃ₜ UpperHalfPlane) (G : ExtPlane → ExtPlane),
+          IsUniformization Γ' p' ∧ IsNormalizedLift p p' m.marking F G ∧
+          ∀ x : ℝ, G ((x : ℂ) : ExtPlane) = ((fMuSym μ.1.1 x : ℂ) : ExtPlane) := by
+  have _ := hΓ
+  have _ := hfree
+  choose M hM using fun μ : BeltramiGamma Γ => s33v_marked hp μ
+  choose B hB using fun m : MarkedRS S => s27u_liftCoeff_beltramiH hp m.qc
+  have hiff : ∀ m₁ m₂ : MarkedRS S, m₁.Equiv m₂ ↔
+      ∀ x : ℝ, s27u_fSym (s27u_liftCoeff p m₁.marking) x = s27u_fSym (s27u_liftCoeff p m₂.marking) x :=
+    fun m₁ m₂ => s27v_equiv_iff_fSym hg hS hp m₁ m₂
+  have hB' : ∀ m : MarkedRS S, s27u_fSym (B m).1 = s27u_fSym (s27u_liftCoeff p m.marking) := fun m => by
+    rw [(hB m).1]
+  let e : TeichGamma Γ ≃ TeichSpace S :=
+    { toFun := Quotient.lift (fun μ => (Quot.mk _ (M μ) : TeichSpace S)) fun μ ν hμν => by
+        refine Quot.sound ((hiff _ _).2 fun x => ?_)
+        rw [hM μ, hM ν]
+        exact hμν x
+      invFun := Quot.lift (fun m => (Quotient.mk _ (⟨B m, (hB m).2⟩ : BeltramiGamma Γ) : TeichGamma Γ))
+        fun m₁ m₂ h => by
+          refine Quotient.sound (s := teichSetoidGamma Γ) fun x => ?_
+          show s27u_fSym (B m₁).1 x = s27u_fSym (B m₂).1 x
+          rw [hB' m₁, hB' m₂]
+          exact (hiff m₁ m₂).1 h x
+      left_inv := fun q => by
+        induction q using Quotient.inductionOn with
+        | h μ =>
+          refine Quotient.sound (s := teichSetoidGamma Γ) fun x => ?_
+          show s27u_fSym (B (M μ)).1 x = s27u_fSym μ.1.1 x
+          rw [hB' (M μ), hM μ]
+      right_inv := fun t => by
+        induction t using Quot.inductionOn with
+        | h m =>
+          refine Quot.sound ((hiff _ _).2 fun x => ?_)
+          exact (congrFun (hM ⟨B m, (hB m).2⟩) x).trans (congrFun (hB' m) x) }
+  refine ⟨e, fun μ m => ?_⟩
+  show (Quot.mk _ (M μ) : TeichSpace S) = Quot.mk _ m ↔ _
+  rw [← s33v_fSym_eq]
+  constructor
+  · intro h
+    have hE : (M μ).Equiv m := markedRS_equiv_equivalence.eqvGen_iff.1 (Quot.eqvGen_exact h)
+    obtain ⟨Γ', p', F, G, hp', hN, -, hG⟩ := s27u_exists_uniformization hp m
+    refine ⟨Γ', p', F, G, hp', hN, fun x => ?_⟩
+    rw [hG x, ← (hiff _ _).1 hE x, hM μ]
+  · rintro ⟨Γ', p', F, G, hp', hN, hG⟩
+    obtain ⟨Γ₁, p₁, F₁, G₁, hp₁, hN₁, -, hG₁⟩ := s27u_exists_uniformization hp (M μ)
+    refine Quot.sound ((thm27_1 hg hS hp (M μ) m hp₁ hp' hN₁ hN).2 fun x => ?_)
+    rw [hG₁ x, hG x, hM μ]
+
 /-- §33.1: `f^μ` projects to a quasiconformal map `f : S₀ → S^μ = ℍ/G^μ`, and `[S^μ, f]`
 corresponds to `[μ]`: `T(S₀) ≅ M(G₀)/∼` (for `S₀ = ℍ/G₀` compact of genus `g > 1`; the
 equivalence (33.2) holds for all Fuchsian groups of the first kind). -/
@@ -428,7 +509,7 @@ theorem teichGamma_equiv_teichSpace {S : Type u} [TopologicalSpace S] [ChartedSp
           (F : UpperHalfPlane ≃ₜ UpperHalfPlane) (G : ExtPlane → ExtPlane),
           IsUniformization Γ' p' ∧ IsNormalizedLift p p' m.marking F G ∧
           ∀ x : ℝ, G ((x : ℂ) : ExtPlane) = ((fMuSym μ.1.1 x : ℂ) : ExtPlane) := by
-  sorry
+  exact s33v_teichGamma_equiv_teichSpace hg hS hΓ hfree hp
 
 /-- The map equal to `g` on the closed lower half-plane `{Im z ≤ 0}` and to `g ∘ Φ` on `ℍ`, for a continuous
 bijection `g` of `ℂ` and a continuous injective `Φ` which fixes every real point and maps `ℍ` onto `ℍ`, is a
@@ -1412,14 +1493,6 @@ computation as (21.4)). -/
 def teichDistanceGamma (p q : TeichGamma Γ) : ℝ :=
   (1 / 2) * Real.log ((1 + teichDeltaGamma p q) / (1 - teichDeltaGamma p q))
 
-/-- §33.4: under `T(G₀) ≅ T(S₀)` the distance `teichDistanceGamma` is the Teichmüller distance of
-§29 (the infimum of `½ ln K` over the maps `f_ν ∘ f_μ⁻¹` in the class). -/
-theorem teichDistanceGamma_eq {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
-    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {g : ℕ} (hg : 1 < g) (hS : HasGenus S g)
-    (hΓ : IsFuchsian Γ) (hfree : ActsFreely Γ) {p : UpperHalfPlane → S} (hp : IsUniformization Γ p) :
-    ∃ e : TeichGamma Γ ≃ TeichSpace S, ∀ a b, teichDistanceGamma a b = teichDistance (e a) (e b) := by
-  sorry
-
 /-- `0 ≤ δ(p, q) < 1`, and below every `b > δ(p, q)` lies some `‖(μ - ν)/(1 - ν̄μ)‖_∞` with representatives `μ ∈ p`,
 `ν ∈ q`: the set whose infimum is `teichDeltaGamma p q` is nonempty (`Quotient.out`) and contained in `[0, 1)`
 (`UniversalTeichmuller.ut_v_eq`), so its `sInf` is not a junk value. -/
@@ -1439,6 +1512,404 @@ theorem bg_d_teichDelta_spec (p q : TeichGamma Γ) :
     (csInf_le ⟨0, fun d hd => (hmem d hd).1⟩ hd₀).trans_lt (hmem d₀ hd₀).2, fun b hb => ?_⟩
   obtain ⟨d, ⟨μ, ν, hμ, hν, rfl⟩, hdb⟩ := exists_lt_of_csInf_lt ⟨d₀, hd₀⟩ hb
   exact ⟨μ, ν, hμ, hν, hdb⟩
+
+/-- Helper for `s33d_K_eq`: `UniversalTeichmuller.ut_v_eq` for two q.c. maps on `ℍ` (instead of the normalized
+plane solutions).  If `g`, `f` are q.c. on `ℍ` with complex dilatations `μ`, `ν` a.e., the maximal dilatation of
+`f ∘ g⁻¹` on `g(ℍ)` is `(1 + d)/(1 - d)`, `d = ‖(μ - ν)/(1 - ν̄μ)‖_∞ < 1`. -/
+theorem s33d_plane_K {f g : ℂ → ℂ} {Kf Kg : ℝ} (hf : IsKQC f upperHalf Kf) (hg : IsKQC g upperHalf Kg)
+    {μ ν : ℂ → ℂ} (hμ : ∀ᵐ z ∂(volume.restrict upperHalf), complexDilatation g z = μ z)
+    (hν : ∀ᵐ z ∂(volume.restrict upperHalf), complexDilatation f z = ν z) :
+    UniversalTeichmuller.dilatationDiffNorm μ ν < 1 ∧
+      maxDilatation (f ∘ Function.invFunOn g upperHalf) (g '' upperHalf) =
+        ENNReal.ofReal ((1 + UniversalTeichmuller.dilatationDiffNorm μ ν) /
+          (1 - UniversalTeichmuller.dilatationDiffNorm μ ν)) := by
+  classical
+  set D : Set ℂ := upperHalf with hD
+  have hKg1 : (1 : ℝ) ≤ Kg := hg.2.1
+  have hKf1 : (1 : ℝ) ≤ Kf := hf.2.1
+  set kg : ℝ := (Kg - 1) / (Kg + 1) with hkg
+  set kf : ℝ := (Kf - 1) / (Kf + 1) with hkf
+  have hkg0 : 0 ≤ kg := div_nonneg (by linarith) (by linarith)
+  have hkg1 : kg < 1 := (div_lt_one (by linarith)).2 (by linarith)
+  have hkf0 : 0 ≤ kf := div_nonneg (by linarith) (by linarith)
+  have hkf1 : kf < 1 := (div_lt_one (by linarith)).2 (by linarith)
+  have hbμ : ∀ᵐ z ∂(volume.restrict D), ‖μ z‖ ≤ kg := by
+    filter_upwards [hμ, (isKQC_maxDilatation_le hg).2] with z h1 h2
+    rw [← h1]
+    exact h2
+  have hbν : ∀ᵐ z ∂(volume.restrict D), ‖ν z‖ ≤ kf := by
+    filter_upwards [hν, (isKQC_maxDilatation_le hf).2] with z h1 h2
+    rw [← h1]
+    exact h2
+  set ρ : ℂ → ℝ := fun z => ‖(μ z - ν z) / (1 - conj (ν z) * μ z)‖ with hρdef
+  have hk0 : 0 ≤ max kg kf := le_max_of_le_left hkg0
+  have hk1 : max kg kf < 1 := max_lt hkg1 hkf1
+  have hc1 : 2 * max kg kf / (1 + max kg kf ^ 2) < 1 := by
+    rw [div_lt_one (by positivity)]
+    nlinarith [sq_nonneg (1 - max kg kf)]
+  have hρc : ∀ᵐ z ∂(volume.restrict D), ρ z ≤ 2 * max kg kf / (1 + max kg kf ^ 2) := by
+    filter_upwards [hbμ, hbν] with z h1 h2
+    exact ahQ_pseudo_bound hk0 hk1 (h1.trans (le_max_left _ _)) (h2.trans (le_max_right _ _))
+  set F := f ∘ Function.invFunOn g D with hF
+  have hleft : LeftInvOn (Function.invFunOn g D) g D := hg.2.2.1.2.1.leftInvOn_invFunOn
+  have hright : ∀ w ∈ g '' D, g (Function.invFunOn g D w) = w := fun w hw => Function.invFunOn_eq hw
+  have hinv : IsKQC (Function.invFunOn g D) (g '' D) Kg := thm7_2_inv hg
+  have hinvimg : Function.invFunOn g D '' (g '' D) = D := hleft.image_image
+  have hFK : IsKQC F (g '' D) (Kg * Kf) := thm7_1_comp hinv hf (by rw [hinvimg])
+  have hgm : MeasurableSet (g '' D) := (isOpen_image_of_isKQC hg).measurableSet
+  have hJF : ∀ᵐ z ∂(volume.restrict D), 0 < jacobian F (g z) := by
+    have h := abT_ae_image hinv (p := fun z => 0 < jacobian F (g z)) (by
+      filter_upwards [thm9_6_cor2_jacobian_pos hFK, ae_restrict_mem hgm] with w hw hwm
+      show 0 < jacobian F (g (Function.invFunOn g D w))
+      rw [hright w hwm]
+      exact hw)
+    rwa [hinvimg] at h
+  have hpt : ∀ᵐ z ∂(volume.restrict D),
+      ENNReal.ofReal ((‖dz F (g z)‖ + ‖dzbar F (g z)‖) / (‖dz F (g z)‖ - ‖dzbar F (g z)‖)) =
+        ENNReal.ofReal ((1 + ρ z) / (1 - ρ z)) := by
+    have hC := ahQ_comp_inv_dilatation hf hg
+    have hJf := thm9_6_cor2_jacobian_pos hg
+    filter_upwards [hC, hJf, hJF, hμ, hν] with z hCz hJfz hJFz h1 h2
+    have hdz : dz g z ≠ 0 := by
+      intro h0
+      unfold jacobian at hJfz
+      rw [h0, norm_zero] at hJfz
+      nlinarith [norm_nonneg (dzbar g z)]
+    have hdzF : dz F (g z) ≠ 0 := by
+      intro h0
+      unfold jacobian at hJFz
+      rw [h0, norm_zero] at hJFz
+      nlinarith [norm_nonneg (dzbar F (g z))]
+    have hμF : ‖dzbar F (g z) / dz F (g z)‖ = ρ z := by
+      change ‖complexDilatation F (g z)‖ = _
+      rw [hCz, h1, h2, norm_mul, UniversalTeichmuller.ut_e_norm_quot_symm, norm_div (dz g z), Complex.norm_conj,
+        div_self (norm_ne_zero_iff.2 hdz), mul_one]
+    rw [UniversalTeichmuller.ut_e_quot_eq hdzF, hμF]
+  have hm : volume.restrict D ≠ 0 := by
+    rw [Ne, Measure.restrict_eq_zero]
+    exact isOpen_upperHalf.measure_ne_zero volume ⟨I, by simp [upperHalf]⟩
+  have hnn : ∀ x : ℂ, (‖x‖₊ : ℝ≥0∞) = ENNReal.ofReal ‖x‖ := fun x => (ofReal_norm x).symm
+  have hd : UniversalTeichmuller.dilatationDiffNorm μ ν =
+      (essSup (fun z => ENNReal.ofReal (ρ z)) (volume.restrict D)).toReal := by
+    simp only [UniversalTeichmuller.dilatationDiffNorm, hnn, hρdef]
+    rfl
+  have hkey : maxDilatation F (g '' D) =
+      ENNReal.ofReal ((1 + UniversalTeichmuller.dilatationDiffNorm μ ν) /
+        (1 - UniversalTeichmuller.dilatationDiffNorm μ ν)) := by
+    rw [maxDilatation, UniversalTeichmuller.ut_e_essSup_image hg, essSup_congr_ae hpt,
+      UniversalTeichmuller.ut_e_essSup_quot hm hc1 (fun z => norm_nonneg _) hρc, hd]
+  have hd1 : UniversalTeichmuller.dilatationDiffNorm μ ν < 1 := by
+    refine lt_of_le_of_lt ?_ hc1
+    rw [hd]
+    refine ENNReal.toReal_le_of_le_ofReal (div_nonneg (by linarith) (by positivity))
+      (essSup_le_of_ae_le _ ?_)
+    filter_upwards [hρc] with z hz
+    exact ENNReal.ofReal_le_ofReal hz
+  exact ⟨hd1, hkey⟩
+
+/-- Helper for `s33d_K_eq`: the maximal dilatation of a q.c. map of uniformized surfaces is that of its lift to `ℍ`
+(`h23l_lift_isKQC` and `s27v_isKQCRS_of_lift` in both directions). -/
+theorem s33d_K_lift {A B : Type u} [TopologicalSpace A] [ChartedSpace ℂ A] [IsManifold 𝓘(ℂ) ω A]
+    [TopologicalSpace B] [ChartedSpace ℂ B] [IsManifold 𝓘(ℂ) ω B] [Nonempty A]
+    {Γ₁ Γ₂ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₁ : UpperHalfPlane → A}
+    {p₂ : UpperHalfPlane → B} (hp₁ : IsUniformization Γ₁ p₁) (hp₂ : IsUniformization Γ₂ p₂) {f : A ≃ₜ B}
+    (hf : IsQCRS f) {F : UpperHalfPlane ≃ₜ UpperHalfPlane} (hF : IsLift p₁ p₂ f F) :
+    maxDilatationRS f = maxDilatation (liftToC F) upperHalf := by
+  have hK0 := s29_m_isKQCRS_maxDil hf
+  have hne : (upperHalf : Set ℂ).Nonempty := ⟨I, by simp [upperHalf]⟩
+  have hfin := s29_m_maxDilatationRS_ne_top hf
+  obtain ⟨K, hK⟩ := hf
+  have hl1 : IsKQC (liftToC F) upperHalf K := h23l_lift_isKQC hp₁ hp₂ hK hF
+  have hl0 := h23l_lift_isKQC hp₁ hp₂ hK0 hF
+  have hfin' : maxDilatation (liftToC F) upperHalf ≠ ⊤ :=
+    ne_top_of_le_ne_top ENNReal.ofReal_ne_top (isKQC_maxDilatation_le hl1).1
+  obtain ⟨-, hl2⟩ := UniversalTeichmuller.ut_md_isKQC_toReal hl1 hne
+  apply le_antisymm
+  · have := maxDilatationRS_le (s27v_isKQCRS_of_lift hp₁ hp₂ hF hl2)
+    rwa [ENNReal.ofReal_toReal hfin'] at this
+  · have := (isKQC_maxDilatation_le hl0).1
+    rwa [ENNReal.ofReal_toReal hfin] at this
+
+/-- Helper for `s33d_K_eq`: `maxDilatation` only depends on the function on the open set. -/
+theorem s33d_maxDil_congr {f h : ℂ → ℂ} {D : Set ℂ} (hD : IsOpen D) (hfh : EqOn f h D) :
+    maxDilatation f D = maxDilatation h D := by
+  unfold maxDilatation
+  refine essSup_congr_ae ?_
+  filter_upwards [ae_restrict_mem hD.measurableSet] with z hz
+  have hev : f =ᶠ[𝓝 z] h := Filter.eventuallyEq_of_mem (hD.mem_nhds hz) hfh
+  simp only [dz, dzbar, hev.fderiv_eq (𝕜 := ℝ)]
+
+/-- Helper for `teichDistanceGamma_eq` (`s33d_`): the surface version of `UniversalTeichmuller.ut_v_eq`.  For a
+marked surface `m` of `S = ℍ/Γ` and a q.c. map `g` out of `m.X`, with `μ₁ = s27u_liftCoeff p m.marking` and
+`ν₁ = s27u_liftCoeff p (g ∘ m.marking)` the lifted coefficients of the two markings, the maximal dilatation of `g` is
+`(1 + d)/(1 - d)`, `d = ‖(μ₁ - ν₁)/(1 - ν̄₁μ₁)‖_∞`: at `m(p z)` the local dilatation of `g` has modulus
+`|(ν₁ - μ₁)/(1 - μ̄₁ν₁)|(z)` (composition law), and the essential supremum over the charts of `X` is the essential
+supremum over `ℍ` (`p` is a surjective local homeomorphism, `m` preserves null sets). -/
+theorem s33d_K_eq {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S] [ConnectedSpace S]
+    [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {p : UpperHalfPlane → S} (hp : IsUniformization Γ p)
+    (m : MarkedRS S) {Y : Type u} [TopologicalSpace Y] [ChartedSpace ℂ Y] [IsManifold 𝓘(ℂ) ω Y]
+    (g : m.X.carrier ≃ₜ Y) (hg : IsQCRS g) :
+    maxDilatationRS g = ENNReal.ofReal
+      ((1 + UniversalTeichmuller.dilatationDiffNorm (s27u_liftCoeff p m.marking)
+          (s27u_liftCoeff p (m.marking.trans g))) /
+        (1 - UniversalTeichmuller.dilatationDiffNorm (s27u_liftCoeff p m.marking)
+          (s27u_liftCoeff p (m.marking.trans g)))) := by
+  classical
+  haveI : Nonempty m.X.carrier := ⟨m.marking (p UpperHalfPlane.I)⟩
+  haveI : T2Space Y := g.symm.isEmbedding.t2Space
+  haveI : ConnectedSpace Y := g.surjective.connectedSpace g.continuous
+  haveI : CompactSpace Y := g.surjective.compactSpace g.continuous
+  obtain ⟨K₁, hK₁⟩ := m.qc
+  obtain ⟨K₂, hK₂⟩ := hg
+  have hqc' : IsQCRS (m.marking.trans g) := ⟨_, (eq23_4 hK₁ hK₂).1⟩
+  let m' : MarkedRS S := ⟨⟨Y⟩, m.marking.trans g, hqc'⟩
+  obtain ⟨Γ₁, p₁, F₁, G₁, hp₁, hN₁, hF₁, -⟩ := s27u_exists_uniformization hp m
+  obtain ⟨Γ₂, p₂, F₂, G₂, hp₂, hN₂, hF₂, -⟩ := s27u_exists_uniformization hp m'
+  have hlift : IsLift p₁ p₂ g (F₁.symm.trans F₂) := by
+    intro w
+    show p₂ (F₂ (F₁.symm w)) = g (p₁ w)
+    have h2 := hN₂.1 (F₁.symm w)
+    have h1 := hN₁.1 (F₁.symm w)
+    rw [F₁.apply_symm_apply] at h1
+    rw [h2, h1]
+    rfl
+  rw [s33d_K_lift hp₁ hp₂ ⟨K₂, hK₂⟩ hlift]
+  obtain ⟨k₁, hk₁0, hk₁1, hμ₁⟩ := s27v_liftCoeff_bound hp m
+  obtain ⟨k₂, hk₂0, hk₂1, hμ₂⟩ := s27v_liftCoeff_bound hp m'
+  obtain ⟨himg₁, -, -, hKQ₁, hd₁⟩ := s27u_fSym_upperHalf hk₁0 hk₁1 hμ₁
+  obtain ⟨-, -, -, hKQ₂, hd₂⟩ := s27u_fSym_upperHalf hk₂0 hk₂1 hμ₂
+  obtain ⟨-, hK⟩ := s33d_plane_K hKQ₂ hKQ₁ hd₁ hd₂
+  rw [himg₁] at hK
+  have hcong : maxDilatation (liftToC (F₁.symm.trans F₂)) upperHalf =
+      maxDilatation (s27u_fSym (s27u_liftCoeff p m'.marking) ∘
+        Function.invFunOn (s27u_fSym (s27u_liftCoeff p m.marking)) upperHalf) upperHalf := by
+    refine s33d_maxDil_congr isOpen_upperHalf fun w hw => ?_
+    have hw' : 0 < w.im := hw
+    set τ : UpperHalfPlane := F₁.symm (UpperHalfPlane.ofComplex w) with hτ
+    have h1 : s27u_fSym (s27u_liftCoeff p m.marking) (τ : ℂ) = w := by
+      rw [← hF₁ τ, hτ, F₁.apply_symm_apply, UpperHalfPlane.ofComplex_apply_of_im_pos hw']
+    have h2 : Function.invFunOn (s27u_fSym (s27u_liftCoeff p m.marking)) upperHalf w = (τ : ℂ) := by
+      rw [← h1]
+      exact hKQ₁.2.2.1.2.1.leftInvOn_invFunOn τ.coe_im_pos
+    simp only [Function.comp_apply]
+    rw [h2, ← hF₂ τ, h23l_liftToC_eq _ hw]
+    rfl
+  rw [hcong, hK]
+
+/-- Helper for `teichDistanceGamma_eq`: if `e` is an equivalence with the characterization clause of
+`teichGamma_equiv_teichSpace` and `e [μ] = [m]`, then the symmetric solution of the lifted coefficient of `m` has
+the boundary values `f^μ|ℝ` (the normalized lift of `m` from `s27u_exists_uniformization` and the normalized lift of
+the clause have the same boundary values by Theorem 27.1, `thm27_1` with `m₁ = m₂ = m`). -/
+theorem s33d_fSym_char {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {g : ℕ} (hg : 1 < g) (hS : HasGenus S g)
+    {p : UpperHalfPlane → S} (hp : IsUniformization Γ p) (e : TeichGamma Γ ≃ TeichSpace S)
+    (he : ∀ (μ : BeltramiGamma Γ) (m : MarkedRS S),
+      e (Quotient.mk _ μ) = Quot.mk _ m ↔
+        ∃ (Γ' : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)) (p' : UpperHalfPlane → m.X.carrier)
+          (F : UpperHalfPlane ≃ₜ UpperHalfPlane) (G : ExtPlane → ExtPlane),
+          IsUniformization Γ' p' ∧ IsNormalizedLift p p' m.marking F G ∧
+          ∀ x : ℝ, G ((x : ℂ) : ExtPlane) = ((fMuSym μ.1.1 x : ℂ) : ExtPlane))
+    (μ : BeltramiGamma Γ) (m : MarkedRS S) (h : e (Quotient.mk _ μ) = Quot.mk _ m) :
+    ∀ x : ℝ, s27u_fSym (s27u_liftCoeff p m.marking) x = fMuSym μ.1.1 x := by
+  obtain ⟨Γ', p', F, G, hp', hN, hG⟩ := (he μ m).1 h
+  obtain ⟨Γ₁, p₁, F₁, G₁, hp₁, hN₁, -, hG₁⟩ := s27u_exists_uniformization hp m
+  intro x
+  have h1 := (thm27_1 hg hS hp m m hp₁ hp' hN₁ hN).1 (markedRS_equiv_equivalence.refl m) x
+  rw [hG₁ x, hG x] at h1
+  exact OnePoint.coe_injective h1
+
+/-- Helper for `s33d_ge`, `s33d_le`: `x ↦ ½ ln((1 + x)/(1 - x))` is monotone on `[0, 1)`. -/
+theorem s33d_phi_mono {x y : ℝ} (hx : 0 ≤ x) (hxy : x ≤ y) (hy : y < 1) :
+    (1 / 2) * Real.log ((1 + x) / (1 - x)) ≤ (1 / 2) * Real.log ((1 + y) / (1 - y)) := by
+  have h1 : 0 < 1 - y := by linarith
+  have h2 : 0 < 1 - x := by linarith
+  refine mul_le_mul_of_nonneg_left (Real.log_le_log (div_pos (by linarith) h2) ?_) (by norm_num)
+  rw [div_le_div_iff₀ h2 h1]
+  nlinarith
+
+/-- Helper for `teichDistanceGamma_eq` (the inequality `≥`): every competitor `(m₁, m₂, g)` in the infimum defining
+`teichDistance (e a) (e b)` gives representatives `μ' = liftCoeff m₁ ∈ a`, `ν' = liftCoeff (g ∘ m₁) ∈ b`
+(`s33d_fSym_char`; `⟨X₂, g ∘ m₁⟩ ∼ m₂` by `markedRS_equiv_same_surface`, then `s27v_equiv_iff_fSym`) with
+`K[g] = (1 + d(μ', ν'))/(1 - d(μ', ν'))` (`s33d_K_eq`), and `δ(a, b) ≤ d(μ', ν')`. -/
+theorem s33d_ge {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {g : ℕ} (hg : 1 < g) (hS : HasGenus S g)
+    (hΓ : IsFuchsian Γ) (hfree : ActsFreely Γ) {p : UpperHalfPlane → S} (hp : IsUniformization Γ p)
+    (e : TeichGamma Γ ≃ TeichSpace S)
+    (he : ∀ (μ : BeltramiGamma Γ) (m : MarkedRS S),
+      e (Quotient.mk _ μ) = Quot.mk _ m ↔
+        ∃ (Γ' : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)) (p' : UpperHalfPlane → m.X.carrier)
+          (F : UpperHalfPlane ≃ₜ UpperHalfPlane) (G : ExtPlane → ExtPlane),
+          IsUniformization Γ' p' ∧ IsNormalizedLift p p' m.marking F G ∧
+          ∀ x : ℝ, G ((x : ℂ) : ExtPlane) = ((fMuSym μ.1.1 x : ℂ) : ExtPlane))
+    (a b : TeichGamma Γ) :
+    (1 / 2) * Real.log ((1 + teichDeltaGamma a b) / (1 - teichDeltaGamma a b)) ≤ teichDistance (e a) (e b) := by
+  classical
+  obtain ⟨μ, rfl⟩ := Quotient.exists_rep a
+  obtain ⟨ν, rfl⟩ := Quotient.exists_rep b
+  obtain ⟨hδ0, hδ1, -⟩ := bg_d_teichDelta_spec (Quotient.mk _ μ) (Quotient.mk _ ν)
+  unfold teichDistance
+  refine le_csInf (s29_m_teichSet_nonempty (e (Quotient.mk _ μ)) (e (Quotient.mk _ ν))) ?_
+  rintro d ⟨m₁, m₂, gm, h₁, h₂, hq0, hhom, rfl⟩
+  obtain ⟨K₁, hK₁⟩ := m₁.qc
+  obtain ⟨K₂, hK₂⟩ := hq0
+  have hqc' : IsQCRS (m₁.marking.trans gm) := ⟨_, (eq23_4 hK₁ hK₂).1⟩
+  set m' : MarkedRS S := ⟨m₂.X, m₁.marking.trans gm, hqc'⟩ with hm'
+  have hgen : HasGenus m₂.X.carrier g := hasGenus_of_homeomorph hS m₂.marking
+  have hequiv : m'.Equiv m₂ :=
+    markedRS_equiv_same_surface m₂.X (m₁.marking.trans gm) m₂.marking hqc' m₂.qc hg hgen hhom
+  have h₂' : e (Quotient.mk _ ν) = Quot.mk _ m' := h₂.symm.trans (Quot.sound hequiv).symm
+  have hf1 := s33d_fSym_char hg hS hp e he μ m₁ h₁.symm
+  have hf2 := s33d_fSym_char hg hS hp e he ν m' h₂'
+  obtain ⟨B1, hB1, hB1c⟩ := s27u_liftCoeff_beltramiH hp m₁.qc
+  obtain ⟨B2, hB2, hB2c⟩ := s27u_liftCoeff_beltramiH hp hqc'
+  let β1 : BeltramiGamma Γ := ⟨B1, hB1c⟩
+  let β2 : BeltramiGamma Γ := ⟨B2, hB2c⟩
+  have hq1 : (Quotient.mk (teichSetoidGamma Γ) β1) = Quotient.mk _ μ := Quotient.sound (fun x => by
+    show fMuSym B1.1 x = fMuSym μ.1.1 x
+    rw [hB1]
+    exact hf1 x)
+  have hq2 : (Quotient.mk (teichSetoidGamma Γ) β2) = Quotient.mk _ ν := Quotient.sound (fun x => by
+    show fMuSym B2.1 x = fMuSym ν.1.1 x
+    rw [hB2]
+    exact hf2 x)
+  have hδd : teichDeltaGamma (Quotient.mk _ μ) (Quotient.mk _ ν) ≤
+      UniversalTeichmuller.dilatationDiffNorm B1.1 B2.1 :=
+    csInf_le ⟨0, by rintro _ ⟨μ', ν', -, -, rfl⟩; exact ENNReal.toReal_nonneg⟩ ⟨β1, β2, hq1, hq2, rfl⟩
+  have hd1 : UniversalTeichmuller.dilatationDiffNorm B1.1 B2.1 < 1 := (UniversalTeichmuller.ut_v_eq B1 B2).1
+  have hd0 : 0 ≤ UniversalTeichmuller.dilatationDiffNorm B1.1 B2.1 := ENNReal.toReal_nonneg
+  have hK := s33d_K_eq hp m₁ gm ⟨K₂, hK₂⟩
+  rw [← hB1, ← hB2] at hK
+  rw [hK, ENNReal.toReal_ofReal (div_nonneg (by linarith) (by linarith))]
+  exact s33d_phi_mono hδ0 hδd hd1
+
+/-- Helper for `s33d_le`: `dilatationDiffNorm` depends only on the almost-everywhere class (on `ℍ`) of its
+arguments. -/
+theorem s33d_dd_congr {μ₁ μ₂ ν₁ ν₂ : ℂ → ℂ} (h1 : ∀ᵐ z ∂(volume.restrict upperHalf), μ₁ z = μ₂ z)
+    (h2 : ∀ᵐ z ∂(volume.restrict upperHalf), ν₁ z = ν₂ z) :
+    UniversalTeichmuller.dilatationDiffNorm μ₁ ν₁ = UniversalTeichmuller.dilatationDiffNorm μ₂ ν₂ := by
+  unfold UniversalTeichmuller.dilatationDiffNorm
+  congr 1
+  refine essSup_congr_ae ?_
+  filter_upwards [h1, h2] with z a b
+  rw [a, b]
+
+/-- Helper for `s33d_le`: a marked surface of `S` whose lifted coefficient is `μ` a.e. on `ℍ` (`s27v_exists_marked`),
+and whose symmetric solution `s27u_fSym` is that of `μ` (`s27u_fSym_congr_ae`). -/
+theorem s33d_marked_rep {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {p : UpperHalfPlane → S}
+    (hp : IsUniformization Γ p) (μ : BeltramiGamma Γ) :
+    ∃ m : MarkedRS S, (∀ᵐ z ∂(volume.restrict upperHalf), s27u_liftCoeff p m.marking z = μ.1.1 z) ∧
+      s27u_fSym (s27u_liftCoeff p m.marking) = s27u_fSym μ.1.1 := by
+  obtain ⟨k, hk0, hk1, hμ⟩ := bg_beltramiH_upper μ.1
+  obtain ⟨m, hm⟩ := s27v_exists_marked hp hk0 hk1 hμ μ.2
+  obtain ⟨k', hk0', hk1', hμ'⟩ := s27v_liftCoeff_bound hp m
+  exact ⟨m, hm, s27u_fSym_congr_ae hk0' hk1' hμ' hk0 hk1 hμ hm⟩
+
+/-- Helper for `s33d_le`: for representatives `μ' ∈ a`, `ν' ∈ b`, `d_T(e a, e b) ≤ ½ ln((1 + d)/(1 - d))`,
+`d = ‖(μ' - ν')/(1 - ν̄'μ')‖_∞`. -/
+theorem s33d_le_pair {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {p : UpperHalfPlane → S}
+    (hp : IsUniformization Γ p) (e : TeichGamma Γ ≃ TeichSpace S)
+    (he : ∀ (μ : BeltramiGamma Γ) (m : MarkedRS S),
+      e (Quotient.mk _ μ) = Quot.mk _ m ↔
+        ∃ (Γ' : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)) (p' : UpperHalfPlane → m.X.carrier)
+          (F : UpperHalfPlane ≃ₜ UpperHalfPlane) (G : ExtPlane → ExtPlane),
+          IsUniformization Γ' p' ∧ IsNormalizedLift p p' m.marking F G ∧
+          ∀ x : ℝ, G ((x : ℂ) : ExtPlane) = ((fMuSym μ.1.1 x : ℂ) : ExtPlane))
+    (μ ν : BeltramiGamma Γ) :
+    teichDistance (e (Quotient.mk _ μ)) (e (Quotient.mk _ ν)) ≤
+      (1 / 2) * Real.log ((1 + UniversalTeichmuller.dilatationDiffNorm μ.1.1 ν.1.1) /
+        (1 - UniversalTeichmuller.dilatationDiffNorm μ.1.1 ν.1.1)) := by
+  classical
+  obtain ⟨m₁, hm₁, hf₁⟩ := s33d_marked_rep hp μ
+  obtain ⟨m₂, hm₂, hf₂⟩ := s33d_marked_rep hp ν
+  -- `e [μ] = [m₁]`: the normalized lift of `m₁` has the boundary values `f^μ`
+  have hchar : ∀ (μ' : BeltramiGamma Γ) (m : MarkedRS S), s27u_fSym (s27u_liftCoeff p m.marking) = s27u_fSym μ'.1.1 →
+      e (Quotient.mk _ μ') = Quot.mk _ m := by
+    intro μ' m hf
+    refine (he μ' m).2 ?_
+    obtain ⟨Γ₁, p₁, F₁, G₁, hp₁, hN₁, -, hG₁⟩ := s27u_exists_uniformization hp m
+    refine ⟨Γ₁, p₁, F₁, G₁, hp₁, hN₁, fun x => ?_⟩
+    rw [hG₁ x, hf]
+    rfl
+  have h₁ := hchar μ m₁ hf₁
+  have h₂ := hchar ν m₂ hf₂
+  obtain ⟨K₁, hK₁⟩ := m₁.qc
+  obtain ⟨K₂, hK₂⟩ := m₂.qc
+  set gm : m₁.X.carrier ≃ₜ m₂.X.carrier := m₁.marking.symm.trans m₂.marking with hgm
+  have hgq : IsQCRS gm := ⟨_, (eq23_4 (s29_m_isKQCRS_symm hK₁) hK₂).1⟩
+  have hcomp : m₁.marking.trans gm = m₂.marking := by
+    ext x
+    simp [hgm]
+  have hhom : ContinuousMap.Homotopic ((m₁.marking.trans gm : S ≃ₜ m₂.X.carrier) : C(S, m₂.X.carrier))
+      (m₂.marking : C(S, m₂.X.carrier)) := by
+    rw [hcomp]
+  have hmem : (1 / 2) * Real.log (maxDilatationRS gm).toReal ∈
+      s29_m_teichSet (e (Quotient.mk _ μ)) (e (Quotient.mk _ ν)) :=
+    ⟨m₁, m₂, gm, h₁.symm, h₂.symm, hgq, hhom, rfl⟩
+  have hK := s33d_K_eq hp m₁ gm hgq
+  rw [hcomp] at hK
+  have hdd := s33d_dd_congr hm₁ hm₂
+  rw [hdd] at hK
+  have hd1 := (UniversalTeichmuller.ut_v_eq μ.1 ν.1).1
+  have hd0 : 0 ≤ UniversalTeichmuller.dilatationDiffNorm μ.1.1 ν.1.1 := ENNReal.toReal_nonneg
+  calc teichDistance (e (Quotient.mk _ μ)) (e (Quotient.mk _ ν))
+      ≤ (1 / 2) * Real.log (maxDilatationRS gm).toReal :=
+        csInf_le (s29_m_teichSet_bddBelow _ _) hmem
+    _ = _ := by
+        rw [hK, ENNReal.toReal_ofReal (div_nonneg (by linarith) (by linarith))]
+
+/-- Helper for `teichDistanceGamma_eq` (the inequality `≤`): for representatives `μ' ∈ a`, `ν' ∈ b` the marked
+surfaces `X^{μ'}`, `X^{ν'}` (`s27v_exists_marked`, with lifted coefficients `μ'`, `ν'` a.e.) have
+`e a = [X^{μ'}]`, `e b = [X^{ν'}]` (the clause, with `s27u_fSym_congr_ae`), and `g = m₂ ∘ m₁⁻¹` has `g ∘ m₁ = m₂`
+and `K[g] = (1 + d(μ', ν'))/(1 - d(μ', ν'))` (`s33d_K_eq`); then `δ(a, b)` is approximated by `d(μ', ν')`
+(`bg_d_teichDelta_spec`) and `½ log((1 + x)/(1 - x))` is continuous and monotone on `[0, 1)`. -/
+theorem s33d_le {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {g : ℕ} (hg : 1 < g) (hS : HasGenus S g)
+    (hΓ : IsFuchsian Γ) (hfree : ActsFreely Γ) {p : UpperHalfPlane → S} (hp : IsUniformization Γ p)
+    (e : TeichGamma Γ ≃ TeichSpace S)
+    (he : ∀ (μ : BeltramiGamma Γ) (m : MarkedRS S),
+      e (Quotient.mk _ μ) = Quot.mk _ m ↔
+        ∃ (Γ' : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)) (p' : UpperHalfPlane → m.X.carrier)
+          (F : UpperHalfPlane ≃ₜ UpperHalfPlane) (G : ExtPlane → ExtPlane),
+          IsUniformization Γ' p' ∧ IsNormalizedLift p p' m.marking F G ∧
+          ∀ x : ℝ, G ((x : ℂ) : ExtPlane) = ((fMuSym μ.1.1 x : ℂ) : ExtPlane))
+    (a b : TeichGamma Γ) :
+    teichDistance (e a) (e b) ≤ (1 / 2) * Real.log ((1 + teichDeltaGamma a b) / (1 - teichDeltaGamma a b)) := by
+  classical
+  obtain ⟨hδ0, hδ1, happ⟩ := bg_d_teichDelta_spec a b
+  obtain ⟨μ₀, rfl⟩ := Quotient.exists_rep a
+  obtain ⟨ν₀, rfl⟩ := Quotient.exists_rep b
+  set δ := teichDeltaGamma (Quotient.mk _ μ₀) (Quotient.mk _ ν₀) with hδ
+  have hbound : ∀ b' : ℝ, δ < b' → b' < 1 → teichDistance (e (Quotient.mk _ μ₀)) (e (Quotient.mk _ ν₀)) ≤
+      (1 / 2) * Real.log ((1 + b') / (1 - b')) := by
+    intro b' hb' hb1
+    obtain ⟨μ, ν, hμ, hν, hlt⟩ := happ b' hb'
+    have := s33d_le_pair hp e he μ ν
+    rw [hμ, hν] at this
+    refine this.trans ?_
+    exact s33d_phi_mono ENNReal.toReal_nonneg hlt.le hb1
+  have hc : ContinuousAt (fun x : ℝ => (1 / 2) * Real.log ((1 + x) / (1 - x))) δ := by
+    have h1 : (1 + δ) / (1 - δ) ≠ 0 := div_ne_zero (by linarith) (by linarith)
+    have h2 : ContinuousAt (fun x : ℝ => (1 + x) / (1 - x)) δ :=
+      (continuousAt_const.add continuousAt_id).div (continuousAt_const.sub continuousAt_id) (by linarith)
+    exact (h2.log h1).const_mul _
+  have hlim : Filter.Tendsto (fun x : ℝ => (1 / 2) * Real.log ((1 + x) / (1 - x))) (nhdsWithin δ (Ioi δ))
+      (𝓝 ((1 / 2) * Real.log ((1 + δ) / (1 - δ)))) := hc.tendsto.mono_left nhdsWithin_le_nhds
+  refine ge_of_tendsto hlim ?_
+  filter_upwards [Ioo_mem_nhdsGT hδ1] with b' hb'
+  exact hbound b' hb'.1 hb'.2
+
+/-- §33.4: under `T(G₀) ≅ T(S₀)` the distance `teichDistanceGamma` is the Teichmüller distance of
+§29 (the infimum of `½ ln K` over the maps `f_ν ∘ f_μ⁻¹` in the class). -/
+theorem teichDistanceGamma_eq {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S] [CompactSpace S] {g : ℕ} (hg : 1 < g) (hS : HasGenus S g)
+    (hΓ : IsFuchsian Γ) (hfree : ActsFreely Γ) {p : UpperHalfPlane → S} (hp : IsUniformization Γ p) :
+    ∃ e : TeichGamma Γ ≃ TeichSpace S, ∀ a b, teichDistanceGamma a b = teichDistance (e a) (e b) := by
+  obtain ⟨e, he⟩ := teichGamma_equiv_teichSpace hg hS hΓ hfree hp
+  refine ⟨e, fun a b => ?_⟩
+  unfold teichDistanceGamma
+  exact le_antisymm (s33d_ge hg hS hΓ hfree hp e he a b) (s33d_le hg hS hΓ hfree hp e he a b)
 
 /-- The ε–δ computation of Lemma 33.2: if `0 ≤ x < 1` and `½ ln((1 + x)/(1 - x)) < δ/2`, then `x < (e^δ - 1)/2`
 (`(1 + x)/(1 - x) < e^δ` gives `x (e^δ + 1) < e^δ - 1`, and `e^δ + 1 ≥ 2`). -/
@@ -4812,6 +5283,419 @@ theorem bersMapGamma_injective (hΓ : IsFuchsian Γ) : Function.Injective (bersM
   rw [← Quotient.out_eq p, ← Quotient.out_eq q]
   exact Quotient.sound ((lemma33_1 (Quotient.out p).1 (Quotient.out q).1).2 (bA_equiv_of_schwarzian_eq hS))
 
+/-- Complex conjugation commutes with the Möbius map of a real matrix. -/
+theorem s33dim_conj_mob (γ : Matrix.SpecialLinearGroup (Fin 2) ℝ) (w : ℂ) :
+    conj (utm_b_mob γ w) = utm_b_mob γ (conj w) := by
+  simp [utm_b_mob, map_div₀, Complex.conj_ofReal]
+
+/-- A real Möbius map sends `𝕃` to `𝕃`. -/
+theorem s33dim_mob_lower (γ : Matrix.SpecialLinearGroup (Fin 2) ℝ) {z : ℂ} (hz : z ∈ lowerHalf) :
+    utm_b_mob γ z ∈ lowerHalf := by
+  have hzim : 0 < (conj z).im := by
+    rw [Complex.conj_im]
+    exact neg_pos.2 hz
+  have h := utm_b_mob_im_pos γ hzim
+  rw [← s33dim_conj_mob, Complex.conj_im] at h
+  show (utm_b_mob γ z).im < 0
+  linarith
+
+/-- The reflection `z ↦ conj (ψ (conj z))`, extended by `0`, of a holomorphic automorphic form on `ℍ`
+is an element of `automorphicQD Γ`. -/
+theorem s33dim_reflect_mem {ψ : ℂ → ℂ} (hd : DifferentiableOn ℂ ψ upperHalf)
+    (hψ : ∀ γ ∈ Γ, ∀ z ∈ upperHalf, ψ (utm_b_mob γ z) / ((γ 1 0 : ℂ) * z + γ 1 1) ^ 4 = ψ z) :
+    lowerHalf.indicator (fun w => conj (ψ (conj w))) ∈ automorphicQD Γ := by
+  refine ⟨?_, fun z hz => indicator_of_notMem hz _, fun γ hγ z hz => ?_⟩
+  · have hf : DifferentiableOn ℂ (fun w => conj (ψ (conj w))) lowerHalf := by
+      intro w hw
+      have hw' : conj w ∈ upperHalf := by
+        show 0 < (conj w).im
+        rw [Complex.conj_im]
+        exact neg_pos.2 hw
+      have h1 : DifferentiableAt ℂ ψ (conj w) := (hd _ hw').differentiableAt (isOpen_upperHalf.mem_nhds hw')
+      have h2 := h1.conj_conj
+      rw [Complex.conj_conj] at h2
+      exact h2.differentiableWithinAt
+    exact hf.congr (fun w hw => indicator_of_mem hw _)
+  · have hz' : conj z ∈ upperHalf := by
+      show 0 < (conj z).im
+      rw [Complex.conj_im]
+      exact neg_pos.2 hz
+    have hγz := s33dim_mob_lower γ hz
+    have h := hψ γ hγ (conj z) hz'
+    have h2 := congrArg conj h
+    rw [map_div₀, map_pow] at h2
+    have hc : conj ((γ 1 0 : ℂ) * conj z + γ 1 1) = (γ 1 0 : ℂ) * z + γ 1 1 := by
+      simp [Complex.conj_ofReal]
+    rw [hc, ← s33dim_conj_mob] at h2
+    show (lowerHalf.indicator (fun w => conj (ψ (conj w))) (utm_b_mob γ z)) /
+      ((γ 1 0 : ℂ) * z + γ 1 1) ^ 4 = lowerHalf.indicator (fun w => conj (ψ (conj w))) z
+    rw [indicator_of_mem hγz, indicator_of_mem hz]
+    simpa using h2
+
+/-- The converse reflection of an element of `automorphicQD Γ` is a holomorphic automorphic form on `ℍ`. -/
+theorem s33dim_unreflect {φ : ℂ → ℂ} (hφ : φ ∈ automorphicQD Γ) :
+    DifferentiableOn ℂ (fun w => conj (φ (conj w))) upperHalf ∧
+      ∀ γ ∈ Γ, ∀ z ∈ upperHalf,
+        conj (φ (conj (utm_b_mob γ z))) / ((γ 1 0 : ℂ) * z + γ 1 1) ^ 4 = conj (φ (conj z)) := by
+  have hlow : ∀ z ∈ upperHalf, conj z ∈ lowerHalf := fun z hz => by
+    show (conj z).im < 0
+    rw [Complex.conj_im]
+    exact neg_lt_zero.2 hz
+  refine ⟨?_, fun γ hγ z hz => ?_⟩
+  · intro w hw
+    have hw' := hlow w hw
+    have h1 : DifferentiableAt ℂ φ (conj w) :=
+      (hφ.1 _ hw').differentiableAt (isOpen_lowerHalf.mem_nhds hw')
+    have h2 := h1.conj_conj
+    rw [Complex.conj_conj] at h2
+    exact h2.differentiableWithinAt
+  · have h := hφ.2.2 γ hγ (conj z) (hlow z hz)
+    have h2 := congrArg conj h
+    rw [map_div₀, map_pow] at h2
+    have hc : conj ((γ 1 0 : ℂ) * conj z + γ 1 1) = (γ 1 0 : ℂ) * z + γ 1 1 := by
+      simp [Complex.conj_ofReal]
+    rw [hc] at h2
+    rw [s33dim_conj_mob]
+    exact h2
+
+/-- Reflection of the upper-half-plane lift gives a real-linear equivalence with the
+lower-half-plane automorphic space. Its complex scalar law is conjugate-linear. -/
+theorem s33dim_reflected_equiv
+    {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S]
+    {p : UpperHalfPlane → S} (hp : IsUniformization Γ p) :
+    ∃ e : holQuadDiffSubmodule S ≃ₗ[ℝ] automorphicQD Γ,
+      (∀ (q : holQuadDiffSubmodule S) (z : ℂ),
+        (e q : ℂ → ℂ) z =
+          lowerHalf.indicator (fun w => conj (utm_liftQD (q : S → ℂ → ℂ) p (conj w))) z) ∧
+      (∀ (c : ℂ) (q : holQuadDiffSubmodule S), e (c • q) = conj c • e q) := by
+  classical
+  have hauto : ∀ q : holQuadDiffSubmodule S, lowerHalf.indicator
+      (fun w => conj (utm_liftQD (q : S → ℂ → ℂ) p (conj w))) ∈ automorphicQD Γ := fun q =>
+    s33dim_reflect_mem (utm_liftQD_differentiableOn q.2 hp) fun γ hγ z hz => by
+      have h := utm_b_liftQD_automorphic (q : S → ℂ → ℂ) hp hγ hz
+      generalize ((γ 1 0 : ℂ) * z + γ 1 1) = d at h ⊢
+      rw [← h]
+      ring
+  have hconjc : ∀ (c : ℂ) (q : holQuadDiffSubmodule S),
+      (⟨_, hauto (c • q)⟩ : automorphicQD Γ) = conj c • (⟨_, hauto q⟩ : automorphicQD Γ) := by
+    intro c q
+    apply Subtype.ext
+    funext z
+    show lowerHalf.indicator (fun w => conj (utm_liftQD ((c • q : holQuadDiffSubmodule S) : S → ℂ → ℂ) p (conj w))) z =
+      conj c * lowerHalf.indicator (fun w => conj (utm_liftQD (q : S → ℂ → ℂ) p (conj w))) z
+    by_cases hz : z ∈ lowerHalf
+    · rw [indicator_of_mem hz, indicator_of_mem hz]
+      show conj (utm_liftQD (c • (q : S → ℂ → ℂ)) p (conj z)) = _
+      rw [utm_x_liftQD_smul, map_mul]
+    · rw [indicator_of_notMem hz, indicator_of_notMem hz, mul_zero]
+  let L : holQuadDiffSubmodule S →ₗ[ℝ] automorphicQD Γ :=
+    { toFun := fun q => ⟨_, hauto q⟩
+      map_add' := fun q₁ q₂ => by
+        apply Subtype.ext
+        funext z
+        show lowerHalf.indicator (fun w => conj (utm_liftQD (((q₁ + q₂ : holQuadDiffSubmodule S)) :
+            S → ℂ → ℂ) p (conj w))) z =
+          lowerHalf.indicator (fun w => conj (utm_liftQD (q₁ : S → ℂ → ℂ) p (conj w))) z +
+            lowerHalf.indicator (fun w => conj (utm_liftQD (q₂ : S → ℂ → ℂ) p (conj w))) z
+        by_cases hz : z ∈ lowerHalf
+        · rw [indicator_of_mem hz, indicator_of_mem hz, indicator_of_mem hz]
+          show conj (utm_liftQD ((q₁ : S → ℂ → ℂ) + (q₂ : S → ℂ → ℂ)) p (conj z)) = _
+          rw [utm_x_liftQD_add, map_add]
+        · rw [indicator_of_notMem hz, indicator_of_notMem hz, indicator_of_notMem hz, add_zero]
+      map_smul' := fun r q => by
+        apply Subtype.ext
+        funext z
+        have e1 : ((r • q : holQuadDiffSubmodule S) : S → ℂ → ℂ) = (r : ℂ) • (q : S → ℂ → ℂ) := by
+          funext x y
+          simp [Complex.real_smul]
+        show lowerHalf.indicator (fun w => conj (utm_liftQD (((r • q : holQuadDiffSubmodule S)) :
+            S → ℂ → ℂ) p (conj w))) z =
+          r • lowerHalf.indicator (fun w => conj (utm_liftQD (q : S → ℂ → ℂ) p (conj w))) z
+        rw [e1]
+        by_cases hz : z ∈ lowerHalf
+        · rw [indicator_of_mem hz, indicator_of_mem hz]
+          show conj (utm_liftQD ((r : ℂ) • (q : S → ℂ → ℂ)) p (conj z)) = _
+          rw [utm_x_liftQD_smul, map_mul, Complex.conj_ofReal, Complex.real_smul]
+        · rw [indicator_of_notMem hz, indicator_of_notMem hz, smul_zero] }
+  have hinj : Function.Injective L := by
+    intro q₁ q₂ h
+    have hd : L (q₁ - q₂) = 0 := by rw [map_sub, h, sub_self]
+    by_contra hne
+    have hne' : ((q₁ - q₂ : holQuadDiffSubmodule S) : S → ℂ → ℂ) ≠ 0 := fun h0 =>
+      hne (sub_eq_zero.1 (Subtype.ext h0))
+    obtain ⟨z, hz, hz0⟩ := utm_liftQD_ne (q₁ - q₂).2 hne' hp
+    have hzl : conj z ∈ lowerHalf := by
+      show (conj z).im < 0
+      rw [Complex.conj_im]
+      exact neg_lt_zero.2 hz
+    have h1 := congrFun (congrArg Subtype.val hd) (conj z)
+    have h2 : lowerHalf.indicator
+        (fun w => conj (utm_liftQD (((q₁ - q₂ : holQuadDiffSubmodule S)) : S → ℂ → ℂ) p (conj w))) (conj z) = 0 := h1
+    rw [indicator_of_mem hzl, Complex.conj_conj] at h2
+    exact hz0 (by simpa using h2)
+  have hsurj : Function.Surjective L := by
+    intro φ
+    obtain ⟨hd, hψ⟩ := s33dim_unreflect φ.2
+    obtain ⟨q, hq, hql⟩ := utm_x_descent hp hd hψ
+    refine ⟨⟨q, hq⟩, Subtype.ext (funext fun z => ?_)⟩
+    show lowerHalf.indicator (fun w => conj (utm_liftQD q p (conj w))) z = (φ : ℂ → ℂ) z
+    by_cases hz : z ∈ lowerHalf
+    · rw [indicator_of_mem hz]
+      have hzu : conj z ∈ upperHalf := by
+        show 0 < (conj z).im
+        rw [Complex.conj_im]
+        exact neg_pos.2 hz
+      rw [hql _ hzu]
+      simp
+    · rw [indicator_of_notMem hz]
+      exact (φ.2.2.1 z hz).symm
+  refine ⟨LinearEquiv.ofBijective L ⟨hinj, hsurj⟩, fun q z => rfl, fun c q => ?_⟩
+  exact hconjc c q
+
+/-- The weighted value `|φ(z)| (Im z)²` of an automorphic quadratic differential is `Γ`-invariant on `𝕃`. -/
+theorem s33dim_weighted_invariant (φ : automorphicQD Γ) {γ : Matrix.SpecialLinearGroup (Fin 2) ℝ}
+    (hγ : γ ∈ Γ) {z : ℂ} (hz : z ∈ lowerHalf) :
+    ‖(φ : ℂ → ℂ) (utm_b_mob γ z)‖ * (utm_b_mob γ z).im ^ 2 = ‖(φ : ℂ → ℂ) z‖ * z.im ^ 2 := by
+  have hden := bg2_a_den_ne γ hz
+  have hdet : γ 0 0 * γ 1 1 - γ 0 1 * γ 1 0 = 1 := by
+    have h := Matrix.SpecialLinearGroup.det_coe γ
+    rwa [Matrix.det_fin_two] at h
+  have h := φ.2.2.2 γ hγ z hz
+  have h1 : (φ : ℂ → ℂ) (utm_b_mob γ z) = (φ : ℂ → ℂ) z * ((γ 1 0 : ℂ) * z + γ 1 1) ^ 4 := by
+    have h' : (φ : ℂ → ℂ) (utm_b_mob γ z) / ((γ 1 0 : ℂ) * z + γ 1 1) ^ 4 = (φ : ℂ → ℂ) z := h
+    rwa [div_eq_iff (pow_ne_zero 4 hden)] at h'
+  have him : (utm_b_mob γ z).im = z.im / Complex.normSq ((γ 1 0 : ℂ) * z + γ 1 1) :=
+    utm_im_mobius hdet z
+  have hd : 0 < ‖(γ 1 0 : ℂ) * z + γ 1 1‖ := norm_pos_iff.2 hden
+  rw [h1, him, norm_mul, norm_pow, div_pow, Complex.normSq_eq_norm_sq]
+  field_simp
+
+/-- Compact uniformization makes the weighted supremum finite for every automorphic
+quadratic differential, independently of whether it belongs to the Bers image. -/
+theorem s33dim_weighted_finite
+    {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S] [CompactSpace S]
+    {p : UpperHalfPlane → S} (hp : IsUniformization Γ p)
+    (φ : automorphicQD Γ) :
+    bersNormL (φ : ℂ → ℂ) < ⊤ := by
+  obtain ⟨K, hKc, hK⟩ := utm_exists_compact_translate hp
+  set K' : Set ℂ := (fun w : UpperHalfPlane => conj (w : ℂ)) '' K with hK'
+  have hK'c : IsCompact K' :=
+    hKc.image (Complex.continuous_conj.comp UpperHalfPlane.continuous_coe)
+  have hK'sub : K' ⊆ lowerHalf := by
+    rintro _ ⟨w, -, rfl⟩
+    show (conj (w : ℂ)).im < 0
+    rw [Complex.conj_im]
+    have := w.im_pos
+    have h2 : (w : ℂ).im = w.im := rfl
+    linarith
+  have hcont : ContinuousOn (fun z : ℂ => ‖(φ : ℂ → ℂ) z‖ * z.im ^ 2) K' :=
+    ((φ.2.1.continuousOn.mono hK'sub).norm).mul (Complex.continuous_im.pow 2).continuousOn
+  obtain ⟨C, hC⟩ := hK'c.exists_bound_of_continuousOn hcont
+  refine lt_of_le_of_lt (b := ENNReal.ofReal C) (iSup₂_le fun z hz => ?_) ENNReal.ofReal_lt_top
+  have hzim : 0 < (conj z).im := by
+    rw [Complex.conj_im]
+    exact neg_pos.2 hz
+  obtain ⟨γ, hγ, hγK⟩ := hK ⟨conj z, hzim⟩
+  have hz' : utm_b_mob γ z ∈ K' := by
+    refine ⟨γ • (⟨conj z, hzim⟩ : UpperHalfPlane), hγK, ?_⟩
+    show conj (((γ • (⟨conj z, hzim⟩ : UpperHalfPlane) : UpperHalfPlane)) : ℂ) = utm_b_mob γ z
+    rw [← utm_b_mob_smul γ hzim]
+    simp [utm_b_mob]
+  rw [← s33dim_weighted_invariant φ hγ hz]
+  refine ENNReal.ofReal_le_ofReal ?_
+  have := hC _ hz'
+  rw [Real.norm_eq_abs] at this
+  exact (le_abs_self _).trans this
+
+/-- The weighted supremum is definite on automorphic functions, including their
+prescribed zero extension off the lower half-plane. -/
+theorem s33dim_weighted_eq_zero_iff (φ : automorphicQD Γ) :
+    bersNormL (φ : ℂ → ℂ) = 0 ↔ φ = 0 := by
+  constructor
+  · intro h
+    apply Subtype.ext
+    funext z
+    show (φ : ℂ → ℂ) z = 0
+    by_cases hz : z ∈ lowerHalf
+    · have h1 : ENNReal.ofReal (‖(φ : ℂ → ℂ) z‖ * z.im ^ 2) ≤ bersNormL (φ : ℂ → ℂ) :=
+        le_iSup₂ (f := fun z (_ : z ∈ lowerHalf) => ENNReal.ofReal (‖(φ : ℂ → ℂ) z‖ * z.im ^ 2)) z hz
+      rw [h, nonpos_iff_eq_zero, ENNReal.ofReal_eq_zero] at h1
+      have him : 0 < z.im ^ 2 := by
+        have : z.im < 0 := hz
+        nlinarith
+      have h2 : ‖(φ : ℂ → ℂ) z‖ ≤ 0 := by
+        by_contra hcon
+        rw [not_le] at hcon
+        nlinarith
+      exact norm_le_zero_iff.1 h2
+    · exact φ.2.2.1 z hz
+  · intro h
+    rw [h]
+    simp [bersNormL]
+
+/-- `bersNormL` is homogeneous: `‖c φ‖ = |c| ‖φ‖`. -/
+theorem s33dim_bers_smul (c : ℂ) (φ : ℂ → ℂ) :
+    bersNormL (c • φ) = ENNReal.ofReal ‖c‖ * bersNormL φ := by
+  unfold bersNormL
+  rw [ENNReal.mul_iSup]
+  refine iSup_congr fun z => ?_
+  rw [ENNReal.mul_iSup]
+  refine iSup_congr fun hz => ?_
+  rw [← ENNReal.ofReal_mul (norm_nonneg c)]
+  congr 1
+  rw [Pi.smul_apply, smul_eq_mul, norm_mul]
+  ring
+
+/-- Two norms on a finite-dimensional complex space are equivalent: a definite seminorm `N` is bounded
+above and below by a positive multiple of the coordinate norm. -/
+theorem s33dim_seminorm_equiv {V : Type*} [AddCommGroup V] [Module ℂ V] [FiniteDimensional ℂ V]
+    (N : Seminorm ℂ V) (hN : ∀ v, N v = 0 → v = 0) {n : ℕ} (e : V ≃ₗ[ℂ] (Fin n → ℂ)) :
+    ∃ a b : ℝ, 0 < a ∧ 0 < b ∧ ∀ v, a * ‖e v‖ ≤ N v ∧ N v ≤ b * ‖e v‖ := by
+  letI : SeminormedAddCommGroup V := AddGroupSeminorm.toSeminormedAddCommGroup N.toAddGroupSeminorm
+  letI : NormedAddCommGroup V := NormedAddCommGroup.ofSeparation (fun v hv => hN v hv)
+  letI : NormedSpace ℂ V := ⟨fun c v => (N.smul' c v).le⟩
+  let T : V ≃L[ℂ] (Fin n → ℂ) := e.toContinuousLinearEquiv
+  refine ⟨(‖(T : V →L[ℂ] (Fin n → ℂ))‖ + 1)⁻¹, ‖(T.symm : (Fin n → ℂ) →L[ℂ] V)‖ + 1, by positivity,
+    by positivity, fun v => ⟨?_, ?_⟩⟩
+  · have h1 : ‖T v‖ ≤ ‖(T : V →L[ℂ] (Fin n → ℂ))‖ * ‖v‖ := (T : V →L[ℂ] (Fin n → ℂ)).le_opNorm v
+    have h2 : (‖(T : V →L[ℂ] (Fin n → ℂ))‖ + 1)⁻¹ * ‖e v‖ ≤ ‖v‖ := by
+      rw [inv_mul_le_iff₀ (by positivity)]
+      have : ‖e v‖ = ‖T v‖ := rfl
+      rw [this]
+      nlinarith [norm_nonneg v, norm_nonneg (T : V →L[ℂ] (Fin n → ℂ))]
+    exact h2
+  · have h1 : ‖v‖ ≤ ‖(T.symm : (Fin n → ℂ) →L[ℂ] V)‖ * ‖T v‖ := by
+      have := (T.symm : (Fin n → ℂ) →L[ℂ] V).le_opNorm (T v)
+      simpa using this
+    have : ‖e v‖ = ‖T v‖ := rfl
+    rw [this]
+    have h0 : ‖v‖ = N v := rfl
+    rw [← h0]
+    nlinarith [norm_nonneg (T v), norm_nonneg (T.symm : (Fin n → ℂ) →L[ℂ] V)]
+
+/-- In positive finite coordinates, the finite weighted supremum has positive
+two-sided bounds. Only the coordinate space carries a norm in this statement. -/
+theorem s33dim_coordinate_comparison {n : ℕ} (hn : 0 < n)
+    (e : automorphicQD Γ ≃L[ℂ] (Fin n → ℂ))
+    (hfinite : ∀ φ : automorphicQD Γ, bersNormL (φ : ℂ → ℂ) < ⊤) :
+    ∃ a b : ℝ, 0 < a ∧ 0 < b ∧
+      (∀ φ : automorphicQD Γ,
+        ENNReal.ofReal (a * ‖e φ‖) ≤ bersNormL (φ : ℂ → ℂ) ∧
+          bersNormL (φ : ℂ → ℂ) ≤ ENNReal.ofReal (b * ‖e φ‖)) := by
+  classical
+  have hfd : FiniteDimensional ℂ (automorphicQD Γ) := e.toLinearEquiv.symm.finiteDimensional
+  let N : Seminorm ℂ (automorphicQD Γ) :=
+    Seminorm.of (fun φ => (bersNormL (φ : ℂ → ℂ)).toReal)
+      (fun φ ψ => by
+        have h1 := s21g_bersNormL_add_le (φ : ℂ → ℂ) (ψ : ℂ → ℂ)
+        calc (bersNormL (((φ + ψ : automorphicQD Γ)) : ℂ → ℂ)).toReal
+            ≤ (bersNormL (φ : ℂ → ℂ) + bersNormL (ψ : ℂ → ℂ)).toReal :=
+              ENNReal.toReal_mono (ENNReal.add_ne_top.2 ⟨(hfinite φ).ne, (hfinite ψ).ne⟩) h1
+          _ = _ := ENNReal.toReal_add (hfinite φ).ne (hfinite ψ).ne)
+      (fun c φ => by
+        have h1 : ((c • φ : automorphicQD Γ) : ℂ → ℂ) = c • (φ : ℂ → ℂ) := rfl
+        show (bersNormL ((c • φ : automorphicQD Γ) : ℂ → ℂ)).toReal = ‖c‖ * (bersNormL (φ : ℂ → ℂ)).toReal
+        rw [h1, s33dim_bers_smul, ENNReal.toReal_mul, ENNReal.toReal_ofReal (norm_nonneg c)])
+  have hN : ∀ φ, N φ = 0 → φ = 0 := fun φ h => by
+    refine (s33dim_weighted_eq_zero_iff φ).1 ?_
+    have h' : (bersNormL (φ : ℂ → ℂ)).toReal = 0 := h
+    rcases (ENNReal.toReal_eq_zero_iff _).1 h' with h0 | h0
+    · exact h0
+    · exact absurd h0 (hfinite φ).ne
+  obtain ⟨a, b, ha, hb, hab⟩ := s33dim_seminorm_equiv N hN e.toLinearEquiv
+  refine ⟨a, b, ha, hb, fun φ => ⟨?_, ?_⟩⟩
+  · have h1 := (hab φ).1
+    have h2 : a * ‖e φ‖ ≤ (bersNormL (φ : ℂ → ℂ)).toReal := h1
+    exact (ENNReal.ofReal_le_iff_le_toReal (hfinite φ).ne).2 h2
+  · have h1 := (hab φ).2
+    have h2 : (bersNormL (φ : ℂ → ℂ)).toReal ≤ b * ‖e φ‖ := h1
+    exact (ENNReal.le_ofReal_iff_toReal_le (hfinite φ).ne (by positivity)).2 h2
+
+/-- The positive lower comparison and the sharp Bers bound make the coordinate
+image bounded. The subtype membership proof is supplied by `bersMapGamma_mem`. -/
+theorem s33dim_coords_bounded {n : ℕ} (hΓ : IsFuchsian Γ)
+    (e : automorphicQD Γ ≃L[ℂ] (Fin n → ℂ)) {a : ℝ} (ha : 0 < a)
+    (hlower : ∀ φ : automorphicQD Γ,
+      ENNReal.ofReal (a * ‖e φ‖) ≤ bersNormL (φ : ℂ → ℂ)) :
+    Bornology.IsBounded (range (fun t : TeichGamma Γ =>
+      e (⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩ : automorphicQD Γ))) := by
+  rw [isBounded_iff_forall_norm_le]
+  refine ⟨3 / (2 * a), ?_⟩
+  rintro _ ⟨t, rfl⟩
+  have h1 := (bersMapGamma_mem hΓ t).2.1
+  have h2 := hlower ⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩
+  have h3 : ENNReal.ofReal (a * ‖e ⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩‖) <
+      ENNReal.ofReal (3 / 2) := lt_of_le_of_lt h2 h1
+  rw [ENNReal.ofReal_lt_ofReal_iff (by norm_num)] at h3
+  show ‖e ⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩‖ ≤ 3 / (2 * a)
+  rw [le_div_iff₀ (by positivity)]
+  nlinarith
+
+/-- The positive upper comparison turns the relative weighted balls in Theorem
+33.1 into open coordinate balls. -/
+theorem s33dim_coords_open {n : ℕ} (hΓ : IsFuchsian Γ)
+    (e : automorphicQD Γ ≃L[ℂ] (Fin n → ℂ)) {b : ℝ} (hb : 0 < b)
+    (hupper : ∀ φ : automorphicQD Γ,
+      bersNormL (φ : ℂ → ℂ) ≤ ENNReal.ofReal (b * ‖e φ‖)) :
+    IsOpen (range (fun t : TeichGamma Γ =>
+      e (⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩ : automorphicQD Γ))) := by
+  rw [isOpen_iff_mem_nhds]
+  rintro _ ⟨t, rfl⟩
+  obtain ⟨ε, hε, hball⟩ := (thm33_1_bers hΓ).2 t
+  rw [Metric.mem_nhds_iff]
+  refine ⟨ε / b, by positivity, fun y hy => ?_⟩
+  set φt : automorphicQD Γ := ⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩ with hφt
+  set φ : automorphicQD Γ := e.symm y with hφ
+  have hdist : ‖e (φ - φt)‖ < ε / b := by
+    rw [map_sub, hφ, ContinuousLinearEquiv.apply_symm_apply]
+    simpa [dist_eq_norm] using hy
+  have h1 := hupper (φ - φt)
+  have h2 : bersNormL ((φ - φt : automorphicQD Γ) : ℂ → ℂ) < ENNReal.ofReal ε := by
+    refine lt_of_le_of_lt h1 ((ENNReal.ofReal_lt_ofReal_iff hε).2 ?_)
+    rw [lt_div_iff₀ hb] at hdist
+    linarith
+  obtain ⟨q, hq⟩ := hball (φ : ℂ → ℂ) φ.2 (by simpa [φt] using h2)
+  refine ⟨q, ?_⟩
+  have h3 : (⟨bersMapGamma Γ q, (bersMapGamma_mem hΓ q).1⟩ : automorphicQD Γ) = φ := Subtype.ext hq
+  show e ⟨bersMapGamma Γ q, (bersMapGamma_mem hΓ q).1⟩ = y
+  rw [h3, hφ]
+  exact e.apply_symm_apply y
+
+/-- The connected raw Bers image remains connected in its automorphic subtype
+and under any continuous linear coordinate equivalence. -/
+theorem s33dim_coords_connected {n : ℕ} (hΓ : IsFuchsian Γ)
+    (e : automorphicQD Γ ≃L[ℂ] (Fin n → ℂ)) :
+    IsConnected (range (fun t : TeichGamma Γ =>
+      e (⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩ : automorphicQD Γ))) := by
+  have hA := (thm33_1_bers hΓ).1
+  set A' : Set (automorphicQD Γ) := Subtype.val ⁻¹' range (bersMapGamma Γ) with hA'def
+  have himg : (Subtype.val : automorphicQD Γ → ℂ → ℂ) '' A' = range (bersMapGamma Γ) := by
+    ext f
+    constructor
+    · rintro ⟨φ, hφ, rfl⟩
+      exact hφ
+    · rintro ⟨t, rfl⟩
+      exact ⟨⟨_, (bersMapGamma_mem hΓ t).1⟩, ⟨t, rfl⟩, rfl⟩
+  have hA' : IsConnected A' := by
+    refine ⟨?_, ?_⟩
+    · obtain ⟨f, t, rfl⟩ := hA.nonempty
+      exact ⟨⟨_, (bersMapGamma_mem hΓ t).1⟩, ⟨t, rfl⟩⟩
+    · refine (Topology.IsInducing.subtypeVal.isPreconnected_image).1 ?_
+      convert hA.isPreconnected using 1
+  have h := hA'.image e e.continuous.continuousOn
+  convert h using 1
+  ext y
+  constructor
+  · rintro ⟨t, rfl⟩
+    exact ⟨⟨_, (bersMapGamma_mem hΓ t).1⟩, ⟨t, rfl⟩, rfl⟩
+  · rintro ⟨φ, ⟨t, ht⟩, rfl⟩
+    refine ⟨t, ?_⟩
+    have : (⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩ : automorphicQD Γ) = φ := Subtype.ext ht
+    show e ⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩ = e φ
+    rw [this]
+
 /-- §33.4: `Q(G₀, 𝕃)` is the space of lifts of the holomorphic quadratic differentials of the
 compact surface `𝕃/G₀`, hence a complex vector space of dimension `3g - 3`; choosing a basis
 `φ₁, …, φ_{3g-3}`, `φ_μ = t₁φ₁ + ⋯ + t_{3g-3}φ_{3g-3}` gives complex coordinates `(t₁, …, t_{3g-3})`
@@ -4822,7 +5706,38 @@ theorem thm33_dimension {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [
     Module.finrank ℂ (automorphicQD Γ) = 3 * g - 3 ∧
       ∃ coords : TeichGamma Γ → Fin (3 * g - 3) → ℂ, Function.Injective coords ∧
         Bornology.IsBounded (range coords) ∧ IsOpen (range coords) ∧ IsConnected (range coords) := by
-  sorry
+  classical
+  -- The frozen freeness hypothesis is redundant once this uniformization is supplied.
+  have _hfree := hfree
+  letI : CompactSpace S := hS.1
+  letI : FiniteDimensional ℂ (holQuadDiffSubmodule S) := k22q_finite_quadratic (S := S)
+  obtain ⟨r, -, -⟩ := s33dim_reflected_equiv hp
+  letI : FiniteDimensional ℝ (automorphicQD Γ) := r.finiteDimensional
+  letI : FiniteDimensional ℂ (automorphicQD Γ) :=
+    Module.Finite.of_restrictScalars_finite ℝ ℂ (automorphicQD Γ)
+  have hdim : Module.finrank ℂ (automorphicQD Γ) = 3 * g - 3 := by
+    have hrank := r.finrank_eq
+    simp only [finrank_real_of_complex] at hrank
+    rw [thm22_5_dim_quadratic_differentials hg hS] at hrank
+    omega
+  have hn : 0 < 3 * g - 3 := by omega
+  have hdimcoords : Module.finrank ℂ (automorphicQD Γ) =
+      Module.finrank ℂ (Fin (3 * g - 3) → ℂ) := by
+    simpa only [Module.finrank_fin_fun] using hdim
+  obtain ⟨e⟩ := FiniteDimensional.nonempty_continuousLinearEquiv_of_finrank_eq hdimcoords
+  obtain ⟨a, b, ha, hb, hcompare⟩ :=
+    s33dim_coordinate_comparison hn e (s33dim_weighted_finite hp)
+  let coords : TeichGamma Γ → Fin (3 * g - 3) → ℂ := fun t =>
+    e (⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩ : automorphicQD Γ)
+  refine ⟨hdim, coords, ?_, ?_, ?_, ?_⟩
+  · intro t u htu
+    apply bersMapGamma_injective hΓ
+    have heq : (⟨bersMapGamma Γ t, (bersMapGamma_mem hΓ t).1⟩ : automorphicQD Γ) =
+        (⟨bersMapGamma Γ u, (bersMapGamma_mem hΓ u).1⟩ : automorphicQD Γ) := e.injective htu
+    exact congrArg (fun φ : automorphicQD Γ => (φ : ℂ → ℂ)) heq
+  · exact s33dim_coords_bounded hΓ e ha (fun φ => (hcompare φ).1)
+  · exact s33dim_coords_open hΓ e hb (fun φ => (hcompare φ).2)
+  · exact s33dim_coords_connected hΓ e
 
 /-- §33.4 (complex structure, used in §34): `Ψ` is holomorphic in the Beltrami coefficient: for a
 holomorphic family `t ↦ μ_t` of `G₀`-compatible coefficients, `t ↦ φ_{μ_t}(z)` is holomorphic for

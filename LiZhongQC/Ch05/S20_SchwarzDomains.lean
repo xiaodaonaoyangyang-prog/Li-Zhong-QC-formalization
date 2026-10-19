@@ -963,15 +963,6 @@ def HasQCExtensionExt (f : ℂ → ℂ) (D : Set ℂ) (K : ℝ) : Prop :=
     ∃ M : ExtPlane → ExtPlane, IsMobius M ∧ ∃ g : ℂ → ℂ, IsKQC g univ K ∧ g '' univ = univ ∧
       ∀ p, M (F p) = OnePoint.map g p
 
-/-- **Theorem 20.2**: a locally univalent meromorphic `f` in `Δ` with `‖S_f‖_Δ < 1/2` extends to a
-quasiconformal map of `ℂ̄`, with maximal dilatation at most
-`(1 + ½‖S_f‖_Δ)/(1 - ½‖S_f‖_Δ)`. -/
-theorem thm20_2 {f : ℂ → ℂ} (hf : IsLocUnivMero f unitDisc)
-    (hS : schwarzianNorm f unitDisc < ENNReal.ofReal (1 / 2)) :
-    HasQCExtensionExt f unitDisc
-      ((1 + (schwarzianNorm f unitDisc).toReal / 2) / (1 - (schwarzianNorm f unitDisc).toReal / 2)) := by
-  sorry
-
 /-- A planar quasiconformal reflection `g : A₁ → A₂` across the common boundary of the plane
 domains `A₁`, `A₂`: an injective map of `A₁` onto `A₂`, anti-quasiconformal (`conj ∘ g` is
 `K`-q.c.) and tending to the identity at the common boundary. -/
@@ -981,7 +972,7 @@ def IsPlanarQCReflection (A₁ A₂ : Set ℂ) (g : ℂ → ℂ) (K : ℝ) : Pro
 
 /-! ### S20 lemma track interface (coordinator 553e2d): Lemmas 20.1–20.3
 
-The first four declarations are proved (scout A's probes, renamed); the rest are stubs. -/
+The first four declarations are scout A's probes (renamed); everything in this block is proved. -/
 
 /-- A continuous bijection of `ℂ` is a homeomorphism onto `ℂ` (invariance of domain). -/
 theorem s20l_homeo_of_bij {G : ℂ → ℂ} (hc : Continuous G) (hi : Function.Injective G)
@@ -2804,7 +2795,7 @@ theorem lemma20_3 {K : ℝ} (hK : 1 ≤ K) :
 
 /-! ### Theorem 20.3 track, Stage A interface (coordinator 553e2d)
 
-Proved helpers first (from the scout probes, renamed `t203_`), then the Stage A stubs. -/
+Helpers first (from the scout probes, renamed `t203_`), then the Stage A lemmas; everything here is proved. -/
 
 /-- A Jordan domain (bounded or not) is a hyperbolic simply connected domain: it is conformally
 equivalent to `Δ` (`s13x_th_exists_disc_uniformizer`). -/
@@ -5986,6 +5977,322 @@ theorem thm20_3_ahlfors {K : ℝ} (hK : 1 ≤ K) :
       t203_limit hk0 hk1 hK' hsc.2.1.nonempty hsc.1 hmono hopen hU hF
     exact t203_package hA hT hh hhs hG hGD
 
+/-! ### Theorem 20.2 (Ahlfors–Weill): the Theorem 20.3 construction with the circle reflection
+
+Theorem 20.2 is the Theorem 20.3 construction (`t203_family`, `t203_limit`, `t203_package`) on the unit disc, with the
+explicit reflection `z ↦ r²/z̄` of `{|z| < r}` in place of the reflection of Lemma 20.3. For it the invariant bound
+`|g z - z|² |dg z| η(g z)²` equals `4` (the sharp `c₀`), so the dilatation is at most `c₀ s/2 = 2s`. -/
+
+/-- The unit disc is a `1`-quasidisc: its boundary circle is the image of `S¹` under the identity. -/
+theorem aw20_unitDisc_isKQuasidisc : IsKQuasidisc unitDisc 1 := by
+  have hfr : frontier (toExt unitDisc) = toExt (sphere (0 : ℂ) 1) := by
+    unfold unitDisc
+    rw [frontier_toExt_of_isBounded' isBounded_ball isOpen_ball, frontier_ball (0 : ℂ) one_ne_zero]
+  have hid : IsKQC (fun z : ℂ => z) univ 1 :=
+    isKQC_one_of_conformal isOpen_univ ⟨differentiableOn_id, injOn_id _, image_id _⟩
+  have hmap : ∀ p : ExtPlane, mobiusExt 1 0 0 1 (OnePoint.map (fun z : ℂ => z) p) = p := by
+    intro p
+    rw [t203_pack_mobius_id]
+    induction p using OnePoint.rec <;> rfl
+  refine ⟨⟨isOpen_ball, (convex_ball (0 : ℂ) 1).isConnected (nonempty_ball.2 one_pos), ?_⟩, ?_⟩
+  · rw [hfr]
+    simpa using t203_exh_jordan (Homeomorph.refl ExtPlane) one_pos
+  · rw [hfr]
+    refine ⟨fun z : ℂ => z, hid, image_id _, mobiusExt 1 0 0 1, ⟨1, 0, 0, 1, by norm_num, rfl⟩, ?_⟩
+    rw [image_image]
+    simp only [hmap, image_id']
+
+/-- `z ↦ z/r` maps the disc `{|z| < r}` conformally onto `Δ`. -/
+theorem aw20_conformal_ball {r : ℝ} (hr : 0 < r) : IsConformalOnto (fun z : ℂ => z / r) (ball 0 r) unitDisc := by
+  have hr0 : (r : ℂ) ≠ 0 := ofReal_ne_zero.2 hr.ne'
+  have hnr : ‖(r : ℂ)‖ = r := by rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos hr]
+  refine ⟨(differentiable_id.div_const _).differentiableOn, fun a _ b _ h => ?_, ?_⟩
+  · simpa [hr0] using h
+  · unfold unitDisc
+    ext w
+    constructor
+    · rintro ⟨z, hz, rfl⟩
+      rw [mem_ball_zero_iff] at hz ⊢
+      rw [norm_div, hnr, div_lt_one hr]
+      exact hz
+    · intro hw
+      refine ⟨w * r, ?_, mul_div_cancel_right₀ _ hr0⟩
+      rw [mem_ball_zero_iff] at hw ⊢
+      rw [norm_mul, hnr]
+      nlinarith
+
+/-- The Poincaré density of the disc `{|z| < r}`: `η(w) = 2r/(r² - |w|²)`. -/
+theorem aw20_density_ball {r : ℝ} (hr : 0 < r) {w : ℂ} (hw : w ∈ ball (0 : ℂ) r) :
+    poincareDensity (ball 0 r) w = 2 * r / (r ^ 2 - ‖w‖ ^ 2) := by
+  have hφ := aw20_conformal_ball hr
+  have hnr : ‖(r : ℂ)‖ = r := by rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos hr]
+  have hw' : ‖w‖ < r := mem_ball_zero_iff.1 hw
+  have hd : deriv (fun z : ℂ => z / r) w = 1 / r := by
+    rw [deriv_div_const, deriv_id'']
+  rw [(poincareDensity_well_defined isOpen_ball hφ hφ hw).2, hd, norm_div, norm_div, norm_one, hnr]
+  have h1 : 0 < r ^ 2 - ‖w‖ ^ 2 := by nlinarith [norm_nonneg w]
+  field_simp
+
+/-- The reflection `g(z) = r²/z̄` in the circle `|z| = r` is `C¹` off the closed disc, an anti-conformal (so
+`1`-quasiconformal) reflection of `ℂ ∖ {|z| ≤ r}` onto `{|z| < r} ∖ {0}`, and `g z → 0` as `z → ∞`. -/
+theorem aw20_reflection {r : ℝ} (hr : 0 < r) :
+    ContDiffOn ℝ 1 (fun z : ℂ => (r : ℂ) ^ 2 / conj z) (closure (ball (0 : ℂ) r))ᶜ ∧
+      IsPlanarQCReflection (closure (ball (0 : ℂ) r))ᶜ (ball 0 r \ {0}) (fun z : ℂ => (r : ℂ) ^ 2 / conj z) 1 ∧
+      Tendsto (fun z : ℂ => (r : ℂ) ^ 2 / conj z) (cocompact ℂ ⊓ 𝓟 (closure (ball (0 : ℂ) r))ᶜ) (𝓝 0) := by
+  have hr0 : (r : ℂ) ≠ 0 := ofReal_ne_zero.2 hr.ne'
+  have hr2 : (r : ℂ) ^ 2 ≠ 0 := pow_ne_zero 2 hr0
+  have hnr : ‖(r : ℂ)‖ = r := by rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos hr]
+  have hA : (closure (ball (0 : ℂ) r))ᶜ = {z : ℂ | r < ‖z‖} := by
+    rw [closure_ball 0 hr.ne']
+    ext z
+    simp [mem_closedBall, dist_zero_right, not_le]
+  have hAo : IsOpen (closure (ball (0 : ℂ) r))ᶜ := isClosed_closure.isOpen_compl
+  have hne : ∀ z ∈ (closure (ball (0 : ℂ) r))ᶜ, z ≠ 0 := by
+    intro z hz h0
+    rw [hA, mem_ofPred_eq, h0, norm_zero] at hz
+    linarith
+  have hconj : ∀ z : ℂ, conj ((r : ℂ) ^ 2 / conj z) = (r : ℂ) ^ 2 / z := by
+    intro z
+    rw [map_div₀, map_pow, Complex.conj_ofReal, Complex.conj_conj]
+  have hnorm : ∀ z : ℂ, ‖(r : ℂ) ^ 2 / conj z‖ = r ^ 2 / ‖z‖ := by
+    intro z
+    rw [norm_div, norm_pow, hnr, Complex.norm_conj]
+  -- `g` is injective on the exterior (in fact everywhere off `0`)
+  have hinj : InjOn (fun z : ℂ => (r : ℂ) ^ 2 / conj z) (closure (ball (0 : ℂ) r))ᶜ := by
+    intro a ha b hb h
+    have ha0 : conj a ≠ 0 := (map_ne_zero _).2 (hne a ha)
+    have hb0 : conj b ≠ 0 := (map_ne_zero _).2 (hne b hb)
+    have h' : conj a = conj b := by
+      have := h
+      simp only at this
+      field_simp at this
+      exact this.symm
+    exact (starRingEnd ℂ).injective h'
+  refine ⟨fun z hz => ?_, ⟨hinj, ?_, ?_, fun p hp => ?_⟩, ?_⟩
+  · -- `C¹`: `r² · (z̄)⁻¹`
+    have hc : conj z ≠ 0 := (map_ne_zero _).2 (hne z hz)
+    have h : ContDiffAt ℝ 1 (fun w : ℂ => (r : ℂ) ^ 2 * (conjCLE w)⁻¹) z :=
+      (contDiffAt_const (c := (r : ℂ) ^ 2)).mul
+        (((conjCLE : ℂ →L[ℝ] ℂ).contDiff (n := 1)).contDiffAt.inv (by simpa using hc))
+    simp only [Complex.conjCLE_apply] at h
+    simp only [div_eq_mul_inv]
+    exact h.contDiffWithinAt
+  · -- the image is the punctured disc
+    ext w
+    constructor
+    · rintro ⟨z, hz, rfl⟩
+      have hz' : r < ‖z‖ := by rw [hA] at hz; exact hz
+      have hz0 : 0 < ‖z‖ := hr.trans hz'
+      refine ⟨?_, ?_⟩
+      · rw [mem_ball_zero_iff, hnorm, div_lt_iff₀ hz0]
+        nlinarith
+      · rw [mem_singleton_iff]
+        exact div_ne_zero hr2 ((map_ne_zero _).2 (norm_pos_iff.1 hz0))
+    · rintro ⟨hw, hw0⟩
+      have hw0' : w ≠ 0 := hw0
+      have hwr : ‖w‖ < r := mem_ball_zero_iff.1 hw
+      have hwp : 0 < ‖w‖ := norm_pos_iff.2 hw0'
+      refine ⟨(r : ℂ) ^ 2 / conj w, ?_, ?_⟩
+      · rw [hA, mem_ofPred_eq, hnorm, lt_div_iff₀ hwp]
+        nlinarith
+      · simp only
+        rw [hconj w]
+        field_simp
+  · -- `conj ∘ g = r²/z` is conformal on the exterior
+    refine isKQC_one_of_conformal hAo ⟨?_, ?_, rfl⟩
+    · refine DifferentiableOn.congr (f := fun z : ℂ => (r : ℂ) ^ 2 / z) ?_ fun z _ => hconj z
+      exact fun z hz => (differentiableAt_const _).div differentiableAt_id (hne z hz) |>.differentiableWithinAt
+    · intro a ha b hb h
+      exact hinj ha hb ((starRingEnd ℂ).injective h)
+  · -- at the circle `g` is the identity
+    have hp1 : p ∈ sphere (0 : ℂ) r := by
+      have := hp.1
+      rwa [frontier_compl, closure_ball 0 hr.ne', frontier_closedBall (0 : ℂ) hr.ne'] at this
+    have hpr : ‖p‖ = r := mem_sphere_zero_iff_norm.1 hp1
+    have hp0 : p ≠ 0 := by
+      intro h0
+      rw [h0, norm_zero] at hpr
+      linarith
+    have hcp : conj p ≠ 0 := (map_ne_zero _).2 hp0
+    have hgp : (r : ℂ) ^ 2 / conj p = p := by
+      rw [div_eq_iff hcp, Complex.mul_conj', hpr]
+    have hcont : ContinuousAt (fun z : ℂ => (r : ℂ) ^ 2 / conj z) p :=
+      continuousAt_const.div (Complex.continuous_conj.continuousAt) hcp
+    have h := hcont.tendsto
+    rw [hgp] at h
+    exact h.mono_left nhdsWithin_le_nhds
+  · -- `|g z| = r²/|z| → 0`
+    refine Tendsto.mono_left ?_ inf_le_left
+    rw [tendsto_zero_iff_norm_tendsto_zero]
+    have h := (tendsto_inv_atTop_zero.comp (tendsto_norm_cocompact_atTop (E := ℂ))).const_mul (r ^ 2)
+    rw [mul_zero] at h
+    refine h.congr fun z => ?_
+    simp only [Function.comp]
+    rw [hnorm, div_eq_mul_inv]
+
+/-- The invariant bound of the circle reflection (the sharp constant `c₀ = 4` of (20.10)): for `|z| > r` and
+`g(z) = r²/z̄`, `|g z - z|² |dg z| η_{rΔ}(g z)² = 4`. -/
+theorem aw20_reflection_bound {r : ℝ} (hr : 0 < r) {z : ℂ} (hz : z ∈ (closure (ball (0 : ℂ) r))ᶜ) :
+    ‖(r : ℂ) ^ 2 / conj z - z‖ ^ 2 * ‖fderiv ℝ (fun z : ℂ => (r : ℂ) ^ 2 / conj z) z‖ *
+      poincareDensity (ball 0 r) ((r : ℂ) ^ 2 / conj z) ^ 2 ≤ 4 := by
+  have hnr : ‖(r : ℂ)‖ = r := by rw [Complex.norm_real, Real.norm_eq_abs, abs_of_pos hr]
+  have hz' : r < ‖z‖ := by
+    rw [closure_ball 0 hr.ne'] at hz
+    simpa [mem_closedBall, dist_zero_right, not_le] using hz
+  have ha0 : 0 < ‖z‖ := hr.trans hz'
+  have hz0 : z ≠ 0 := norm_pos_iff.1 ha0
+  have hcz : conj z ≠ 0 := (map_ne_zero _).2 hz0
+  -- the derivative: `dg(v) = -(r²/z̄²) v̄`
+  have h1 : HasDerivAt (fun u : ℂ => (r : ℂ) ^ 2 / u) (-((r : ℂ) ^ 2) / conj z ^ 2) (conj z) := by
+    have h := (hasDerivAt_inv hcz).const_mul ((r : ℂ) ^ 2)
+    convert h using 1
+    · ext u
+      rw [div_eq_mul_inv]
+    · field_simp
+  have hd : HasFDerivAt (fun w : ℂ => (r : ℂ) ^ 2 / conj w)
+      ((((ContinuousLinearMap.smulRight (1 : ℂ →L[ℂ] ℂ) (-((r : ℂ) ^ 2) / conj z ^ 2))).restrictScalars ℝ).comp
+        (conjCLE : ℂ →L[ℝ] ℂ)) z :=
+    (h1.hasFDerivAt.restrictScalars ℝ).comp z (conjCLE : ℂ →L[ℝ] ℂ).hasFDerivAt
+  have hfd : ‖fderiv ℝ (fun w : ℂ => (r : ℂ) ^ 2 / conj w) z‖ ≤ r ^ 2 / ‖z‖ ^ 2 := by
+    rw [hd.fderiv]
+    refine ContinuousLinearMap.opNorm_le_bound _ (by positivity) fun v => ?_
+    simp only [ContinuousLinearMap.comp_apply, ContinuousLinearMap.coe_restrictScalars',
+      ContinuousLinearMap.smulRight_apply, one_apply_eq_self, ContinuousLinearEquiv.coe_coe,
+      Complex.conjCLE_apply, smul_eq_mul]
+    rw [norm_mul, norm_div, norm_neg, norm_pow, norm_pow, hnr, Complex.norm_conj, Complex.norm_conj]
+    exact le_of_eq (by ring)
+  -- `g z - z = (r² - |z|²)/z̄`
+  have hsub : ‖(r : ℂ) ^ 2 / conj z - z‖ = (‖z‖ ^ 2 - r ^ 2) / ‖z‖ := by
+    have e : (r : ℂ) ^ 2 / conj z - z = ((r ^ 2 - ‖z‖ ^ 2 : ℝ) : ℂ) / conj z := by
+      rw [div_sub' hcz, Complex.conj_mul']
+      norm_cast
+    rw [e, norm_div, Complex.norm_real, Real.norm_eq_abs, Complex.norm_conj, abs_of_neg (by nlinarith)]
+    ring
+  -- `η(g z) = 2|z|²/(r(|z|² - r²))`
+  have hgmem : (r : ℂ) ^ 2 / conj z ∈ ball (0 : ℂ) r := by
+    rw [mem_ball_zero_iff, norm_div, norm_pow, hnr, Complex.norm_conj, div_lt_iff₀ ha0]
+    nlinarith
+  have hη : poincareDensity (ball 0 r) ((r : ℂ) ^ 2 / conj z) = 2 * ‖z‖ ^ 2 / (r * (‖z‖ ^ 2 - r ^ 2)) := by
+    rw [aw20_density_ball hr hgmem, norm_div, norm_pow, hnr, Complex.norm_conj]
+    have h2 : 0 < ‖z‖ ^ 2 - r ^ 2 := by nlinarith
+    field_simp
+  rw [hsub, hη]
+  have h2 : 0 < ‖z‖ ^ 2 - r ^ 2 := by nlinarith
+  calc ((‖z‖ ^ 2 - r ^ 2) / ‖z‖) ^ 2 * ‖fderiv ℝ (fun w : ℂ => (r : ℂ) ^ 2 / conj w) z‖ *
+        (2 * ‖z‖ ^ 2 / (r * (‖z‖ ^ 2 - r ^ 2))) ^ 2
+      ≤ ((‖z‖ ^ 2 - r ^ 2) / ‖z‖) ^ 2 * (r ^ 2 / ‖z‖ ^ 2) * (2 * ‖z‖ ^ 2 / (r * (‖z‖ ^ 2 - r ^ 2))) ^ 2 := by
+        gcongr
+    _ = 4 := by
+        field_simp
+        ring
+
+/-- The discs `Dₙ = {|z| < 1 - 1/(n+2)}` increase to `Δ`, with compact closures in `Δ`. -/
+theorem aw20_exhaustion :
+    Monotone (fun n : ℕ => ball (0 : ℂ) (1 - 1 / ((n : ℝ) + 2))) ∧
+      (∀ n : ℕ, 0 < 1 - 1 / ((n : ℝ) + 2) ∧ closure (ball (0 : ℂ) (1 - 1 / ((n : ℝ) + 2))) ⊆ unitDisc) ∧
+      ⋃ n : ℕ, ball (0 : ℂ) (1 - 1 / ((n : ℝ) + 2)) = unitDisc := by
+  have hr1 : ∀ n : ℕ, 1 - 1 / ((n : ℝ) + 2) < 1 := fun n => by
+    have : 0 < 1 / ((n : ℝ) + 2) := by positivity
+    linarith
+  have hr0 : ∀ n : ℕ, 0 < 1 - 1 / ((n : ℝ) + 2) := fun n => by
+    have h : 1 / ((n : ℝ) + 2) < 1 := by
+      rw [div_lt_one (by positivity)]
+      linarith [n.cast_nonneg (α := ℝ)]
+    linarith
+  refine ⟨fun m n hmn => ball_subset_ball ?_, fun n => ⟨hr0 n, ?_⟩, ?_⟩
+  · have hmn' : (m : ℝ) ≤ n := Nat.cast_le.2 hmn
+    have : 1 / ((n : ℝ) + 2) ≤ 1 / ((m : ℝ) + 2) := one_div_le_one_div_of_le (by positivity) (by linarith)
+    linarith
+  · rw [closure_ball 0 (hr0 n).ne']
+    exact closedBall_subset_ball (hr1 n)
+  · unfold unitDisc
+    apply Subset.antisymm
+    · exact iUnion_subset fun n => ball_subset_ball (hr1 n).le
+    · intro z hz
+      have hz1 : ‖z‖ < 1 := mem_ball_zero_iff.1 hz
+      obtain ⟨n, hn⟩ := exists_nat_one_div_lt (sub_pos.2 hz1)
+      refine mem_iUnion.2 ⟨n, mem_ball_zero_iff.2 ?_⟩
+      have : 1 / ((n : ℝ) + 2) ≤ 1 / ((n : ℝ) + 1) :=
+        one_div_le_one_div_of_le (by positivity) (by linarith)
+      linarith
+
+/-- **The extension family on `Δ`** (`t203_family` with the circle reflections): a locally univalent meromorphic `f`
+in `Δ` with `‖S_f‖_Δ ≤ s < 1/2` has, on the discs `Dₙ ↑ Δ`, extensions `Fₙ` of `f|Dₙ` to homeomorphisms of `ℂ̄`
+which are, in every Möbius chart, `C¹` with `|∂̄| ≤ 2s |∂| < |∂|` at finite points (Stage B with `c₀ = 4`). -/
+theorem aw20_family {f : ℂ → ℂ} (hf : IsLocUnivMero f unitDisc) {s : ℝ} (hs : 0 ≤ s) (hs2 : s < 1 / 2)
+    (hSf : schwarzianNorm f unitDisc ≤ ENNReal.ofReal s) :
+    ∃ (Dn : ℕ → Set ℂ) (F : ℕ → ExtPlane → ExtPlane), Monotone Dn ∧ (∀ n, IsOpen (Dn n)) ∧ ⋃ n, Dn n = unitDisc ∧
+      ∀ n, Function.Bijective (F n) ∧ Continuous (F n) ∧ (∀ z ∈ Dn n, F n z = meroToExt f z) ∧
+        ∀ a b c d : ℂ, a * d - b * c ≠ 0 → ∀ z : ℂ, mobiusExt a b c d (F n z) ≠ extInf →
+          ContDiffAt ℝ 1 (fun w : ℂ => extToC (mobiusExt a b c d (F n w))) z ∧
+          ‖dzbar (fun w : ℂ => extToC (mobiusExt a b c d (F n w))) z‖ <
+            ‖dz (fun w : ℂ => extToC (mobiusExt a b c d (F n w))) z‖ ∧
+          ‖dzbar (fun w : ℂ => extToC (mobiusExt a b c d (F n w))) z‖ ≤
+            2 * s * ‖dz (fun w : ℂ => extToC (mobiusExt a b c d (F n w))) z‖ := by
+  obtain ⟨hmono, hrad, hU⟩ := aw20_exhaustion
+  obtain ⟨w₁, w₂, hw₁, hw₂, hode, hrat⟩ := t203_ode_pair aw20_unitDisc_isKQuasidisc hf
+  have hDo : IsOpen unitDisc := isOpen_ball
+  have hφD : IsConformalOnto (fun z : ℂ => z / ((1 : ℝ) : ℂ)) unitDisc unitDisc := aw20_conformal_ball one_pos
+  have hset : ∀ n : ℕ, t203_Setting unitDisc (ball 0 (1 - 1 / ((n : ℝ) + 2))) w₁ w₂ (schwarzian f)
+      (fun z : ℂ => ((1 - 1 / ((n : ℝ) + 2) : ℝ) : ℂ) ^ 2 / conj z) 0 1 4 s := by
+    intro n
+    obtain ⟨hr, hcl⟩ := hrad n
+    obtain ⟨hC1, hR, hT⟩ := aw20_reflection hr
+    have hφ := aw20_conformal_ball hr
+    have hsub : ball (0 : ℂ) (1 - 1 / ((n : ℝ) + 2)) ⊆ unitDisc := subset_closure.trans hcl
+    have hnorm := (t203_schwarzianNorm_mono hDo isOpen_ball hsub hφD hφ f).trans hSf
+    refine ⟨hDo, isOpen_ball, ?_, hcl, ⟨_, hφ⟩, hw₁, hw₂, hode, mem_ball_self hr, hC1, hR, hT,
+      fun z hz => aw20_reflection_bound hr hz, hs, by linarith, fun ζ hζ => ?_⟩
+    · rw [closure_ball 0 hr.ne']
+      exact isCompact_closedBall 0 _
+    have hpos := s20l_a2_density_pos isOpen_ball hφ hζ
+    have h1 : ENNReal.ofReal (‖schwarzian f ζ‖ / poincareDensity (ball 0 (1 - 1 / ((n : ℝ) + 2))) ζ ^ 2) ≤
+        schwarzianNorm f (ball 0 (1 - 1 / ((n : ℝ) + 2))) :=
+      le_iSup₂ (f := fun z (_ : z ∈ ball (0 : ℂ) (1 - 1 / ((n : ℝ) + 2))) =>
+        ENNReal.ofReal (‖schwarzian f z‖ / poincareDensity (ball 0 (1 - 1 / ((n : ℝ) + 2))) z ^ 2)) ζ hζ
+    have h2 := h1.trans hnorm
+    rw [ENNReal.ofReal_le_ofReal_iff hs, div_le_iff₀ (pow_pos hpos 2)] at h2
+    exact h2
+  refine ⟨fun n => ball 0 (1 - 1 / ((n : ℝ) + 2)), fun n => t203_ext w₁ w₂
+      (fun z : ℂ => ((1 - 1 / ((n : ℝ) + 2) : ℝ) : ℂ) ^ 2 / conj z) (closure (ball 0 (1 - 1 / ((n : ℝ) + 2)))) 0,
+    hmono, fun n => isOpen_ball, hU,
+    fun n => ⟨t203_covering (t203_ext_continuous (hset n)) (t203_ext_locInj (hset n)),
+      t203_ext_continuous (hset n), fun z hz => ?_, fun a b c d hdet z hz => ?_⟩⟩
+  · have hzc : z ∈ closure (ball (0 : ℂ) (1 - 1 / ((n : ℝ) + 2))) := subset_closure hz
+    change @ite ExtPlane (z ∈ closure (ball (0 : ℂ) (1 - 1 / ((n : ℝ) + 2)))) (Classical.propDecidable _)
+      (t203_ratio (w₁ z) (w₂ z)) _ = _
+    rw [ite_eq_left hzc]
+    exact (hrat z ((hrad n).2 hzc)).symm
+  · obtain ⟨h1, h2, h3⟩ := t203_ext_contDiffAt (hset n) hdet hz
+    refine ⟨h1, h2, ?_⟩
+    calc _ ≤ 4 * s / 2 * _ := h3
+      _ = _ := by ring
+
+/-- **Theorem 20.2**: a locally univalent meromorphic `f` in `Δ` with `‖S_f‖_Δ < 1/2` extends to a
+quasiconformal map of `ℂ̄`, with maximal dilatation at most
+`(1 + 2‖S_f‖_Δ)/(1 - 2‖S_f‖_Δ)`.
+
+**Correction (2026-10-12, user decision).**  The bound was `(1 + ½‖S_f‖_Δ)/(1 - ½‖S_f‖_Δ)`, as
+displayed in the book's proof, and the statement was **false**.  With the project's density
+`ρ = 2/(1 - |z|²)`, `f(z) = √((1 + z)/(1 - z))` has `S_f(z) = (3/2)/(1 - z²)²`, so
+`‖S_f‖_Δ = 3/8` and the old bound is `19/13 < 2`.  But `f(-1 + t) ~ c·t^{1/2}`, while a
+`K`-quasiconformal map of `ℂ` is locally Hölder with exponent `1/K` at the interior point `-1`, so every
+extension has `K ≥ 2`.  The book's own estimate (20.7), `|μ| ≤ 2‖S_f‖_Δ`, gives the bound
+`(1 + 2‖S_f‖_Δ)/(1 - 2‖S_f‖_Δ)` stated here; the printed `½` is a factor-four slip.  (Analysis:
+archive `prove/session_20261010_subordinate5/round_20261011_remaining/S20_COUNTEREXAMPLE.md`, independently
+reviewed in `prove/session_20261010_subordinate3/round_20261011_remaining/S20_INDEPENDENT_REVIEW.md`.) -/
+theorem thm20_2 {f : ℂ → ℂ} (hf : IsLocUnivMero f unitDisc)
+    (hS : schwarzianNorm f unitDisc < ENNReal.ofReal (1 / 2)) :
+    HasQCExtensionExt f unitDisc
+      ((1 + 2 * (schwarzianNorm f unitDisc).toReal) / (1 - 2 * (schwarzianNorm f unitDisc).toReal)) := by
+  -- `s = ‖S_f‖_Δ < 1/2`; the family of `aw20_family` has dilatation `≤ 2s`, then the limit and the packaging of
+  -- Theorem 20.3 (`t203_limit`, `t203_package`)
+  obtain ⟨h1, h2, h3⟩ := t203_t_toReal hS
+  obtain ⟨Dn, F, hmono, hopen, hU, hF⟩ := aw20_family hf h2 h3 h1
+  obtain ⟨G, A, T, h, hA, hT, hh, hhs, hG, hGD⟩ :=
+    t203_limit (by linarith) (by linarith) le_rfl ⟨0, mem_ball_self one_pos⟩ isOpen_ball hmono hopen hU hF
+  exact t203_package hA hT hh hhs hG hGD
+
 /-- No domain is an `a`-Schwarz domain for `a > 3`: scale the Schwarzian of a univalent `f₀` with `‖S_{f₀}‖_D ≥ 3/2`
 (`lehto_ge_pointwise`) so that `3 < ‖S_g‖_D < a` (`thm19_1_exists`); `g` would be univalent, contradicting
 `‖S_g‖_D ≤ 3` for univalent `g` (`thm19_3_cor`). -/
@@ -6116,26 +6423,2959 @@ theorem strip_not_kLocallyConnected (k : ℝ) :
     exact ⟨by linarith, by linarith⟩
   exact hwmem.2 (by rw [Metric.mem_ball, dist_eq_norm]; exact hnorm)
 
+/-! ### Theorem 20.4 (s21u P2a, coordinator 553e2d, 2026-09-27)
+
+Route (s21u scout U2).  The planar separation step of the book is the winding-number statement `s20v_ps`, proved by
+an additive Cousin splitting (`s20v_cousin`) and Dixon's polygon Cauchy theorem.  The analytic step is `s20v_analytic`
+(Koebe (20.14) is `t203_density_ge`).  For condition (ii) of `k`-local connectivity the open set `B` is the exterior of
+the closed ball of radius `r/k`, with the loop correction `s20v_ext_loop` and the cross-ratio bound `s20v_ext_bound`;
+no inversion of `D` is used.  Everything in this block is proved. -/
+
+/-- Smooth Urysohn function on `ℂ`: `0` near the closed set `s`, `1` near the disjoint closed set `t`. -/
+theorem s20v_urysohn {s t : Set ℂ} (hs : IsClosed s) (ht : IsClosed t) (hst : Disjoint s t) :
+    ∃ ψ : ℂ → ℝ, ContDiff ℝ ((⊤ : ℕ∞) : WithTop ℕ∞) ψ ∧ (∀ᶠ x in 𝓝ˢ s, ψ x = 0) ∧
+      (∀ᶠ x in 𝓝ˢ t, ψ x = 1) := by
+  obtain ⟨f, h0, h1, -⟩ :=
+    exists_contMDiffMap_zero_one_nhds_of_isClosed (modelWithCornersSelf ℝ ℂ) (n := ⊤) hs ht hst
+  exact ⟨f, contMDiff_iff_contDiff.1 f.contMDiff, h0, h1⟩
+
+/-- Path components of an open subset of `ℂ` are open. -/
+theorem s20v_pathComponentIn_open {U : Set ℂ} (hU : IsOpen U) (x : ℂ) : IsOpen (pathComponentIn U x) := by
+  exact hU.pathComponentIn x
+
+/-- The fundamental theorem of calculus on a segment: `∫_[p,q] G' = G q - G p` for `G` holomorphic on an open set
+containing the segment. -/
+theorem s20v_segIntegral_deriv {U : Set ℂ} (hU : IsOpen U) {G : ℂ → ℂ} (hG : DifferentiableOn ℂ G U) {p q : ℂ}
+    (hpq : segment ℝ p q ⊆ U) : segIntegral (deriv G) p q = G q - G p := by
+  have hmem : ∀ t ∈ uIcc (0 : ℝ) 1, p + (t : ℂ) * (q - p) ∈ U := by
+    intro t ht
+    rw [uIcc_of_le zero_le_one] at ht
+    exact hpq (mem_segment_of_mem_Icc ht)
+  have hderiv : ∀ t ∈ uIcc (0 : ℝ) 1, HasDerivAt (fun t : ℝ => G (p + (t : ℂ) * (q - p)))
+      (deriv G (p + (t : ℂ) * (q - p)) * (q - p)) t := by
+    intro t ht
+    have hG' : HasDerivAt G (deriv G (p + (t : ℂ) * (q - p))) (p + (t : ℂ) * (q - p)) :=
+      (hG.differentiableAt (hU.mem_nhds (hmem t ht))).hasDerivAt
+    have hl : HasDerivAt (fun t : ℝ => p + (t : ℂ) * (q - p)) (q - p) t := by
+      simpa using (((hasDerivAt_id t).ofReal_comp).mul_const (q - p)).const_add p
+    exact hG'.comp t hl
+  have hcont : ContinuousOn (fun t : ℝ => deriv G (p + (t : ℂ) * (q - p)) * (q - p)) (uIcc 0 1) := by
+    have hd : ContinuousOn (deriv G) U := (hG.deriv hU).continuousOn
+    refine ContinuousOn.mul ?_ continuousOn_const
+    exact hd.comp (by fun_prop) fun t ht => hmem t ht
+  rw [segIntegral, intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hcont.intervalIntegrable]
+  simp
+
+/-- Telescoping along a polygonal path: `∫_{a, l} G' = G (lastOf a l) - G a` when all segments lie in an open set on
+which `G` is holomorphic. -/
+theorem s20v_pathIntFrom_deriv {U : Set ℂ} (hU : IsOpen U) {G : ℂ → ℂ} (hG : DifferentiableOn ℂ G U) :
+    ∀ {a : ℂ} {l : List ℂ}, SegsIn U a l → pathIntFrom (deriv G) a l = G (lastOf a l) - G a := by
+  intro a l hl
+  induction l generalizing a with
+  | nil => simp [pathIntFrom, lastOf]
+  | cons b l ih =>
+    simp only [pathIntFrom, lastOf]
+    rw [s20v_segIntegral_deriv hU hG hl.1, ih hl.2]
+    ring
+
+/-- Polygonal connectedness: two points of a preconnected open set are joined by a polygonal path in it (the
+reachability argument of `exists_primitive_of_polyIntegral_eq_zero`). -/
+theorem s20v_polygon_path {U : Set ℂ} (hU : IsOpen U) (hUc : IsPreconnected U) {a b : ℂ} (ha : a ∈ U)
+    (hb : b ∈ U) : ∃ l : List ℂ, SegsIn U a l ∧ lastOf a l = b := by
+  have hSopen : IsOpen {z | z ∈ U ∧ ∃ l : List ℂ, SegsIn U a l ∧ lastOf a l = z} := by
+    rw [isOpen_iff_mem_nhds]
+    rintro z ⟨hzU, l, hl, hlz⟩
+    obtain ⟨r, hr, hball⟩ := Metric.isOpen_iff.1 hU z hzU
+    filter_upwards [ball_mem_nhds z hr] with w hw
+    refine ⟨hball hw, l ++ [w], ?_, ?_⟩
+    · rw [segsIn_append]
+      refine ⟨hl, ?_⟩
+      simp only [SegsIn, and_true, hlz]
+      exact ((convex_ball z r).segment_subset (mem_ball_self hr) hw).trans hball
+    · rw [lastOf_append, hlz]
+      rfl
+  have hVopen : IsOpen (U \ {z | z ∈ U ∧ ∃ l : List ℂ, SegsIn U a l ∧ lastOf a l = z}) := by
+    rw [isOpen_iff_mem_nhds]
+    rintro z ⟨hzU, hzS⟩
+    obtain ⟨r, hr, hball⟩ := Metric.isOpen_iff.1 hU z hzU
+    filter_upwards [ball_mem_nhds z hr] with w hw
+    refine ⟨hball hw, fun hwS => hzS ⟨hzU, ?_⟩⟩
+    obtain ⟨-, l, hl, hlw⟩ := hwS
+    refine ⟨l ++ [z], ?_, ?_⟩
+    · rw [segsIn_append]
+      refine ⟨hl, ?_⟩
+      simp only [SegsIn, and_true, hlw]
+      exact ((convex_ball z r).segment_subset hw (mem_ball_self hr)).trans hball
+    · rw [lastOf_append, hlw]
+      rfl
+  have hsub : U ⊆ {z | z ∈ U ∧ ∃ l : List ℂ, SegsIn U a l ∧ lastOf a l = z} := by
+    refine hUc.subset_left_of_subset_union hSopen hVopen ?_ ?_ ?_
+    · exact Set.disjoint_left.2 fun z hz hz' => hz'.2 hz
+    · intro z hz
+      by_cases hzS : z ∈ {z | z ∈ U ∧ ∃ l : List ℂ, SegsIn U a l ∧ lastOf a l = z}
+      · exact Or.inl hzS
+      · exact Or.inr ⟨hz, hzS⟩
+    · exact ⟨a, ha, ha, [], trivial, rfl⟩
+  exact (hsub hb).2
+
+/-- `SegsIn` is monotone in the set. -/
+theorem s20v_segsIn_mono {U V : Set ℂ} (hUV : U ⊆ V) :
+    ∀ {a : ℂ} {l : List ℂ}, SegsIn U a l → SegsIn V a l := by
+  intro a l hl
+  induction l generalizing a with
+  | nil => trivial
+  | cons b l ih => exact ⟨hl.1.trans hUV, ih hl.2⟩
+
+/-- The trace of the closed polygon `β + c` (`β` in `U` from `p₁` to `p₂`, `c` in `V` back to `p₁`) lies in
+`U ∪ V`. -/
+theorem s20v_trace_subset {U V : Set ℂ} {p₁ p₂ : ℂ} {lβ lc : List ℂ} (hp₁ : p₁ ∈ U) (hβ : SegsIn U p₁ lβ)
+    (hβe : lastOf p₁ lβ = p₂) (hc : SegsIn V p₂ lc) (hce : lastOf p₂ lc = p₁) :
+    polyTrace (p₁ :: (lβ ++ lc)) ⊆ U ∪ V := by
+  refine polyTrace_cons_subset ?_ ?_
+  · rw [segsIn_append]
+    refine ⟨s20v_segsIn_mono subset_union_left hβ, ?_⟩
+    rw [hβe]
+    exact s20v_segsIn_mono subset_union_right hc
+  · rw [lastOf_append, hβe, hce, segment_same]
+    exact singleton_subset_iff.2 (Or.inl hp₁)
+
+/-- Winding numbers add when a closed loop at the base point is appended to a closed polygon. -/
+theorem s20v_polyWinding_append {a w : ℂ} {A L : List ℂ} (hA : lastOf a A = a) (hL : lastOf a L = a) :
+    polyWinding (a :: (A ++ L)) w = polyWinding (a :: A) w + polyWinding (a :: L) w := by
+  simp only [polyWinding, polyIntegral_cons, pathIntFrom_append, lastOf_append, hA, hL, segIntegral_self]
+  ring
+
+/-- The complement of a simply connected hyperbolic domain is unbounded: otherwise a large circle in `D` would carry
+`∮ (z - w₀)⁻¹ = 2πi` although `(z - w₀)⁻¹` has a primitive on `D`. -/
+theorem s20v_compl_unbounded {D : Set ℂ} (hD : IsHyperbolicSimplyConnected D) (R : ℝ) :
+    ∃ w, w ∉ D ∧ R < ‖w‖ := by
+  by_contra hcon'
+  have hcon : ∀ w, w ∉ D → ‖w‖ ≤ R := fun w hw => not_lt.1 fun h => hcon' ⟨w, hw, h⟩
+  obtain ⟨hDo, hDc, hDs, hDne⟩ := hD
+  obtain ⟨w₀, hw₀⟩ : ∃ w₀, w₀ ∉ D := by
+    by_contra h
+    exact hDne (eq_univ_of_forall fun w => by_contra fun hw => h ⟨w, hw⟩)
+  have hR' : 0 < |R| + ‖w₀‖ + 1 := by positivity
+  have hsph : sphere (0 : ℂ) (|R| + ‖w₀‖ + 1) ⊆ D := by
+    intro z hz
+    by_contra hzD
+    have h1 := hcon z hzD
+    rw [mem_sphere_zero_iff_norm] at hz
+    have h2 := le_abs_self R
+    have h3 := norm_nonneg w₀
+    linarith
+  have hsc : SimplyConnectedSpace D := hDs
+  have hg : DifferentiableOn ℂ (fun ζ => (ζ - w₀)⁻¹) D := by
+    intro ζ hζ
+    have hne : ζ - w₀ ≠ 0 := sub_ne_zero.2 fun h => hw₀ (h ▸ hζ)
+    exact ((differentiableAt_id.sub_const w₀).inv hne).differentiableWithinAt
+  obtain ⟨G, hGd, hGder⟩ := RMT.exists_primitive_of_simplyConnected hDo hDc hg
+  have h0 : circleIntegral (fun ζ => (ζ - w₀)⁻¹) 0 (|R| + ‖w₀‖ + 1) = 0 := by
+    refine circleIntegral.integral_eq_zero_of_hasDerivWithinAt (f := G) hR'.le fun ζ hζ => ?_
+    have hζD := hsph hζ
+    have h := (hGd.differentiableAt (hDo.mem_nhds hζD)).hasDerivAt
+    rw [hGder ζ hζD] at h
+    exact h.hasDerivWithinAt
+  have h1 : circleIntegral (fun ζ => (ζ - w₀)⁻¹) 0 (|R| + ‖w₀‖ + 1) = 2 * π * I := by
+    refine circleIntegral.integral_sub_inv_of_mem_ball ?_
+    rw [mem_ball_zero_iff]
+    have := abs_nonneg R
+    linarith
+  rw [h0] at h1
+  exact two_pi_I_ne_zero h1.symm
+
+/-- `∂_z̄` vanishes near a point around which the function is constant. -/
+theorem s20v_a_dzbar_eventually_zero {g : ℂ → ℂ} {x c : ℂ} (h : ∀ᶠ y in 𝓝 x, g y = c) :
+    ∀ᶠ y in 𝓝 x, dzbar g y = 0 := by
+  filter_upwards [h.eventually_nhds] with y hy
+  rw [dzbar_congr_of_eventuallyEq (v := fun _ => c) hy]
+  simp [dzbar]
+
+/-- Cauchy–Riemann for a difference: if `g` and `u` are real-differentiable at `x` with `∂_z̄ g x = ∂_z̄ u x`, then
+`g - u` is complex-differentiable at `x` (`cauchyRiemann_iff`). -/
+theorem s20v_a_differentiableAt_sub {g u : ℂ → ℂ} {x : ℂ} (hg : DifferentiableAt ℝ g x)
+    (hu : DifferentiableAt ℝ u x) (h : dzbar g x = dzbar u x) :
+    DifferentiableAt ℂ (fun y => g y - u y) x := by
+  refine cauchyRiemann_iff.2 ⟨hg.sub hu, ?_⟩
+  have e : fderiv ℝ (fun y => g y - u y) x = fderiv ℝ g x - fderiv ℝ u x :=
+    (hg.hasFDerivAt.sub hu.hasFDerivAt).fderiv
+  simp only [dzbar, e, sub_apply] at h ⊢
+  linear_combination h
+
+/-- **Additive Cousin splitting near a compact set.**  For open `D`, `B`, a relatively clopen
+`V ⊆ D ∩ B` and a compact `K ⊆ D ∪ B` there are an open `W ⊇ K` and `G₁` holomorphic on `D ∩ W`, `G₂` holomorphic on
+`B ∩ W`, with `G₁ - G₂ = 1_V` on `D ∩ B ∩ W`.
+
+*Truth.* This is the Mayer–Vietoris splitting of the locally constant function `1_V` on the cover `{D, B}`.  It is
+needed only near the compact `K`, so no exhaustion or Runge argument enters: take a compact neighbourhood
+`K₁ ⊆ D ∪ B` of `K`, `ψ` smooth with `ψ = 0` near `K₁ \ B` and `ψ = 1` near `K₁ \ D`, `ω := (∂̄ψ) · 1_V`, which is
+smooth on `interior K₁` (`ψ` is locally constant off `D ∩ B`, `1_V` is locally constant on `D ∩ B`), a cutoff `φ`
+equal to `1` near `K` with support in `interior K₁`, and `u := cauchyT (φ ω)`, so `∂̄u = φ ω`.  Then
+`G₁ := ψ 1_V - u` and `G₂ := (ψ - 1) 1_V - u` have `∂̄ = 0` where `φ = 1` and `G₁ - G₂ = 1_V`.
+
+*Route/reuse.* `s20v_urysohn` (this block) for `ψ` and `φ`; `eq11_17` (S11:2268: `cauchyT` of a compactly supported
+smooth function is `C¹` with `∂̄ (cauchyT ω) = ω`); `cauchyRiemann_iff` (S06:98) for holomorphy; `W := interior K₁ ∩
+interior {φ = 1}`. -/
+theorem s20v_cousin {D B V K : Set ℂ} (hD : IsOpen D) (hB : IsOpen B) (hV : IsOpen V) (hVDB : V ⊆ D ∩ B)
+    (hV' : IsOpen ((D ∩ B) \ V)) (hK : IsCompact K) (hKDB : K ⊆ D ∪ B) :
+    ∃ W : Set ℂ, IsOpen W ∧ K ⊆ W ∧ ∃ G₁ G₂ : ℂ → ℂ, DifferentiableOn ℂ G₁ (D ∩ W) ∧
+      DifferentiableOn ℂ G₂ (B ∩ W) ∧ ∀ x ∈ D ∩ B ∩ W, G₁ x - G₂ x = V.indicator (fun _ => (1 : ℂ)) x := by
+  have _ := hVDB
+  obtain ⟨K₁, hK₁c, hKK₁, hK₁U⟩ := exists_compact_between hK (hD.union hB) hKDB
+  obtain ⟨K₂, hK₂c, hKK₂, hK₂K₁⟩ := exists_compact_between hK isOpen_interior hKK₁
+  -- the Urysohn function `ψ` of the cover `{D, B}` near `K₁`
+  have hA : Disjoint (K₁ \ B) (K₁ \ D) := by
+    rw [Set.disjoint_left]
+    rintro x ⟨hx, hxB⟩ ⟨_, hxD⟩
+    rcases hK₁U hx with h | h
+    · exact hxD h
+    · exact hxB h
+  obtain ⟨ψ, hψs, hψ0, hψ1⟩ := s20v_urysohn (hK₁c.isClosed.sdiff hB) (hK₁c.isClosed.sdiff hD) hA
+  -- the cutoff `φ`: `1` near `K`, supported in `K₂`
+  have hφd : Disjoint (interior K₂)ᶜ K := by
+    rw [Set.disjoint_left]
+    intro x hx hxK
+    exact (Set.mem_compl_iff _ _).1 hx (hKK₂ hxK)
+  obtain ⟨φ, hφs, hφ0, hφ1⟩ := s20v_urysohn isOpen_interior.isClosed_compl hK.isClosed hφd
+  have hφK₂ : ∀ x, x ∉ K₂ → φ x = 0 := fun x hx =>
+    hφ0.self_of_nhdsSet x (Set.mem_compl fun h => hx (interior_subset h))
+  have htsK₂ : tsupport φ ⊆ K₂ :=
+    closure_minimal (fun y hy => by
+      by_contra h
+      exact Function.mem_support.1 hy (hφK₂ y h)) hK₂c.isClosed
+  obtain ⟨U, hUo, hKU, hU1⟩ := mem_nhdsSet_iff_exists.1 hφ1
+  -- the data `ψ`, `1_V`, `ω = φ · ∂_z̄ψ · 1_V`
+  obtain ⟨ψc, hψc⟩ : ∃ g : ℂ → ℂ, g = fun x => (ψ x : ℂ) := ⟨_, rfl⟩
+  obtain ⟨f, hf⟩ : ∃ g : ℂ → ℂ, g = V.indicator (fun _ => (1 : ℂ)) := ⟨_, rfl⟩
+  obtain ⟨ω, hω⟩ : ∃ g : ℂ → ℂ, g = fun x => (φ x : ℂ) * (dzbar ψc x * f x) := ⟨_, rfl⟩
+  have hψcs : ContDiff ℝ ((⊤ : ℕ∞) : WithTop ℕ∞) ψc := by
+    rw [hψc]
+    exact Complex.ofRealCLM.contDiff.comp hψs
+  have hφcs : ContDiff ℝ ((⊤ : ℕ∞) : WithTop ℕ∞) (fun x => (φ x : ℂ)) :=
+    Complex.ofRealCLM.contDiff.comp hφs
+  have hdψ : ContDiff ℝ ((⊤ : ℕ∞) : WithTop ℕ∞) (dzbar ψc) := by
+    have h1 : ContDiff ℝ ((⊤ : ℕ∞) : WithTop ℕ∞) (fun z => fderiv ℝ ψc z 1) :=
+      (hψcs.fderiv_right (le_refl _)).clm_apply contDiff_const
+    have hI : ContDiff ℝ ((⊤ : ℕ∞) : WithTop ℕ∞) (fun z => fderiv ℝ ψc z I) :=
+      (hψcs.fderiv_right (le_refl _)).clm_apply contDiff_const
+    exact (h1.add (contDiff_const.mul hI)).div_const 2
+  have hfV : ∀ x ∈ V, f x = 1 := fun x hx => by rw [hf, indicator_of_mem hx]
+  have hfV' : ∀ x, x ∉ V → f x = 0 := fun x hx => by rw [hf, indicator_of_notMem hx]
+  have hfV1 : ∀ x ∈ V, ∀ᶠ y in 𝓝 x, f y = 1 := fun x hx =>
+    Filter.mem_of_superset (hV.mem_nhds hx) fun y hy => hfV y hy
+  have hfV0 : ∀ x ∈ (D ∩ B) \ V, ∀ᶠ y in 𝓝 x, f y = 0 := fun x hx =>
+    Filter.mem_of_superset (hV'.mem_nhds hx) fun y hy => hfV' y hy.2
+  have hψ0' : ∀ x ∈ K₁ \ B, ∀ᶠ y in 𝓝 x, ψc y = 0 := by
+    intro x hx
+    filter_upwards [hψ0.filter_mono (nhds_le_nhdsSet hx)] with y hy
+    simp only [hψc, hy, Complex.ofReal_zero]
+  have hψ1' : ∀ x ∈ K₁ \ D, ∀ᶠ y in 𝓝 x, ψc y = 1 := by
+    intro x hx
+    filter_upwards [hψ1.filter_mono (nhds_le_nhdsSet hx)] with y hy
+    simp only [hψc, hy, Complex.ofReal_one]
+  -- `ω` is smooth with compact support
+  have hωs : ContDiff ℝ ((⊤ : ℕ∞) : WithTop ℕ∞) ω := by
+    have hzero : ∀ x, (∀ᶠ y in 𝓝 x, ω y = 0) → ContDiffAt ℝ ((⊤ : ℕ∞) : WithTop ℕ∞) ω x :=
+      fun x hx => contDiffAt_const.congr_of_eventuallyEq hx
+    refine contDiff_iff_contDiffAt.2 fun x => ?_
+    by_cases hx : x ∈ tsupport φ
+    · have hxK₁ : x ∈ K₁ := interior_subset (hK₂K₁ (htsK₂ hx))
+      by_cases hxB : x ∈ B
+      · by_cases hxD : x ∈ D
+        · by_cases hxV : x ∈ V
+          · have hsm : ContDiff ℝ ((⊤ : ℕ∞) : WithTop ℕ∞) (fun y => (φ y : ℂ) * (dzbar ψc y * 1)) :=
+              hφcs.mul (hdψ.mul contDiff_const)
+            refine hsm.contDiffAt.congr_of_eventuallyEq ?_
+            filter_upwards [hfV1 x hxV] with y hy
+            simp only [hω, hy]
+          · apply hzero
+            filter_upwards [hfV0 x ⟨⟨hxD, hxB⟩, hxV⟩] with y hy
+            simp only [hω, hy, mul_zero]
+        · apply hzero
+          filter_upwards [s20v_a_dzbar_eventually_zero (hψ1' x ⟨hxK₁, hxD⟩)] with y hy
+          simp only [hω, hy, zero_mul, mul_zero]
+      · apply hzero
+        filter_upwards [s20v_a_dzbar_eventually_zero (hψ0' x ⟨hxK₁, hxB⟩)] with y hy
+        simp only [hω, hy, zero_mul, mul_zero]
+    · apply hzero
+      filter_upwards [notMem_tsupport_iff_eventuallyEq.1 hx] with y hy
+      simp [hω, hy]
+  have hωc : HasCompactSupport ω := HasCompactSupport.intro hK₂c fun x hx => by simp [hω, hφK₂ x hx]
+  obtain ⟨hu1, hdu⟩ := eq11_17 hωs hωc
+  have hud : ∀ x, DifferentiableAt ℝ (cauchyT ω) x := fun x => hu1.differentiable one_ne_zero x
+  have hψd : ∀ x, DifferentiableAt ℝ ψc x := fun x => hψcs.differentiable (by simp) x
+  have hωx : ∀ x ∈ U, dzbar (cauchyT ω) x = dzbar ψc x * f x := by
+    intro x hxU
+    have hφx : φ x = 1 := hU1 hxU
+    rw [(hdu x).1, hω]
+    simp [hφx]
+  have h0 : ∀ x, x ∉ V → x ∈ U → DifferentiableAt ℂ (fun y => (fun _ => (0 : ℂ)) y - cauchyT ω y) x := by
+    intro x hxV hxU
+    refine s20v_a_differentiableAt_sub (differentiableAt_const _) (hud x) ?_
+    rw [hωx x hxU, hfV' x hxV, mul_zero]
+    simp [dzbar]
+  refine ⟨U ∩ interior K₁, hUo.inter isOpen_interior, subset_inter hKU hKK₁,
+    fun x => ψc x * f x - cauchyT ω x, fun x => (ψc x - 1) * f x - cauchyT ω x, ?_, ?_, ?_⟩
+  · rintro x ⟨hxD, hxU, hxK⟩
+    have hxK₁ : x ∈ K₁ := interior_subset hxK
+    refine DifferentiableAt.differentiableWithinAt ?_
+    by_cases hxV : x ∈ V
+    · have h := s20v_a_differentiableAt_sub (hψd x) (hud x) (by rw [hωx x hxU, hfV x hxV, mul_one])
+      refine h.congr_of_eventuallyEq ?_
+      filter_upwards [hfV1 x hxV] with y hy
+      rw [hy, mul_one]
+    · refine (h0 x hxV hxU).congr_of_eventuallyEq ?_
+      by_cases hxB : x ∈ B
+      · filter_upwards [hfV0 x ⟨⟨hxD, hxB⟩, hxV⟩] with y hy
+        rw [hy, mul_zero]
+      · filter_upwards [hψ0' x ⟨hxK₁, hxB⟩] with y hy
+        rw [hy, zero_mul]
+  · rintro x ⟨hxB, hxU, hxK⟩
+    have hxK₁ : x ∈ K₁ := interior_subset hxK
+    refine DifferentiableAt.differentiableWithinAt ?_
+    by_cases hxV : x ∈ V
+    · have h := (s20v_a_differentiableAt_sub (hψd x) (hud x)
+        (by rw [hωx x hxU, hfV x hxV, mul_one])).sub_const 1
+      refine h.congr_of_eventuallyEq ?_
+      filter_upwards [hfV1 x hxV] with y hy
+      rw [hy, mul_one]
+      ring
+    · refine (h0 x hxV hxU).congr_of_eventuallyEq ?_
+      by_cases hxD : x ∈ D
+      · filter_upwards [hfV0 x ⟨⟨hxD, hxB⟩, hxV⟩] with y hy
+        rw [hy, mul_zero]
+      · filter_upwards [hψ1' x ⟨hxK₁, hxD⟩] with y hy
+        rw [hy, sub_self, zero_mul]
+  · intro x _
+    show ψc x * f x - cauchyT ω x - ((ψc x - 1) * f x - cauchyT ω x) = V.indicator (fun _ => (1 : ℂ)) x
+    rw [← hf]
+    ring
+
+/-- `SegsIn` into an intersection. -/
+theorem s20v_b_segsIn_inter {U V : Set ℂ} :
+    ∀ {a : ℂ} {l : List ℂ}, SegsIn U a l → SegsIn V a l → SegsIn (U ∩ V) a l := by
+  intro a l hU hV
+  induction l generalizing a with
+  | nil => trivial
+  | cons b l ih => exact ⟨subset_inter hU.1 hV.1, ih hU.2 hV.2⟩
+
+/-- The segments of the open path `a, l` lie in the trace of the closed polygon `a :: l`. -/
+theorem s20v_b_segsIn_polyTrace (a : ℂ) (l : List ℂ) : SegsIn (polyTrace (a :: l)) a l := by
+  have key : ∀ (c a : ℂ) (l : List ℂ),
+      SegsIn (⋃ e ∈ (a :: l).zip (l ++ [c]), segment ℝ e.1 e.2) a l := by
+    intro c a l
+    induction l generalizing a with
+    | nil => trivial
+    | cons b l ih =>
+      refine ⟨fun x hx => mem_iUnion₂.2 ⟨(a, b), by simp, hx⟩, ?_⟩
+      have hsub : (⋃ e ∈ (b :: l).zip (l ++ [c]), segment ℝ e.1 e.2) ⊆
+          ⋃ e ∈ (a :: b :: l).zip ((b :: l) ++ [c]), segment ℝ e.1 e.2 := by
+        intro x hx
+        obtain ⟨e, he, hxe⟩ := mem_iUnion₂.1 hx
+        refine mem_iUnion₂.2 ⟨e, ?_, hxe⟩
+        rw [List.cons_append, List.zip_cons_cons]
+        exact List.mem_cons_of_mem _ he
+      exact s20v_segsIn_mono hsub (ih b)
+  unfold polyTrace polyEdges
+  rw [show (a :: l).rotate 1 = l ++ [a] by
+    rw [show (1 : ℕ) = 0 + 1 from rfl, List.rotate_cons_succ, List.rotate_zero]]
+  exact key a a l
+
+/-- A path integral only sees the values of the integrand on the segments of the path. -/
+theorem s20v_b_pathIntFrom_congr {U : Set ℂ} {f g : ℂ → ℂ} (hfg : EqOn f g U) :
+    ∀ {a : ℂ} {l : List ℂ}, SegsIn U a l → pathIntFrom f a l = pathIntFrom g a l := by
+  intro a l hl
+  induction l generalizing a with
+  | nil => simp [pathIntFrom]
+  | cons b l ih =>
+    simp only [pathIntFrom]
+    rw [segIntegral_congr (fun x hx => hfg (hl.1 hx)), ih hl.2]
+
+/-- The complement of a path component in an open set is open. -/
+theorem s20v_b_diff_pathComponentIn_open {U : Set ℂ} (hU : IsOpen U) (x : ℂ) :
+    IsOpen (U \ pathComponentIn U x) := by
+  rw [isOpen_iff_forall_mem_open]
+  intro y hy
+  refine ⟨pathComponentIn U y, ?_, hU.pathComponentIn y, mem_pathComponentIn_self hy.1⟩
+  intro u hu
+  refine ⟨pathComponentIn_subset hu, fun hxu => hy.2 ?_⟩
+  exact (show JoinedIn U x u from hxu).trans (show JoinedIn U y u from hu).symm
+
+/-- **Planar separation (PS).**  Let `γ = β + c` be a closed polygon with `β` in `D` from `p₁` to
+`p₂` and `c` in `B` from `p₂` back to `p₁`.  If `p₁` and `p₂` lie in different path components of `D ∩ B`, then `γ`
+winds around some point outside `D ∪ B`.
+
+*Truth.* Suppose that `polyWinding γ w = 0` for every `w ∉ D ∪ B`.  Then the compact set
+`Kc := trace γ ∪ {w ∉ trace γ | polyWinding γ w ≠ 0}` lies in `D ∪ B`.  Apply `s20v_cousin` with
+`V := pathComponentIn (D ∩ B) p₁` (open, and so is its complement in `D ∩ B`: `s20v_pathComponentIn_open`) and
+`K := Kc`.  The function `g := G₁'` on `D`, `G₂'` on `B` is holomorphic on `(D ∪ B) ∩ W`, since `G₁ - G₂` is locally
+constant on `D ∩ B`.  Dixon's theorem gives `∮_γ g = 0`, because `γ` winds around no point outside `(D ∪ B) ∩ W`.
+Telescoping gives `∮_γ g = (G₁ - G₂) p₂ - (G₁ - G₂) p₁ = 0 - 1`.
+
+*Route/reuse.* `polyIntegral_eq_zero_of_polyWinding_eq_zero` (ConnectedComplement:1096), `polyIntegral_cons` (:822),
+`pathIntFrom_append` (:803), `exists_polyWinding_eq_zero_of_norm_gt` (:634) and `eventually_polyWinding_eq` (:622) for
+the compactness of `Kc`, `s20v_pathIntFrom_deriv` (this block) for telescoping. -/
+theorem s20v_ps {D B : Set ℂ} (hD : IsOpen D) (hB : IsOpen B) {p₁ p₂ : ℂ} (hp₁ : p₁ ∈ D ∩ B)
+    (hp₂ : p₂ ∈ D ∩ B) (hsep : ¬ JoinedIn (D ∩ B) p₁ p₂) {lβ lc : List ℂ} (hβ : SegsIn D p₁ lβ)
+    (hβe : lastOf p₁ lβ = p₂) (hc : SegsIn B p₂ lc) (hce : lastOf p₂ lc = p₁) :
+    ∃ w, w ∉ D ∧ w ∉ B ∧ polyWinding (p₁ :: (lβ ++ lc)) w ≠ 0 := by
+  classical
+  by_contra hcon
+  have hzero : ∀ w, w ∉ D → w ∉ B → polyWinding (p₁ :: (lβ ++ lc)) w = 0 := by
+    intro w hwD hwB
+    by_contra hne
+    exact hcon ⟨w, hwD, hwB, hne⟩
+  have hTDB : polyTrace (p₁ :: (lβ ++ lc)) ⊆ D ∪ B := s20v_trace_subset hp₁.1 hβ hβe hc hce
+  -- the compact set `trace ∪ {winding ≠ 0}`, with the two base points
+  obtain ⟨R, hR⟩ := exists_polyWinding_eq_zero_of_norm_gt (p₁ :: (lβ ++ lc))
+  obtain ⟨M, hM⟩ := (isCompact_polyTrace (p₁ :: (lβ ++ lc))).isBounded.subset_closedBall 0
+  have hK₀c : IsCompact (polyTrace (p₁ :: (lβ ++ lc)) ∪ {w | polyWinding (p₁ :: (lβ ++ lc)) w ≠ 0}) := by
+    refine (isCompact_closedBall (0 : ℂ) (max M R)).of_isClosed_subset ?_ ?_
+    · rw [← isOpen_compl_iff, isOpen_iff_mem_nhds]
+      intro w hw
+      have hwT : w ∉ polyTrace (p₁ :: (lβ ++ lc)) := fun h => hw (Or.inl h)
+      have hw0 : polyWinding (p₁ :: (lβ ++ lc)) w = 0 := by
+        by_contra h
+        exact hw (Or.inr h)
+      filter_upwards [(isOpen_compl_polyTrace _).mem_nhds hwT, eventually_polyWinding_eq hwT] with y hyT hy
+      rintro (h | h)
+      · exact hyT h
+      · exact h (hy.trans hw0)
+    · rintro w (h | h)
+      · exact closedBall_subset_closedBall (le_max_left _ _) (hM h)
+      · rw [mem_closedBall_zero_iff]
+        by_contra hlt
+        exact h (hR w (lt_of_le_of_lt (le_max_right _ _) (not_le.1 hlt)))
+  have hKc := (hK₀c.insert p₂).insert p₁
+  have hKDB : insert p₁ (insert p₂ (polyTrace (p₁ :: (lβ ++ lc)) ∪
+      {w | polyWinding (p₁ :: (lβ ++ lc)) w ≠ 0})) ⊆ D ∪ B := by
+    rintro w (rfl | rfl | h | h)
+    · exact Or.inl hp₁.1
+    · exact Or.inl hp₂.1
+    · exact hTDB h
+    · by_contra hw
+      exact h (hzero w (fun h' => hw (Or.inl h')) (fun h' => hw (Or.inr h')))
+  -- the Cousin splitting of the indicator of the path component of `p₁`
+  have hVo : IsOpen (pathComponentIn (D ∩ B) p₁) := (hD.inter hB).pathComponentIn p₁
+  obtain ⟨W, hWo, hKW, G₁, G₂, hG₁, hG₂, hG⟩ := s20v_cousin hD hB hVo pathComponentIn_subset
+    (s20v_b_diff_pathComponentIn_open (hD.inter hB) p₁) hKc hKDB
+  have hderiv : ∀ y ∈ D ∩ B ∩ W, deriv G₁ y = deriv G₂ y := by
+    intro y hy
+    have hloc : ∀ᶠ x in 𝓝 y, (pathComponentIn (D ∩ B) p₁).indicator (fun _ => (1 : ℂ)) x =
+        (pathComponentIn (D ∩ B) p₁).indicator (fun _ => (1 : ℂ)) y := by
+      by_cases hyV : y ∈ pathComponentIn (D ∩ B) p₁
+      · filter_upwards [hVo.mem_nhds hyV] with x hx
+        rw [indicator_of_mem hx, indicator_of_mem hyV]
+      · filter_upwards [(s20v_b_diff_pathComponentIn_open (hD.inter hB) p₁).mem_nhds ⟨hy.1, hyV⟩]
+          with x hx
+        rw [indicator_of_notMem hx.2, indicator_of_notMem hyV]
+    have hev : G₁ =ᶠ[𝓝 y] fun x => G₂ x + (pathComponentIn (D ∩ B) p₁).indicator (fun _ => (1 : ℂ)) y := by
+      filter_upwards [((hD.inter hB).inter hWo).mem_nhds hy, hloc] with x hx hxl
+      rw [← hxl, ← hG x hx]
+      ring
+    rw [hev.deriv_eq]
+    exact deriv_add_const _
+  -- the glued derivative `g`
+  have hDWo : IsOpen (D ∩ W) := hD.inter hWo
+  have hBWo : IsOpen (B ∩ W) := hB.inter hWo
+  set g : ℂ → ℂ := fun x => if x ∈ D then deriv G₁ x else deriv G₂ x with hg
+  have hgD : EqOn g (deriv G₁) (D ∩ W) := fun x hx => by simp [hg, hx.1]
+  have hgB : EqOn g (deriv G₂) (B ∩ W) := by
+    intro x hx
+    by_cases hxD : x ∈ D
+    · simp only [hg, hxD, ↓reduceIte]
+      exact hderiv x ⟨⟨hxD, hx.1⟩, hx.2⟩
+    · simp [hg, hxD]
+  have hgd : DifferentiableOn ℂ g ((D ∪ B) ∩ W) := by
+    intro x hx
+    rcases hx.1 with hxD | hxB
+    · have h1 : DifferentiableAt ℂ (deriv G₁) x :=
+        (hG₁.deriv hDWo).differentiableAt (hDWo.mem_nhds ⟨hxD, hx.2⟩)
+      exact (h1.congr_of_eventuallyEq (Filter.eventually_of_mem (hDWo.mem_nhds ⟨hxD, hx.2⟩) hgD))
+        |>.differentiableWithinAt
+    · have h1 : DifferentiableAt ℂ (deriv G₂) x :=
+        (hG₂.deriv hBWo).differentiableAt (hBWo.mem_nhds ⟨hxB, hx.2⟩)
+      exact (h1.congr_of_eventuallyEq (Filter.eventually_of_mem (hBWo.mem_nhds ⟨hxB, hx.2⟩) hgB))
+        |>.differentiableWithinAt
+  -- Dixon's polygon Cauchy theorem
+  have hTW : polyTrace (p₁ :: (lβ ++ lc)) ⊆ W := fun w hw =>
+    hKW (mem_insert_of_mem _ (mem_insert_of_mem _ (mem_union_left _ hw)))
+  have hdix : polyIntegral g (p₁ :: (lβ ++ lc)) = 0 := by
+    refine polyIntegral_eq_zero_of_polyWinding_eq_zero ((hD.union hB).inter hWo) hgd
+      (fun w hw => ⟨hTDB hw, hTW hw⟩) fun a ha => ?_
+    by_contra hne
+    have haK : a ∈ insert p₁ (insert p₂ (polyTrace (p₁ :: (lβ ++ lc)) ∪
+        {w | polyWinding (p₁ :: (lβ ++ lc)) w ≠ 0})) :=
+      mem_insert_of_mem _ (mem_insert_of_mem _ (mem_union_right _ hne))
+    exact ha ⟨hKDB haK, hKW haK⟩
+  -- telescoping
+  have hsegT := s20v_b_segsIn_polyTrace p₁ (lβ ++ lc)
+  rw [segsIn_append, hβe] at hsegT
+  have hβW : SegsIn (D ∩ W) p₁ lβ := s20v_b_segsIn_inter hβ (s20v_segsIn_mono hTW hsegT.1)
+  have hcW : SegsIn (B ∩ W) p₂ lc := s20v_b_segsIn_inter hc (s20v_segsIn_mono hTW hsegT.2)
+  have hI1 : pathIntFrom g p₁ lβ = G₁ p₂ - G₁ p₁ := by
+    rw [s20v_b_pathIntFrom_congr hgD hβW, s20v_pathIntFrom_deriv hDWo hG₁ hβW, hβe]
+  have hI2 : pathIntFrom g p₂ lc = G₂ p₁ - G₂ p₂ := by
+    rw [s20v_b_pathIntFrom_congr hgB hcW, s20v_pathIntFrom_deriv hBWo hG₂ hcW, hce]
+  have htot : polyIntegral g (p₁ :: (lβ ++ lc)) = (G₁ p₂ - G₁ p₁) + (G₂ p₁ - G₂ p₂) := by
+    rw [polyIntegral_cons, pathIntFrom_append, hβe, lastOf_append, hβe, hce, segIntegral_self, hI1, hI2,
+      add_zero]
+  have hp₁W : p₁ ∈ W := hKW (mem_insert _ _)
+  have hp₂W : p₂ ∈ W := hKW (mem_insert_of_mem _ (mem_insert _ _))
+  have h1 : G₁ p₁ - G₂ p₁ = 1 := by
+    rw [hG p₁ ⟨hp₁, hp₁W⟩]
+    exact indicator_of_mem (mem_pathComponentIn_self hp₁) _
+  have h2 : G₁ p₂ - G₂ p₂ = 0 := by
+    rw [hG p₂ ⟨hp₂, hp₂W⟩]
+    exact indicator_of_notMem (show p₂ ∉ pathComponentIn (D ∩ B) p₁ from hsep) _
+  rw [hdix] at htot
+  have h01 : (0 : ℂ) = -1 := by linear_combination htot + h2 - h1
+  norm_num at h01
+
+/-- A segment `[z + 2a, z + 2ωa]` with `ω = ±i` stays at distance `≥ ‖a‖` from `z`. -/
+theorem s20v_b_seg_far {z a ω : ℂ} {t : ℝ} (hω : ω = I ∨ ω = -I) (ha : t < ‖a‖) :
+    segment ℝ (z + 2 * a) (z + 2 * (ω * a)) ⊆ {ζ | t < ‖ζ - z‖} := by
+  rintro ζ ⟨α, β, hα, hβ, hαβ, rfl⟩
+  show t < ‖α • (z + 2 * a) + β • (z + 2 * (ω * a)) - z‖
+  have hαβ' : (α : ℂ) + β = 1 := by exact_mod_cast hαβ
+  have hkey : α • (z + 2 * a) + β • (z + 2 * (ω * a)) - z = 2 * a * ((α : ℂ) + β * ω) := by
+    rw [Complex.real_smul, Complex.real_smul]
+    linear_combination z * hαβ'
+  have hnorm : (1 : ℝ) / 2 ≤ ‖(α : ℂ) + β * ω‖ := by
+    have hre : ((α : ℂ) + β * ω).re = α := by rcases hω with rfl | rfl <;> simp
+    have him : |((α : ℂ) + β * ω).im| = β := by
+      rcases hω with rfl | rfl <;> simp [abs_of_nonneg hβ]
+    have h1 := Complex.abs_re_le_norm ((α : ℂ) + β * ω)
+    have h2 := Complex.abs_im_le_norm ((α : ℂ) + β * ω)
+    rw [hre, abs_of_nonneg hα] at h1
+    rw [him] at h2
+    linarith
+  have h2 : ‖(2 : ℂ)‖ = 2 := by norm_num
+  rw [hkey, norm_mul, norm_mul, h2]
+  nlinarith [mul_le_mul_of_nonneg_left hnorm (norm_nonneg a)]
+
+/-- The radial segment `[z + d, z + 2d]` stays at distance `≥ ‖d‖` from `z`. -/
+theorem s20v_b_seg_radial {z d : ℂ} {t : ℝ} (hd : t < ‖d‖) :
+    segment ℝ (z + d) (z + 2 * d) ⊆ {ζ | t < ‖ζ - z‖} := by
+  rintro ζ ⟨α, β, hα, hβ, hαβ, rfl⟩
+  show t < ‖α • (z + d) + β • (z + 2 * d) - z‖
+  have hαβ' : (α : ℂ) + β = 1 := by exact_mod_cast hαβ
+  have hkey : α • (z + d) + β • (z + 2 * d) - z = ((α + 2 * β : ℝ) : ℂ) * d := by
+    rw [Complex.real_smul, Complex.real_smul]
+    push_cast
+    linear_combination z * hαβ'
+  rw [hkey, norm_mul, Complex.norm_real, show α + 2 * β = 1 + β by linarith,
+    Real.norm_of_nonneg (show (0 : ℝ) ≤ 1 + β by linarith)]
+  nlinarith [mul_nonneg hβ (norm_nonneg d)]
+
+/-- The integral of `(ζ - z)⁻¹` along `[z + 2a, z + 2ωa]`, `ω = ±i`, is `log ω`. -/
+theorem s20v_b_seg_log {z a ω : ℂ} {t : ℝ} (ht : 0 ≤ t) (hω : ω = I ∨ ω = -I) (ha : t < ‖a‖) :
+    segIntegral (fun ζ => (ζ - z)⁻¹) (z + 2 * a) (z + 2 * (ω * a)) = log ω := by
+  have hz : z ∉ segment ℝ (z + 2 * a) (z + 2 * (ω * a)) := by
+    intro h
+    have h' : t < ‖z - z‖ := s20v_b_seg_far hω ha h
+    rw [sub_self, norm_zero] at h'
+    linarith
+  have ha0 : (2 : ℂ) * a ≠ 0 := by
+    refine mul_ne_zero two_ne_zero ?_
+    rintro rfl
+    rw [norm_zero] at ha
+    linarith
+  rw [segIntegral_inv_sub_eq_log hz, show z + 2 * (ω * a) - z = ω * (2 * a) by ring,
+    show z + 2 * a - z = 2 * a by ring, mul_div_assoc, div_self ha0, mul_one]
+
+/-- Repeating a closed loop at `a`: the endpoint. -/
+theorem s20v_b_lastOf_rep {a : ℂ} {L : List ℂ} (hL : lastOf a L = a) (n : ℕ) :
+    lastOf a (List.replicate n L).flatten = a := by
+  induction n with
+  | zero => simp [lastOf]
+  | succ n ih => rw [List.replicate_succ, List.flatten_cons, lastOf_append, hL, ih]
+
+/-- Repeating a closed loop at `a`: the segments. -/
+theorem s20v_b_segsIn_rep {U : Set ℂ} {a : ℂ} {L : List ℂ} (hL : lastOf a L = a) (hLU : SegsIn U a L)
+    (n : ℕ) : SegsIn U a (List.replicate n L).flatten := by
+  induction n with
+  | zero => simp [SegsIn]
+  | succ n ih =>
+    rw [List.replicate_succ, List.flatten_cons, segsIn_append, hL]
+    exact ⟨hLU, ih⟩
+
+/-- Repeating a closed loop at `a`: the path integral. -/
+theorem s20v_b_pathIntFrom_rep (h : ℂ → ℂ) {a : ℂ} {L : List ℂ} (hL : lastOf a L = a) (n : ℕ) :
+    pathIntFrom h a (List.replicate n L).flatten = n * pathIntFrom h a L := by
+  induction n with
+  | zero => simp [pathIntFrom]
+  | succ n ih =>
+    rw [List.replicate_succ, List.flatten_cons, pathIntFrom_append, hL, ih]
+    push_cast
+    ring
+
+/-- The winding number is constant on a preconnected set missing the trace. -/
+theorem s20v_b_polyWinding_const {v : List ℂ} {S : Set ℂ} (hS : IsPreconnected S)
+    (hST : ∀ x ∈ S, x ∉ polyTrace v) {x y : ℂ} (hx : x ∈ S) (hy : y ∈ S) :
+    polyWinding v y = polyWinding v x := by
+  have hu : IsOpen {b | b ∉ polyTrace v ∧ polyWinding v b = polyWinding v x} := by
+    rw [isOpen_iff_mem_nhds]
+    intro b hb
+    filter_upwards [(isOpen_compl_polyTrace v).mem_nhds hb.1, eventually_polyWinding_eq hb.1] with c hc hcb
+    exact ⟨hc, hcb.trans hb.2⟩
+  have hv : IsOpen {b | b ∉ polyTrace v ∧ polyWinding v b ≠ polyWinding v x} := by
+    rw [isOpen_iff_mem_nhds]
+    intro b hb
+    filter_upwards [(isOpen_compl_polyTrace v).mem_nhds hb.1, eventually_polyWinding_eq hb.1] with c hc hcb
+    exact ⟨hc, by rw [hcb]; exact hb.2⟩
+  have hsub := hS.subset_left_of_subset_union hu hv (disjoint_left.2 fun b h1 h2 => h2.2 h1.2)
+    (fun b hb => by
+      by_cases h : polyWinding v b = polyWinding v x
+      · exact Or.inl ⟨hST b hb, h⟩
+      · exact Or.inr ⟨hST b hb, h⟩)
+    ⟨x, hx, hST x hx, rfl⟩
+  exact (hsub hy).2
+
+/-- The construction behind `s20v_ext_loop`: a radial segment out, `n` square circuits turning by `ω = ±i`, and
+the radial segment back. -/
+theorem s20v_b_ext_loop_core {z d ω : ℂ} {t : ℝ} (ht : 0 ≤ t) (hd : t < ‖d‖) (hω : ω = I ∨ ω = -I) (n : ℕ) :
+    ∃ l : List ℂ, SegsIn {ζ | t < ‖ζ - z‖} (z + d) l ∧ lastOf (z + d) l = z + d ∧
+      ∀ w : ℂ, ‖w - z‖ ≤ t → polyWinding ((z + d) :: l) w = n * (4 * log ω) / (2 * π * I) := by
+  have hωn : ‖ω‖ = 1 := by rcases hω with rfl | rfl <;> simp
+  have hω4 : ω * (ω * (ω * (ω * d))) = d := by
+    have h2 : ω * ω = -1 := by rcases hω with rfl | rfl <;> simp
+    linear_combination (ω * ω - 1) * d * h2
+  have hn1 : t < ‖ω * d‖ := by rwa [norm_mul, hωn, one_mul]
+  have hn2 : t < ‖ω * (ω * d)‖ := by rwa [norm_mul, hωn, one_mul]
+  have hn3 : t < ‖ω * (ω * (ω * d))‖ := by rwa [norm_mul, hωn, one_mul]
+  obtain ⟨sq, hsqS, hsql, hsqI⟩ : ∃ sq : List ℂ, SegsIn {ζ | t < ‖ζ - z‖} (z + 2 * d) sq ∧
+      lastOf (z + 2 * d) sq = z + 2 * d ∧ pathIntFrom (fun ζ => (ζ - z)⁻¹) (z + 2 * d) sq = 4 * log ω := by
+    have hlast4 : segment ℝ (z + 2 * (ω * (ω * (ω * d)))) (z + 2 * d) ⊆ {ζ | t < ‖ζ - z‖} := by
+      have h := s20v_b_seg_far (z := z) hω hn3
+      rwa [hω4] at h
+    have hlog4 : segIntegral (fun ζ => (ζ - z)⁻¹) (z + 2 * (ω * (ω * (ω * d)))) (z + 2 * d) = log ω := by
+      have h := s20v_b_seg_log (z := z) ht hω hn3
+      rwa [hω4] at h
+    refine ⟨[z + 2 * (ω * d), z + 2 * (ω * (ω * d)), z + 2 * (ω * (ω * (ω * d))), z + 2 * d],
+      ⟨s20v_b_seg_far hω hd, s20v_b_seg_far hω hn1, s20v_b_seg_far hω hn2, hlast4, trivial⟩, rfl, ?_⟩
+    simp only [pathIntFrom]
+    rw [s20v_b_seg_log ht hω hd, s20v_b_seg_log ht hω hn1, s20v_b_seg_log ht hω hn2, hlog4]
+    ring
+  have hS : SegsIn {ζ | t < ‖ζ - z‖} (z + d) ((z + 2 * d) :: ((List.replicate n sq).flatten ++ [z + d])) := by
+    refine ⟨s20v_b_seg_radial hd, ?_⟩
+    rw [segsIn_append, s20v_b_lastOf_rep hsql]
+    refine ⟨s20v_b_segsIn_rep hsql hsqS n, ?_, trivial⟩
+    rw [segment_symm]
+    exact s20v_b_seg_radial hd
+  have hlast : lastOf (z + d) ((z + 2 * d) :: ((List.replicate n sq).flatten ++ [z + d])) = z + d := by
+    show lastOf (z + 2 * d) ((List.replicate n sq).flatten ++ [z + d]) = z + d
+    rw [lastOf_append, s20v_b_lastOf_rep hsql]
+    rfl
+  have hPI : polyIntegral (fun ζ => (ζ - z)⁻¹) ((z + d) :: ((z + 2 * d) :: ((List.replicate n sq).flatten ++
+      [z + d]))) = n * (4 * log ω) := by
+    rw [polyIntegral_cons, hlast, segIntegral_self, add_zero]
+    simp only [pathIntFrom]
+    rw [pathIntFrom_append, s20v_b_lastOf_rep hsql, s20v_b_pathIntFrom_rep _ hsql, hsqI]
+    simp only [pathIntFrom, add_zero]
+    rw [segIntegral_symm _ (z + d) (z + 2 * d)]
+    ring
+  refine ⟨(z + 2 * d) :: ((List.replicate n sq).flatten ++ [z + d]), hS, hlast, fun w hw => ?_⟩
+  have hT : ∀ x ∈ closedBall z t,
+      x ∉ polyTrace ((z + d) :: ((z + 2 * d) :: ((List.replicate n sq).flatten ++ [z + d]))) := by
+    intro x hx hxT
+    have hq : t < ‖z + d - z‖ := by rwa [add_sub_cancel_left]
+    have h := polyTrace_cons_subset hS (by rw [hlast, segment_same]; exact singleton_subset_iff.2 hq) hxT
+    rw [mem_closedBall, dist_eq_norm] at hx
+    exact not_lt.2 hx h
+  have hwB : w ∈ closedBall z t := by rwa [mem_closedBall, dist_eq_norm]
+  rw [s20v_b_polyWinding_const (convex_closedBall z t).isPreconnected hT (mem_closedBall_self ht) hwB,
+    polyWinding, hPI]
+
+/-- **Exterior loops of prescribed winding number.**  For `‖q - z‖ > t ≥ 0` and any `N : ℤ` there
+is a closed polygon at `q`, inside `{t < ‖ζ - z‖}`, winding `N` times around every point of `closedBall z t`.
+
+*Truth.* Pick `R₀ > max t ‖q - z‖` large and put `e := (q - z)/‖q - z‖`.  Go radially from `q` to `q* := z + R₀ e`
+(the distance to `z` increases along the way), run `|N|` times around the square with vertices `z + iʲ R₀ e`
+(`j = 0, …, 3`), reversed if `N < 0`, and return radially.  The sides of the square are at distance `R₀/√2 > t`
+from `z`.  At `w = z`, each square edge contributes `log (±i) = ±iπ/2` and the two radial edges contribute
+`log λ + log λ⁻¹ = 0` with `λ > 0`.  The winding number is constant on the convex set `closedBall z t`, which misses
+the trace.  For `N = 0`, take `l = []`.
+
+*Route/reuse.* `polyIntegral_inv_sub_eq_sum_log` (ConnectedComplement:548), `eventually_polyWinding_eq` (:622),
+`exists_int_polyWinding` (:557), `segsIn_append` (:815), `lastOf_append` (:809). -/
+theorem s20v_ext_loop {z q : ℂ} {t : ℝ} (ht : 0 ≤ t) (hq : t < ‖q - z‖) (N : ℤ) :
+    ∃ l : List ℂ, SegsIn {ζ | t < ‖ζ - z‖} q l ∧ lastOf q l = q ∧
+      ∀ w : ℂ, ‖w - z‖ ≤ t → polyWinding (q :: l) w = N := by
+  obtain ⟨d, rfl⟩ : ∃ d, q = z + d := ⟨q - z, by ring⟩
+  rw [add_sub_cancel_left] at hq
+  obtain ⟨n, rfl | rfl⟩ := Int.eq_nat_or_neg N
+  · obtain ⟨l, h1, h2, h3⟩ := s20v_b_ext_loop_core (z := z) ht hq (Or.inl rfl) n
+    refine ⟨l, h1, h2, fun w hw => ?_⟩
+    rw [h3 w hw, log_I, div_eq_iff two_pi_I_ne_zero]
+    push_cast
+    ring
+  · obtain ⟨l, h1, h2, h3⟩ := s20v_b_ext_loop_core (z := z) ht hq (Or.inr rfl) n
+    refine ⟨l, h1, h2, fun w hw => ?_⟩
+    rw [h3 w hw, log_neg_I, div_eq_iff two_pi_I_ne_zero]
+    push_cast
+    ring
+
+/-- Telescoping along a polygonal path with an explicit primitive: if `G' = h` at every point of the open set `U`,
+then `∫_{a, l} h = G (lastOf a l) - G a` for every path `a, l` whose segments lie in `U`. -/
+theorem s20v_a_pathIntFrom_of_hasDerivAt {U : Set ℂ} (hU : IsOpen U) {G h : ℂ → ℂ}
+    (hG : ∀ ζ ∈ U, HasDerivAt G (h ζ) ζ) {a : ℂ} {l : List ℂ} (hl : SegsIn U a l) :
+    pathIntFrom h a l = G (lastOf a l) - G a := by
+  have hGd : DifferentiableOn ℂ G U := fun ζ hζ => (hG ζ hζ).differentiableAt.differentiableWithinAt
+  have hcongr : ∀ {b : ℂ} {m : List ℂ}, SegsIn U b m → pathIntFrom h b m = pathIntFrom (deriv G) b m := by
+    intro b m hm
+    induction m generalizing b with
+    | nil => rfl
+    | cons c m ih =>
+      simp only [pathIntFrom]
+      rw [segIntegral_congr (fun ζ hζ => ((hG ζ (hm.1 hζ)).deriv).symm), ih hm.2]
+  rw [hcongr hl]
+  exact s20v_pathIntFrom_deriv hU hGd hl
+
+/-- For `‖u‖ ≤ r/k`, `‖σ‖ ≤ 1/r` and `k > 1`: `‖σ u‖ ≤ 1/k`, `1 - 1/k ≤ ‖1 - σ u‖` and
+`‖u/(1 - σ u)‖ ≤ r/(k - 1)`. -/
+theorem s20v_a_term_le {u σ : ℂ} {r k : ℝ} (hr : 0 < r) (hk : 1 < k) (hu : ‖u‖ ≤ r / k)
+    (hσ : ‖σ‖ ≤ 1 / r) :
+    ‖σ * u‖ ≤ 1 / k ∧ 1 - 1 / k ≤ ‖1 - σ * u‖ ∧ ‖u / (1 - σ * u)‖ ≤ r / (k - 1) := by
+  have hk0 : 0 < k := by linarith
+  have hr0 : r ≠ 0 := hr.ne'
+  have hk0' : k ≠ 0 := hk0.ne'
+  have hσu : ‖σ * u‖ ≤ 1 / k := by
+    rw [norm_mul]
+    calc ‖σ‖ * ‖u‖ ≤ 1 / r * (r / k) := mul_le_mul hσ hu (norm_nonneg _) (by positivity)
+      _ = 1 / k := by field_simp
+  have h1 : 1 - 1 / k ≤ ‖1 - σ * u‖ := by
+    have := norm_sub_norm_le (1 : ℂ) (σ * u)
+    rw [norm_one] at this
+    linarith
+  have hk1 : 0 < 1 - 1 / k := by
+    rw [sub_pos, div_lt_one hk0]
+    exact hk
+  refine ⟨hσu, h1, ?_⟩
+  have hpos : 0 < ‖1 - σ * u‖ := lt_of_lt_of_le hk1 h1
+  rw [norm_div, div_le_div_iff₀ hpos (by linarith)]
+  have h2 : r * (1 - 1 / k) ≤ r * ‖1 - σ * u‖ := mul_le_mul_of_nonneg_left h1 hr.le
+  have h3 : r * (1 - 1 / k) = r / k * (k - 1) := by field_simp
+  have h4 : ‖u‖ * (k - 1) ≤ r / k * (k - 1) := mul_le_mul_of_nonneg_right hu (by linarith)
+  linarith
+
+/-- **The exterior bound (20.23).**  For `k ≥ 6`, `w₁, w₂ ∈ closedBall z (r/k)` and a polygonal
+path from `p` to `p'` inside `{r/2 < ‖ζ - z‖}`, where `‖p - z‖, ‖p' - z‖ ≥ r`, the integral of
+`(ζ - w₁)⁻¹ - (ζ - w₂)⁻¹` along the path is at most `4/(k - 1)` in norm.
+
+*Truth.* Put `Q ζ := (ζ - w₁)/(ζ - w₂)`.  On the region, `‖Q ζ - 1‖ = ‖w₂ - w₁‖/‖ζ - w₂‖ < (2r/k)/(r/2 - r/k) ≤ 1`, so
+`log ∘ Q` is a primitive of the integrand there and the integral equals `log Q p' - log Q p`.  At the endpoints,
+`‖Q - 1‖ ≤ 2/(k - 1) ≤ 2/5`, so this number has norm `≤ 2 · 0.52`.
+
+It is congruent mod `2πi` to the book's quantity.  Put `ζ* := 1/(ζ - z)` and `Q* ζ* := (ζ* - w₁*)/(ζ* - w₂*)`.
+Then `Q p'/Q p = Q* p'*/Q* p*` (Möbius invariance of the cross-ratio), and the latter is the exponential of the
+integral over the segment `[p*, p'*] ⊆ closedBall 0 (1/r)`.  The segment has length `≤ 2/r`, and its integrand is at
+most `2r/(k - 1)` since `‖w*‖ ≥ k/r`.  So the segment integral has norm `≤ 4/(k - 1) ≤ 4/5`.  Both numbers are
+small, so they are equal.  If `w_j = z`, then `w_j* = ∞` and its term drops.
+
+The direct bound `‖X - 1‖ ≤ 4/(k-1) + 4/(k-1)²` on the cross-ratio `X` is too weak at `k = 6`.
+
+*Route/reuse.* `s20v_pathIntFrom_deriv` (this block) with `G := log ∘ Q`, `segIntegral_inv_sub_eq_log`
+(ConnectedComplement:498), `norm_segIntegral_le` (:240). -/
+theorem s20v_ext_bound {z w₁ w₂ p : ℂ} {r k : ℝ} (hr : 0 < r) (hk : 6 ≤ k) (hw₁ : ‖w₁ - z‖ ≤ r / k)
+    (hw₂ : ‖w₂ - z‖ ≤ r / k) (hp : r ≤ ‖p - z‖) {l : List ℂ} (hl : SegsIn {ζ | r / 2 < ‖ζ - z‖} p l)
+    (hle : r ≤ ‖lastOf p l - z‖) :
+    ‖pathIntFrom (fun ζ => (ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) p l‖ ≤ 4 / (k - 1) := by
+  have hk0 : 0 < k := by linarith
+  have hk1 : 1 < k := by linarith
+  have hrk0 : 0 < r / k := div_pos hr hk0
+  have hrk : r / k ≤ r / 6 := div_le_div_of_nonneg_left hr.le (by norm_num) hk
+  have hRo : IsOpen {ζ : ℂ | r / 2 < ‖ζ - z‖} := isOpen_lt continuous_const (by fun_prop)
+  have hdist : ∀ ζ : ℂ, r / 2 < ‖ζ - z‖ → ∀ w : ℂ, ‖w - z‖ ≤ r / k → r / 2 - r / k < ‖ζ - w‖ := by
+    intro ζ hζ w hw
+    have h1 := norm_sub_norm_le (ζ - z) (w - z)
+    rw [show ζ - z - (w - z) = ζ - w by ring] at h1
+    linarith
+  have hw12 : ‖w₂ - w₁‖ ≤ 2 * (r / k) := by
+    have h1 := norm_sub_le (w₂ - z) (w₁ - z)
+    rw [show w₂ - z - (w₁ - z) = w₂ - w₁ by ring] at h1
+    linarith
+  have h3 : 2 * (r / k) ≤ r / 2 - r / k := by linarith
+  -- the primitive `log ((ζ - w₁)/(ζ - w₂))` on the region
+  have hG : ∀ ζ ∈ {ζ : ℂ | r / 2 < ‖ζ - z‖},
+      HasDerivAt (fun ζ => log ((ζ - w₁) / (ζ - w₂))) ((ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) ζ := by
+    intro ζ hζ
+    have hd₁ := hdist ζ hζ w₁ hw₁
+    have hd₂ := hdist ζ hζ w₂ hw₂
+    have hne₁ : ζ - w₁ ≠ 0 := norm_pos_iff.1 (by linarith)
+    have hne₂ : ζ - w₂ ≠ 0 := norm_pos_iff.1 (by linarith)
+    have hslit : (ζ - w₁) / (ζ - w₂) ∈ slitPlane := by
+      have heq : (ζ - w₁) / (ζ - w₂) = 1 + (w₂ - w₁) / (ζ - w₂) := by
+        rw [div_eq_iff hne₂, add_mul, div_mul_cancel₀ _ hne₂]
+        ring
+      rw [heq]
+      apply mem_slitPlane_of_norm_lt_one
+      rw [norm_div, div_lt_one (norm_pos_iff.2 hne₂)]
+      linarith
+    have hQ : HasDerivAt (fun y => (y - w₁) / (y - w₂)) ((1 * (ζ - w₂) - (ζ - w₁) * 1) / (ζ - w₂) ^ 2) ζ :=
+      ((hasDerivAt_id' ζ).sub_const w₁).div ((hasDerivAt_id' ζ).sub_const w₂) hne₂
+    refine (hQ.clog hslit).congr_deriv ?_
+    field_simp
+  rw [s20v_a_pathIntFrom_of_hasDerivAt hRo hG hl]
+  -- the inverted coordinate `σ = 1/(ζ - z)`
+  have hpz0 : p - z ≠ 0 := norm_pos_iff.1 (by linarith)
+  have hp'z0 : lastOf p l - z ≠ 0 := norm_pos_iff.1 (by linarith)
+  have hsub : ∀ ζ w : ℂ, ζ - z ≠ 0 → 1 - (ζ - z)⁻¹ * (w - z) = (ζ - w) / (ζ - z) := by
+    intro ζ w hζ
+    have hinv : (ζ - z)⁻¹ * (ζ - z) = 1 := inv_mul_cancel₀ hζ
+    rw [eq_div_iff hζ]
+    linear_combination (-(w - z)) * hinv
+  have hconv : ∀ ζ : ℂ, ζ - z ≠ 0 →
+      (1 - (ζ - z)⁻¹ * (w₁ - z)) / (1 - (ζ - z)⁻¹ * (w₂ - z)) = (ζ - w₁) / (ζ - w₂) := by
+    intro ζ hζ
+    rw [hsub ζ w₁ hζ, hsub ζ w₂ hζ, div_div_div_cancel_right₀ hζ]
+  have hball : ∀ ζ : ℂ, r ≤ ‖ζ - z‖ → (ζ - z)⁻¹ ∈ closedBall (0 : ℂ) (1 / r) := by
+    intro ζ hζ
+    rw [mem_closedBall_zero_iff, norm_inv, one_div]
+    exact inv_anti₀ hr hζ
+  rw [← hconv _ hp'z0, ← hconv _ hpz0]
+  have hF : ∀ σ ∈ closedBall (0 : ℂ) (1 / r),
+      HasDerivWithinAt (fun σ => log ((1 - σ * (w₁ - z)) / (1 - σ * (w₂ - z))))
+        ((w₂ - z) / (1 - σ * (w₂ - z)) - (w₁ - z) / (1 - σ * (w₁ - z))) (closedBall (0 : ℂ) (1 / r)) σ := by
+    intro σ hσ
+    rw [mem_closedBall_zero_iff] at hσ
+    obtain ⟨hσu₁, h1₁, -⟩ := s20v_a_term_le hr hk1 hw₁ hσ
+    obtain ⟨hσu₂, h1₂, -⟩ := s20v_a_term_le hr hk1 hw₂ hσ
+    have hk' : 0 < 1 - 1 / k := by
+      rw [sub_pos, div_lt_one hk0]
+      exact hk1
+    have hne₁ : 1 - σ * (w₁ - z) ≠ 0 := norm_pos_iff.1 (lt_of_lt_of_le hk' h1₁)
+    have hne₂ : 1 - σ * (w₂ - z) ≠ 0 := norm_pos_iff.1 (lt_of_lt_of_le hk' h1₂)
+    have hslit : (1 - σ * (w₁ - z)) / (1 - σ * (w₂ - z)) ∈ slitPlane := by
+      have heq : (1 - σ * (w₁ - z)) / (1 - σ * (w₂ - z))
+          = 1 + (σ * (w₂ - z) - σ * (w₁ - z)) / (1 - σ * (w₂ - z)) := by
+        rw [div_eq_iff hne₂, add_mul, div_mul_cancel₀ _ hne₂]
+        ring
+      rw [heq]
+      apply mem_slitPlane_of_norm_lt_one
+      rw [norm_div, div_lt_one (norm_pos_iff.2 hne₂)]
+      have h4 := norm_sub_le (σ * (w₂ - z)) (σ * (w₁ - z))
+      have hk3 : 3 * (1 / k) < 1 := by
+        rw [mul_one_div, div_lt_one hk0]
+        linarith
+      linarith
+    have hd : HasDerivAt (fun y => (1 - y * (w₁ - z)) / (1 - y * (w₂ - z)))
+        (((0 - 1 * (w₁ - z)) * (1 - σ * (w₂ - z)) - (1 - σ * (w₁ - z)) * (0 - 1 * (w₂ - z))) /
+          (1 - σ * (w₂ - z)) ^ 2) σ :=
+      ((hasDerivAt_const σ (1 : ℂ)).sub ((hasDerivAt_id' σ).mul_const (w₁ - z))).div
+      ((hasDerivAt_const σ (1 : ℂ)).sub ((hasDerivAt_id' σ).mul_const (w₂ - z))) hne₂
+    refine ((hd.clog hslit).congr_deriv ?_).hasDerivWithinAt
+    generalize 1 - σ * (w₁ - z) = a₁ at hne₁ ⊢
+    generalize 1 - σ * (w₂ - z) = a₂ at hne₂ ⊢
+    field_simp
+    ring
+  have hFb : ∀ σ ∈ closedBall (0 : ℂ) (1 / r),
+      ‖(w₂ - z) / (1 - σ * (w₂ - z)) - (w₁ - z) / (1 - σ * (w₁ - z))‖ ≤ 2 * r / (k - 1) := by
+    intro σ hσ
+    rw [mem_closedBall_zero_iff] at hσ
+    have hb₁ := (s20v_a_term_le hr hk1 hw₁ hσ).2.2
+    have hb₂ := (s20v_a_term_le hr hk1 hw₂ hσ).2.2
+    calc _ ≤ ‖(w₂ - z) / (1 - σ * (w₂ - z))‖ + ‖(w₁ - z) / (1 - σ * (w₁ - z))‖ := norm_sub_le _ _
+      _ ≤ r / (k - 1) + r / (k - 1) := add_le_add hb₂ hb₁
+      _ = 2 * r / (k - 1) := by ring
+  have hmvt := (convex_closedBall (0 : ℂ) (1 / r)).norm_image_sub_le_of_norm_hasDerivWithin_le hF hFb
+    (hball p hp) (hball _ hle)
+  have hlen : ‖(lastOf p l - z)⁻¹ - (p - z)⁻¹‖ ≤ 2 / r := by
+    have h1 := norm_sub_le (lastOf p l - z)⁻¹ (p - z)⁻¹
+    have h2 := mem_closedBall_zero_iff.1 (hball p hp)
+    have h3 := mem_closedBall_zero_iff.1 (hball _ hle)
+    calc _ ≤ ‖(lastOf p l - z)⁻¹‖ + ‖(p - z)⁻¹‖ := h1
+      _ ≤ 1 / r + 1 / r := add_le_add h3 h2
+      _ = 2 / r := by ring
+  have hC : 0 ≤ 2 * r / (k - 1) := div_nonneg (by positivity) (by linarith)
+  calc _ ≤ 2 * r / (k - 1) * ‖(lastOf p l - z)⁻¹ - (p - z)⁻¹‖ := hmvt
+    _ ≤ 2 * r / (k - 1) * (2 / r) := mul_le_mul_of_nonneg_left hlen hC
+    _ = 4 / (k - 1) := by
+      have hk1' : k - 1 ≠ 0 := by linarith
+      field_simp
+      ring
+
+/-- The end point of a polygonal path in `U` starting in `U` lies in `U`. -/
+theorem s20v_c_lastOf_mem {U : Set ℂ} : ∀ {a : ℂ} {l : List ℂ}, a ∈ U → SegsIn U a l → lastOf a l ∈ U := by
+  intro a l ha hl
+  induction l generalizing a with
+  | nil => exact ha
+  | cons b l ih =>
+    simp only [lastOf]
+    exact ih (hl.1 (right_mem_segment ℝ a b)) hl.2
+
+/-- Path integrals along a polygonal path in `U` only see the values of the integrand on `U`. -/
+theorem s20v_c_pathIntFrom_congr {U : Set ℂ} {f g : ℂ → ℂ} (hfg : EqOn f g U) :
+    ∀ {a : ℂ} {l : List ℂ}, SegsIn U a l → pathIntFrom f a l = pathIntFrom g a l := by
+  intro a l hl
+  induction l generalizing a with
+  | nil => simp [pathIntFrom]
+  | cons b l ih =>
+    simp only [pathIntFrom]
+    rw [segIntegral_congr (hfg.mono hl.1), ih hl.2]
+
+/-- The Schwarzian of `exp (c H)` for a primitive `H` of `(ζ - w₁)⁻¹ - (ζ - w₂)⁻¹`: the map is analytic with
+`f' = c H' f`, and `S_f = ½ (1 - c²) H'²` (the book's (20.21); `S_H = ½ H'²` because `exp H` is Möbius). -/
+theorem s20v_c_schwarzian {D : Set ℂ} (hD : IsOpen D) {w₁ w₂ c : ℂ} (hw₁ : w₁ ∉ D) (hw₂ : w₂ ∉ D)
+    (hw : w₁ ≠ w₂) (hc : c ≠ 0) {H : ℂ → ℂ} (hH : ∀ z ∈ D, HasDerivAt H ((z - w₁)⁻¹ - (z - w₂)⁻¹) z)
+    {ζ : ℂ} (hζ : ζ ∈ D) :
+    AnalyticAt ℂ (fun z => exp (c * H z)) ζ ∧
+      deriv (fun z => exp (c * H z)) ζ = c * ((ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) * exp (c * H ζ) ∧
+      schwarzian (fun z => exp (c * H z)) ζ = (1 - c ^ 2) / 2 * ((ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) ^ 2 := by
+  set f : ℂ → ℂ := fun z => exp (c * H z) with hfdef
+  have hu : ∀ z ∈ D, z - w₁ ≠ 0 := fun z hz h => hw₁ (sub_eq_zero.1 h ▸ hz)
+  have hv : ∀ z ∈ D, z - w₂ ≠ 0 := fun z hz h => hw₂ (sub_eq_zero.1 h ▸ hz)
+  have hf1 : ∀ z ∈ D, HasDerivAt f (c * ((z - w₁)⁻¹ - (z - w₂)⁻¹) * f z) z := by
+    intro z hz
+    have h1 := ((hH z hz).const_mul c).cexp
+    convert h1 using 1
+    simp only [hfdef]
+    ring
+  have hfd : DifferentiableOn ℂ f D := fun z hz => (hf1 z hz).differentiableAt.differentiableWithinAt
+  have han : ∀ z ∈ D, AnalyticAt ℂ f z := fun z hz => hfd.analyticAt (hD.mem_nhds hz)
+  have hd1 : ∀ z ∈ D, deriv f z = c * ((z - w₁)⁻¹ - (z - w₂)⁻¹) * f z := fun z hz => (hf1 z hz).deriv
+  have hA : ∀ z ∈ D, HasDerivAt (fun y => (y - w₁)⁻¹) (-(z - w₁)⁻¹ ^ 2) z := by
+    intro z hz
+    convert ((hasDerivAt_id' z).sub_const w₁).fun_inv (hu z hz) using 1
+    rw [inv_pow]
+    ring
+  have hB : ∀ z ∈ D, HasDerivAt (fun y => (y - w₂)⁻¹) (-(z - w₂)⁻¹ ^ 2) z := by
+    intro z hz
+    convert ((hasDerivAt_id' z).sub_const w₂).fun_inv (hv z hz) using 1
+    rw [inv_pow]
+    ring
+  have hF1d : ∀ z ∈ D, HasDerivAt (fun y => c * ((y - w₁)⁻¹ - (y - w₂)⁻¹) * f y)
+      (c * ((-(z - w₁)⁻¹ ^ 2 - -(z - w₂)⁻¹ ^ 2) * f z +
+        ((z - w₁)⁻¹ - (z - w₂)⁻¹) * (c * ((z - w₁)⁻¹ - (z - w₂)⁻¹) * f z))) z := by
+    intro z hz
+    have h1 := (((hA z hz).fun_sub (hB z hz)).fun_mul (hf1 z hz)).const_mul c
+    convert h1 using 1
+    funext y
+    ring
+  have hd2 : ∀ z ∈ D, deriv (deriv f) z = c * ((-(z - w₁)⁻¹ ^ 2 - -(z - w₂)⁻¹ ^ 2) * f z +
+      ((z - w₁)⁻¹ - (z - w₂)⁻¹) * (c * ((z - w₁)⁻¹ - (z - w₂)⁻¹) * f z)) := by
+    intro z hz
+    have heq : deriv f =ᶠ[𝓝 z] fun y => c * ((y - w₁)⁻¹ - (y - w₂)⁻¹) * f y := by
+      filter_upwards [hD.mem_nhds hz] with y hy using hd1 y hy
+    rw [heq.deriv_eq]
+    exact (hF1d z hz).deriv
+  have hratio : ∀ z ∈ D, deriv (deriv f) z / deriv f z =
+      -((z - w₁)⁻¹ + (z - w₂)⁻¹) + c * ((z - w₁)⁻¹ - (z - w₂)⁻¹) := by
+    intro z hz
+    have hne : c * ((z - w₁)⁻¹ - (z - w₂)⁻¹) * f z ≠ 0 := by
+      refine mul_ne_zero (mul_ne_zero hc ?_) (exp_ne_zero _)
+      intro h
+      apply hw
+      have h2 := inv_inj.1 (sub_eq_zero.1 h)
+      linear_combination -h2
+    rw [hd2 z hz, hd1 z hz, div_eq_iff hne]
+    ring
+  have hR : (fun w => deriv (deriv f) w / deriv f w) =ᶠ[𝓝 ζ]
+      fun z => -((z - w₁)⁻¹ + (z - w₂)⁻¹) + c * ((z - w₁)⁻¹ - (z - w₂)⁻¹) := by
+    filter_upwards [hD.mem_nhds hζ] with y hy using hratio y hy
+  have hRd : HasDerivAt (fun z => -((z - w₁)⁻¹ + (z - w₂)⁻¹) + c * ((z - w₁)⁻¹ - (z - w₂)⁻¹))
+      (-(-(ζ - w₁)⁻¹ ^ 2 + -(ζ - w₂)⁻¹ ^ 2) + c * (-(ζ - w₁)⁻¹ ^ 2 - -(ζ - w₂)⁻¹ ^ 2)) ζ :=
+    ((hA ζ hζ).fun_add (hB ζ hζ)).fun_neg.fun_add (((hA ζ hζ).fun_sub (hB ζ hζ)).const_mul c)
+  refine ⟨han ζ hζ, hd1 ζ hζ, ?_⟩
+  rw [schwarzian_of_analyticAt (han ζ hζ)]
+  unfold schwarzianHol
+  rw [hR.deriv_eq, hRd.deriv, hratio ζ hζ]
+  ring
+
+/-- The constants of (20.22): if `Δ = 2πi m + E` with `m ≠ 0`, `‖E‖ ≤ 4a/15` and `0 < a ≤ 3`, then `‖Δ‖ ≥ 5`
+and `c := 2πi m/Δ` has `8 ‖1 - c²‖ < a` (in fact `≤ 0.9216 a`). -/
+theorem s20v_c_const {Δ E : ℂ} {m : ℤ} {a : ℝ} (hm : m ≠ 0) (ha0 : 0 < a) (ha3 : a ≤ 3)
+    (hE : ‖E‖ ≤ 4 * a / 15) (hΔ : Δ = 2 * π * I * m + E) :
+    5 ≤ ‖Δ‖ ∧ 8 * ‖1 - (2 * π * I * m / Δ) ^ 2‖ < a := by
+  have hpi := Real.pi_gt_three
+  have hm1 : (1 : ℝ) ≤ |(m : ℝ)| := by
+    rw [← Int.cast_abs]
+    exact_mod_cast Int.one_le_abs hm
+  have hnm : ‖2 * π * I * (m : ℂ)‖ = 2 * π * |(m : ℝ)| := by
+    rw [norm_mul, norm_mul, norm_mul, Complex.norm_I, Complex.norm_real, Complex.norm_intCast]
+    simp [abs_of_pos Real.pi_pos]
+  have h1 : ‖2 * π * I * (m : ℂ)‖ ≤ ‖Δ‖ + ‖E‖ := by
+    calc ‖2 * π * I * (m : ℂ)‖ = ‖Δ - E‖ := by rw [hΔ, add_sub_cancel_right]
+      _ ≤ ‖Δ‖ + ‖E‖ := norm_sub_le _ _
+  have hΔ5 : 5 ≤ ‖Δ‖ := by
+    rw [hnm] at h1
+    nlinarith [mul_le_mul_of_nonneg_left hm1 (by positivity : (0 : ℝ) ≤ 2 * π)]
+  have hΔ0 : Δ ≠ 0 := fun h => by rw [h, norm_zero] at hΔ5; norm_num at hΔ5
+  refine ⟨hΔ5, ?_⟩
+  set c : ℂ := 2 * π * I * m / Δ with hcdef
+  have hc1 : c - 1 = -E / Δ := by
+    rw [hcdef, div_sub_one hΔ0]
+    congr 1
+    rw [hΔ]
+    ring
+  have hε : ‖c - 1‖ ≤ 4 * a / 75 := by
+    rw [hc1, norm_div, norm_neg, div_le_iff₀ (by linarith)]
+    nlinarith
+  have hsq : ‖1 - c ^ 2‖ ≤ ‖c - 1‖ * (‖c - 1‖ + 2) := by
+    rw [show 1 - c ^ 2 = -((c - 1) * ((c - 1) + 2)) by ring, norm_neg, norm_mul]
+    refine mul_le_mul_of_nonneg_left ((norm_add_le _ _).trans (by simp)) (norm_nonneg _)
+  have hε0 := norm_nonneg (c - 1)
+  nlinarith [mul_le_mul hε hε hε0 (by positivity : (0 : ℝ) ≤ 4 * a / 75)]
+
+/-- **The analytic half of Theorem 20.4, (20.21)–(20.22).**  Suppose `D` is `a`-Schwarz, `w₁` and
+`w₂` lie outside `D`, `γ = β + c` is a closed polygon with `β` in `D` from `p₁` to `p₂`, and `γ` winds differently
+around `w₁` and `w₂`.  Then the `c`-part of `∮_γ ((ζ - w₁)⁻¹ - (ζ - w₂)⁻¹)` has norm greater than `4a/15`.
+
+*Truth.* This is the book's (20.21)–(20.22) argument.  Take `H` a primitive of `h := (ζ - w₁)⁻¹ - (ζ - w₂)⁻¹` on the
+simply connected `D`.
+- Split `∮_γ h = 2πi (n₁ - n₂)` (the definition of `polyWinding`, integer values) into its `β` and `c` parts.  This
+  gives `H p₁ - H p₂ = 2πi m + E`, with `m := n₂ - n₁ ≠ 0` and `E := ∫_c h`, `‖E‖ ≤ 4a/15 ≤ 4/5` (`a ≤ 3`).
+- Put `c₀ := 2πi m/(H p₁ - H p₂)`.  Then `‖c₀ - 1‖ ≤ 0.049 a` and `‖c₀² - 1‖ ≤ 0.105 a`.
+- `f := exp (c₀ H)` is holomorphic with `f' = c₀ H' f ≠ 0`, so it is locally univalent.
+- `f p₁ = f p₂` with `p₁ ≠ p₂`: if `p₁ = p₂`, then `‖2πi m‖ ≤ 4/5`, which is false.
+- `S_f = ½ (1 - c₀²) H'²`, and Koebe gives `‖H' ζ‖ ≤ 4 η_D(ζ)`.  So `‖S_f‖_D ≤ 8 ‖c₀² - 1‖ < a`.
+- The Schwarz property then makes `f` univalent, which contradicts `f p₁ = f p₂`.
+
+*Route/reuse.*
+- `RMT.exists_primitive_of_simplyConnected` (RiemannMapping:1272); `s20v_pathIntFrom_deriv` with `segIntegral_congr`
+  (ConnectedComplement:163) for `∫_β h = H p₂ - H p₁`; `polyIntegral_cons` (:822), `exists_int_polyWinding` (:557).
+- `t2020_not_isSchwarz_of_three_lt` (S20:5992) for `a ≤ 3`.
+- `t203_density_ge` (S20:3041, Koebe (20.14)) with a Riemann map from `RMT.exists_riemannMap` (RiemannMapping:1230).
+- The Schwarzian computation as in `neh_schwarzian_f` (S20:721) and `schwarzian_of_analyticAt` (S19:43); local
+  univalence as in `neh_isLocUnivMero_f` (S20:755); the contradiction pattern of `thm20_1_not_isSchwarz` (S20:920). -/
+theorem s20v_analytic {D : Set ℂ} {a : ℝ} (hSD : IsSchwarzDomain D a) {w₁ w₂ p₁ p₂ : ℂ} (hw₁ : w₁ ∉ D)
+    (hw₂ : w₂ ∉ D) (hp₁ : p₁ ∈ D) {lβ lc : List ℂ} (hβ : SegsIn D p₁ lβ) (hβe : lastOf p₁ lβ = p₂)
+    (hce : lastOf p₂ lc = p₁) (hw₁γ : w₁ ∉ polyTrace (p₁ :: (lβ ++ lc)))
+    (hw₂γ : w₂ ∉ polyTrace (p₁ :: (lβ ++ lc)))
+    (hwind : polyWinding (p₁ :: (lβ ++ lc)) w₁ ≠ polyWinding (p₁ :: (lβ ++ lc)) w₂)
+    (hbound : ‖pathIntFrom (fun ζ => (ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) p₂ lc‖ ≤ 4 * a / 15) : False := by
+  obtain ⟨hD, ha0, hall⟩ := hSD
+  have ha3 : a ≤ 3 := not_lt.1 fun h => t2020_not_isSchwarz_of_three_lt h ⟨hD, ha0, hall⟩
+  have hsc : SimplyConnectedSpace D := hD.2.2.1
+  have hu : ∀ z ∈ D, z - w₁ ≠ 0 := fun z hz h => hw₁ (sub_eq_zero.1 h ▸ hz)
+  have hv : ∀ z ∈ D, z - w₂ ≠ 0 := fun z hz h => hw₂ (sub_eq_zero.1 h ▸ hz)
+  have hw12 : w₁ ≠ w₂ := fun h => hwind (by rw [h])
+  have hhd : DifferentiableOn ℂ (fun ζ => (ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) D := fun z hz =>
+    (((differentiableAt_id.sub_const w₁).inv (hu z hz)).sub
+      ((differentiableAt_id.sub_const w₂).inv (hv z hz))).differentiableWithinAt
+  obtain ⟨H, hHd, hHder⟩ := RMT.exists_primitive_of_simplyConnected hD.1 hD.2.1 hhd
+  have hH : ∀ z ∈ D, HasDerivAt H ((z - w₁)⁻¹ - (z - w₂)⁻¹) z := by
+    intro z hz
+    have h1 := (hHd.differentiableAt (hD.1.mem_nhds hz)).hasDerivAt
+    rwa [hHder z hz] at h1
+  have hp₂ : p₂ ∈ D := hβe ▸ s20v_c_lastOf_mem hp₁ hβ
+  -- the winding numbers are integers
+  obtain ⟨n₁, hn₁⟩ := exists_int_polyWinding hw₁γ
+  obtain ⟨n₂, hn₂⟩ := exists_int_polyWinding hw₂γ
+  have hn : n₂ - n₁ ≠ 0 := sub_ne_zero.2 fun h => hwind (by rw [hn₁, hn₂, h])
+  have hI : ∀ (w : ℂ) (n : ℤ), polyWinding (p₁ :: (lβ ++ lc)) w = n →
+      polyIntegral (fun z => (z - w)⁻¹) (p₁ :: (lβ ++ lc)) = 2 * π * I * n := by
+    intro w n hwn
+    unfold polyWinding at hwn
+    rw [div_eq_iff two_pi_I_ne_zero] at hwn
+    rw [hwn]
+    ring
+  have hcont : ∀ w, w ∉ polyTrace (p₁ :: (lβ ++ lc)) →
+      ContinuousOn (fun z => (z - w)⁻¹) (polyTrace (p₁ :: (lβ ++ lc))) := fun w hw =>
+    (continuousOn_id.sub continuousOn_const).inv₀ fun z hz =>
+      sub_ne_zero.2 fun h => hw ((show z = w from h) ▸ hz)
+  have hIh : polyIntegral (fun z => (z - w₁)⁻¹ - (z - w₂)⁻¹) (p₁ :: (lβ ++ lc)) = 2 * π * I * (n₁ - n₂) := by
+    rw [polyIntegral_sub (hcont w₁ hw₁γ) (hcont w₂ hw₂γ), hI w₁ n₁ hn₁, hI w₂ n₂ hn₂]
+    ring
+  -- the split `∮_γ h = ∫_β h + ∫_c h = (H p₂ - H p₁) + E`
+  have hsplit : polyIntegral (fun z => (z - w₁)⁻¹ - (z - w₂)⁻¹) (p₁ :: (lβ ++ lc)) =
+      (H p₂ - H p₁) + pathIntFrom (fun ζ => (ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) p₂ lc := by
+    rw [polyIntegral_cons, pathIntFrom_append, lastOf_append, hβe, hce, segIntegral_self, add_zero]
+    congr 1
+    rw [s20v_c_pathIntFrom_congr (g := deriv H) (fun z hz => (hHder z hz).symm) hβ,
+      s20v_pathIntFrom_deriv hD.1 hHd hβ, hβe]
+  have hΔ : H p₁ - H p₂ = 2 * π * I * ((n₂ - n₁ : ℤ) : ℂ) +
+      pathIntFrom (fun ζ => (ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) p₂ lc := by
+    push_cast
+    linear_combination -(hsplit.symm.trans hIh)
+  obtain ⟨hΔ5, hcst⟩ := s20v_c_const hn ha0 ha3 hbound hΔ
+  have hΔ0 : H p₁ - H p₂ ≠ 0 := fun h => by rw [h, norm_zero] at hΔ5; norm_num at hΔ5
+  set c₀ : ℂ := 2 * π * I * ((n₂ - n₁ : ℤ) : ℂ) / (H p₁ - H p₂) with hc₀def
+  have hc₀ : c₀ ≠ 0 := div_ne_zero (mul_ne_zero two_pi_I_ne_zero (Int.cast_ne_zero.2 hn)) hΔ0
+  have hS := fun z (hz : z ∈ D) => s20v_c_schwarzian hD.1 hw₁ hw₂ hw12 hc₀ hH hz
+  have hh0 : ∀ z ∈ D, (z - w₁)⁻¹ - (z - w₂)⁻¹ ≠ 0 := by
+    intro z hz h
+    apply hw12
+    have h2 := inv_inj.1 (sub_eq_zero.1 h)
+    linear_combination -h2
+  have hloc : IsLocUnivMero (fun z => exp (c₀ * H z)) D := by
+    refine ⟨fun z hz => (hS z hz).1.meromorphicAt, fun z hz => Or.inl ⟨(hS z hz).1, ?_⟩⟩
+    rw [(hS z hz).2.1]
+    exact mul_ne_zero (mul_ne_zero hc₀ (hh0 z hz)) (exp_ne_zero _)
+  obtain ⟨φ, hφ⟩ := lehto_exists_conformal hD
+  have hpt : ∀ z ∈ D, ‖schwarzian (fun z => exp (c₀ * H z)) z‖ / poincareDensity D z ^ 2 ≤
+      8 * ‖1 - c₀ ^ 2‖ := by
+    intro z hz
+    have hη1 := t203_density_ge hD.1 hφ hz hw₁
+    have hη2 := t203_density_ge hD.1 hφ hz hw₂
+    have hd1 : 0 < ‖w₁ - z‖ := norm_pos_iff.2 (sub_ne_zero.2 fun h => hw₁ (h ▸ hz))
+    have hd2 : 0 < ‖w₂ - z‖ := norm_pos_iff.2 (sub_ne_zero.2 fun h => hw₂ (h ▸ hz))
+    have hη : 0 < poincareDensity D z := lt_of_lt_of_le (div_pos one_pos (mul_pos two_pos hd1)) hη1
+    have hA : ‖(z - w₁)⁻¹‖ ≤ 2 * poincareDensity D z := by
+      rw [norm_inv, norm_sub_rev, ← one_div, div_le_iff₀ hd1]
+      rw [div_le_iff₀ (mul_pos two_pos hd1)] at hη1
+      linarith
+    have hB : ‖(z - w₂)⁻¹‖ ≤ 2 * poincareDensity D z := by
+      rw [norm_inv, norm_sub_rev, ← one_div, div_le_iff₀ hd2]
+      rw [div_le_iff₀ (mul_pos two_pos hd2)] at hη2
+      linarith
+    have hh : ‖(z - w₁)⁻¹ - (z - w₂)⁻¹‖ ≤ 4 * poincareDensity D z :=
+      (norm_sub_le _ _).trans (by linarith)
+    rw [(hS z hz).2.2, norm_mul, norm_pow, div_le_iff₀ (pow_pos hη 2)]
+    have hK : ‖(1 - c₀ ^ 2) / 2‖ = ‖1 - c₀ ^ 2‖ / 2 := by
+      rw [norm_div]
+      norm_num
+    rw [hK]
+    have hh2 : ‖(z - w₁)⁻¹ - (z - w₂)⁻¹‖ ^ 2 ≤ (4 * poincareDensity D z) ^ 2 :=
+      pow_le_pow_left₀ (norm_nonneg _) hh 2
+    have hK0 := norm_nonneg (1 - c₀ ^ 2)
+    nlinarith [mul_le_mul_of_nonneg_left hh2 hK0]
+  have hnorm : schwarzianNorm (fun z => exp (c₀ * H z)) D < ENNReal.ofReal a :=
+    lt_of_le_of_lt (iSup₂_le fun z hz => ENNReal.ofReal_le_ofReal (hpt z hz))
+      ((ENNReal.ofReal_lt_ofReal_iff ha0).2 hcst)
+  have hU := hall _ hloc hnorm
+  have hfe : exp (c₀ * H p₁) = exp (c₀ * H p₂) := by
+    rw [Complex.exp_eq_exp_iff_exists_int]
+    refine ⟨n₂ - n₁, ?_⟩
+    have hkey : c₀ * (H p₁ - H p₂) = 2 * π * I * ((n₂ - n₁ : ℤ) : ℂ) := div_mul_cancel₀ _ hΔ0
+    linear_combination hkey
+  have hp : p₁ = p₂ := hU.2.1 ⟨hp₁, (hS p₁ hp₁).1⟩ ⟨hp₂, (hS p₂ hp₂).1⟩ hfe
+  exact hΔ0 (by rw [hp, sub_self])
+
+/-- Case (i) reduction (probe `h21u2_ps_layer`): if `p₁`, `p₂ ∈ D ∩ ball z₀ ρ` are not joined in `D ∩ ball z₀ ρ`,
+two points of `ℂ ∖ D` outside `ball z₀ ρ` have different winding numbers for `β + [p₂, p₁]` (by `s20v_ps` and a far
+point of the unbounded complement, where the winding number is `0`). -/
+theorem s20v_case_i_windings {D : Set ℂ} (hD : IsHyperbolicSimplyConnected D) {z₀ p₁ p₂ : ℂ} {ρ : ℝ}
+    (hp₁ : p₁ ∈ D ∩ ball z₀ ρ) (hp₂ : p₂ ∈ D ∩ ball z₀ ρ) (hsep : ¬ JoinedIn (D ∩ ball z₀ ρ) p₁ p₂)
+    {lβ : List ℂ} (hβ : SegsIn D p₁ lβ) (hβe : lastOf p₁ lβ = p₂) :
+    ∃ w₁ w₂, w₁ ∉ D ∧ w₂ ∉ D ∧ ρ ≤ ‖w₁ - z₀‖ ∧ ρ ≤ ‖w₂ - z₀‖ ∧
+      polyWinding (p₁ :: (lβ ++ [p₁])) w₁ ≠ polyWinding (p₁ :: (lβ ++ [p₁])) w₂ := by
+  have hc : SegsIn (ball z₀ ρ) p₂ [p₁] :=
+    ⟨(convex_ball z₀ ρ).segment_subset hp₂.2 hp₁.2, trivial⟩
+  obtain ⟨w₁, hw₁D, hw₁B, hw₁⟩ := s20v_ps hD.1 isOpen_ball hp₁ hp₂ hsep hβ hβe hc rfl
+  obtain ⟨R, hR⟩ := exists_polyWinding_eq_zero_of_norm_gt (p₁ :: (lβ ++ [p₁]))
+  obtain ⟨w₂, hw₂D, hw₂R⟩ := s20v_compl_unbounded hD (max R (‖z₀‖ + ρ))
+  refine ⟨w₁, w₂, hw₁D, hw₂D, ?_, ?_, ?_⟩
+  · simpa [mem_ball, dist_eq_norm] using hw₁B
+  · have h1 : ‖z₀‖ + ρ < ‖w₂‖ := lt_of_le_of_lt (le_max_right _ _) hw₂R
+    have h2 : ‖w₂‖ ≤ ‖w₂ - z₀‖ + ‖z₀‖ := by
+      simpa using norm_add_le (w₂ - z₀) z₀
+    linarith
+  · rw [hR w₂ (lt_of_le_of_lt (le_max_left _ _) hw₂R)]
+    exact hw₁
+
+/-- Condition (i) of `k`-local connectivity for an `a`-Schwarz domain, `k = 1 + 15/a`: `s20v_case_i_windings`
+with `ρ = k r`, the segment bound `‖∫_[p₂, p₁] ...‖ ≤ 2r · 2/((k - 1) r)` of (20.22), and `s20v_analytic`. -/
+theorem s20v_case_i {D : Set ℂ} {a : ℝ} (hSD : IsSchwarzDomain D a) {z : ℂ} {r : ℝ} (hr : 0 < r) {p₁ p₂ : ℂ}
+    (hp₁ : p₁ ∈ D ∩ closedBall z r) (hp₂ : p₂ ∈ D ∩ closedBall z r) :
+    JoinedIn (D ∩ closedBall z ((1 + 15 / a) * r)) p₁ p₂ := by
+  have ha : 0 < a := hSD.2.1
+  have ha3 : a ≤ 3 := not_lt.1 fun h => t2020_not_isSchwarz_of_three_lt h hSD
+  have hD := hSD.1
+  have h15 : 5 ≤ 15 / a := by
+    rw [le_div_iff₀ ha]
+    linarith
+  set k : ℝ := 1 + 15 / a with hk
+  have hk1 : 0 < k - 1 := by linarith
+  have hk15 : k - 1 = 15 / a := by
+    rw [hk]
+    ring
+  have hkr : r < k * r := by nlinarith [mul_pos hk1 hr]
+  by_contra hJ
+  have hsep : ¬ JoinedIn (D ∩ ball z (k * r)) p₁ p₂ := fun h =>
+    hJ (h.mono (inter_subset_inter_right _ ball_subset_closedBall))
+  have hq₁ : p₁ ∈ D ∩ ball z (k * r) := ⟨hp₁.1, closedBall_subset_ball hkr hp₁.2⟩
+  have hq₂ : p₂ ∈ D ∩ ball z (k * r) := ⟨hp₂.1, closedBall_subset_ball hkr hp₂.2⟩
+  obtain ⟨lβ, hβ, hβe⟩ := s20v_polygon_path hD.1 hD.2.1.isPreconnected hp₁.1 hp₂.1
+  obtain ⟨w₁, w₂, hw₁D, hw₂D, hw₁z, hw₂z, hwind⟩ := s20v_case_i_windings hD hq₁ hq₂ hsep hβ hβe
+  have hseg : segment ℝ p₂ p₁ ⊆ closedBall z r := (convex_closedBall z r).segment_subset hp₂.2 hp₁.2
+  have htr : polyTrace (p₁ :: (lβ ++ [p₁])) ⊆ D ∪ closedBall z r :=
+    s20v_trace_subset (V := closedBall z r) hp₁.1 hβ hβe ⟨hseg, trivial⟩ rfl
+  have hnot : ∀ w, w ∉ D → k * r ≤ ‖w - z‖ → w ∉ polyTrace (p₁ :: (lβ ++ [p₁])) := by
+    intro w hwD hwz hw
+    rcases htr hw with h | h
+    · exact hwD h
+    · rw [mem_closedBall, dist_eq_norm] at h
+      linarith
+  have hbound : ‖pathIntFrom (fun ζ => (ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) p₂ [p₁]‖ ≤ 4 * a / 15 := by
+    have hpos : 0 < (k - 1) * r := mul_pos hk1 hr
+    have hd : ∀ w, k * r ≤ ‖w - z‖ → ∀ ζ, ‖ζ - z‖ ≤ r → (k - 1) * r ≤ ‖ζ - w‖ := by
+      intro w hw ζ hζ
+      have h1 := norm_sub_norm_le (w - z) (ζ - z)
+      rw [show w - z - (ζ - z) = -(ζ - w) by ring, norm_neg] at h1
+      linarith
+    have hC : ∀ ζ ∈ segment ℝ p₂ p₁, ‖(ζ - w₁)⁻¹ - (ζ - w₂)⁻¹‖ ≤ 2 / ((k - 1) * r) := by
+      intro ζ hζ
+      have hζz : ‖ζ - z‖ ≤ r := by
+        have h := hseg hζ
+        rwa [mem_closedBall, dist_eq_norm] at h
+      calc ‖(ζ - w₁)⁻¹ - (ζ - w₂)⁻¹‖ ≤ ‖(ζ - w₁)⁻¹‖ + ‖(ζ - w₂)⁻¹‖ := norm_sub_le _ _
+        _ = ‖ζ - w₁‖⁻¹ + ‖ζ - w₂‖⁻¹ := by rw [norm_inv, norm_inv]
+        _ ≤ ((k - 1) * r)⁻¹ + ((k - 1) * r)⁻¹ :=
+          add_le_add (inv_anti₀ hpos (hd w₁ hw₁z ζ hζz)) (inv_anti₀ hpos (hd w₂ hw₂z ζ hζz))
+        _ = 2 / ((k - 1) * r) := by ring
+    have hlen : ‖p₁ - p₂‖ ≤ 2 * r := by
+      have h1 := norm_sub_le (p₁ - z) (p₂ - z)
+      rw [show p₁ - z - (p₂ - z) = p₁ - p₂ by ring] at h1
+      have h2 := hp₁.2
+      have h3 := hp₂.2
+      rw [mem_closedBall, dist_eq_norm] at h2 h3
+      linarith
+    simp only [pathIntFrom, add_zero]
+    calc ‖segIntegral (fun ζ => (ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) p₂ p₁‖ ≤ 2 / ((k - 1) * r) * ‖p₁ - p₂‖ :=
+          norm_segIntegral_le hC
+      _ ≤ 2 / ((k - 1) * r) * (2 * r) := mul_le_mul_of_nonneg_left hlen (by positivity)
+      _ = 4 / (k - 1) := by
+          rw [div_mul_eq_mul_div, div_eq_div_iff hpos.ne' hk1.ne']
+          ring
+      _ = 4 * a / 15 := by rw [hk15, div_div_eq_mul_div]
+  exact s20v_analytic hSD hw₁D hw₂D hp₁.1 hβ hβe rfl (hnot w₁ hw₁D hw₁z) (hnot w₂ hw₂D hw₂z) hwind hbound
+
+/-- Condition (ii) of `k`-local connectivity for an `a`-Schwarz domain, `k = 1 + 15/a`.
+
+Take `B` to be the exterior of `closedBall z ρ`, `ρ = r/k`.  Suppose all points of `ℂ ∖ D` in that ball had the same
+winding number `N`.  Appending the loop `s20v_ext_loop` with winding number `-N` would then contradict `s20v_ps`.  So
+two complement points have different winding numbers; they feed `s20v_analytic`, and the bound (20.23) comes from
+`s20v_ext_bound`. -/
+theorem s20v_case_ii {D : Set ℂ} {a : ℝ} (hSD : IsSchwarzDomain D a) {z : ℂ} {r : ℝ} (hr : 0 < r) {p₁ p₂ : ℂ}
+    (hp₁ : p₁ ∈ D \ ball z r) (hp₂ : p₂ ∈ D \ ball z r) :
+    JoinedIn (D \ ball z (r / (1 + 15 / a))) p₁ p₂ := by
+  have ha : 0 < a := hSD.2.1
+  have ha3 : a ≤ 3 := not_lt.1 fun h => t2020_not_isSchwarz_of_three_lt h hSD
+  have hD := hSD.1
+  have h15 : 5 ≤ 15 / a := by
+    rw [le_div_iff₀ ha]
+    linarith
+  set k : ℝ := 1 + 15 / a with hk
+  have hk6 : 6 ≤ k := by linarith
+  have hk15 : k - 1 = 15 / a := by
+    rw [hk]
+    ring
+  set ρ : ℝ := r / k with hρ
+  have hρr : ρ < r / 2 := by
+    rw [hρ, div_lt_div_iff₀ (by linarith) (by norm_num)]
+    nlinarith [mul_pos hr (show (0 : ℝ) < k - 2 by linarith)]
+  have hpz : ∀ p ∈ D \ ball z r, r ≤ ‖p - z‖ := by
+    intro p hp
+    have h := hp.2
+    rwa [mem_ball, not_lt, dist_eq_norm] at h
+  have hp₁z := hpz p₁ hp₁
+  have hp₂z := hpz p₂ hp₂
+  have hBo : IsOpen {ζ : ℂ | ρ < ‖ζ - z‖} := isOpen_lt continuous_const (by fun_prop)
+  have hRo : IsOpen {ζ : ℂ | r / 2 < ‖ζ - z‖} := isOpen_lt continuous_const (by fun_prop)
+  have hRB : {ζ : ℂ | r / 2 < ‖ζ - z‖} ⊆ {ζ : ℂ | ρ < ‖ζ - z‖} := fun ζ hζ => lt_trans hρr hζ
+  have hRc : IsPreconnected {ζ : ℂ | r / 2 < ‖ζ - z‖} := by
+    have h := (isPreconnected_setOf_lt_norm (r := r / 2) (by positivity)).image (fun ζ => ζ + z)
+      (continuous_id.add continuous_const).continuousOn
+    convert h using 1
+    ext ζ
+    constructor
+    · intro hζ
+      exact ⟨ζ - z, show r / 2 < ‖ζ - z‖ from hζ, sub_add_cancel ζ z⟩
+    · rintro ⟨u, hu, rfl⟩
+      show r / 2 < ‖u + z - z‖
+      simpa using hu
+  by_contra hJ
+  have hsep : ¬ JoinedIn (D ∩ {ζ | ρ < ‖ζ - z‖}) p₁ p₂ := by
+    intro h
+    refine hJ (h.mono fun ζ hζ => ⟨hζ.1, ?_⟩)
+    rw [mem_ball, dist_eq_norm, not_lt]
+    exact le_of_lt (show ρ < ‖ζ - z‖ from hζ.2)
+  have hq₁ : p₁ ∈ D ∩ {ζ | ρ < ‖ζ - z‖} := ⟨hp₁.1, by show ρ < ‖p₁ - z‖; linarith⟩
+  have hq₂ : p₂ ∈ D ∩ {ζ | ρ < ‖ζ - z‖} := ⟨hp₂.1, by show ρ < ‖p₂ - z‖; linarith⟩
+  have hR₁ : p₁ ∈ {ζ : ℂ | r / 2 < ‖ζ - z‖} := by
+    show r / 2 < ‖p₁ - z‖
+    linarith
+  have hR₂ : p₂ ∈ {ζ : ℂ | r / 2 < ‖ζ - z‖} := by
+    show r / 2 < ‖p₂ - z‖
+    linarith
+  obtain ⟨lβ, hβ, hβe⟩ := s20v_polygon_path hD.1 hD.2.1.isPreconnected hp₁.1 hp₂.1
+  obtain ⟨lc, hc, hce⟩ := s20v_polygon_path hRo hRc hR₂ hR₁
+  have htr : polyTrace (p₁ :: (lβ ++ lc)) ⊆ D ∪ {ζ : ℂ | r / 2 < ‖ζ - z‖} :=
+    s20v_trace_subset hp₁.1 hβ hβe hc hce
+  have hnot : ∀ w, w ∉ D → ‖w - z‖ ≤ ρ → w ∉ polyTrace (p₁ :: (lβ ++ lc)) := by
+    intro w hwD hwz hw
+    rcases htr hw with h | h
+    · exact hwD h
+    · have h' : r / 2 < ‖w - z‖ := h
+      linarith
+  have hexists : ∃ w₁ w₂, w₁ ∉ D ∧ w₂ ∉ D ∧ ‖w₁ - z‖ ≤ ρ ∧ ‖w₂ - z‖ ≤ ρ ∧
+      polyWinding (p₁ :: (lβ ++ lc)) w₁ ≠ polyWinding (p₁ :: (lβ ++ lc)) w₂ := by
+    by_contra hall'
+    have hall : ∀ w₁ w₂, w₁ ∉ D → w₂ ∉ D → ‖w₁ - z‖ ≤ ρ → ‖w₂ - z‖ ≤ ρ →
+        polyWinding (p₁ :: (lβ ++ lc)) w₁ = polyWinding (p₁ :: (lβ ++ lc)) w₂ :=
+      fun w₁ w₂ h1 h2 h3 h4 => not_not.1 fun hne => hall' ⟨w₁, w₂, h1, h2, h3, h4, hne⟩
+    obtain ⟨N, hN⟩ : ∃ N : ℤ, ∀ w, w ∉ D → ‖w - z‖ ≤ ρ → polyWinding (p₁ :: (lβ ++ lc)) w = N := by
+      by_cases hE : ∃ w₀, w₀ ∉ D ∧ ‖w₀ - z‖ ≤ ρ
+      · obtain ⟨w₀, h0D, h0z⟩ := hE
+        obtain ⟨N, hN⟩ := exists_int_polyWinding (hnot w₀ h0D h0z)
+        exact ⟨N, fun w hwD hwz => (hall w w₀ hwD h0D hwz h0z).trans hN⟩
+      · exact ⟨0, fun w hwD hwz => absurd ⟨w, hwD, hwz⟩ hE⟩
+    obtain ⟨lN, hlN, hlNe, hlNw⟩ :=
+      s20v_ext_loop (z := z) (q := p₁) (t := r / 2) (by positivity) (by linarith) (-N)
+    have hA : lastOf p₁ (lβ ++ lc) = p₁ := by rw [lastOf_append, hβe, hce]
+    have hc' : SegsIn {ζ | ρ < ‖ζ - z‖} p₂ (lc ++ lN) := by
+      rw [segsIn_append]
+      refine ⟨s20v_segsIn_mono hRB hc, ?_⟩
+      rw [hce]
+      exact s20v_segsIn_mono hRB hlN
+    have hce' : lastOf p₂ (lc ++ lN) = p₁ := by rw [lastOf_append, hce, hlNe]
+    obtain ⟨w, hwD, hwB, hw⟩ := s20v_ps hD.1 hBo hq₁ hq₂ hsep hβ hβe hc' hce'
+    have hwz : ‖w - z‖ ≤ ρ := not_lt.1 hwB
+    rw [← List.append_assoc, s20v_polyWinding_append hA hlNe, hN w hwD hwz, hlNw w (by linarith)] at hw
+    simp at hw
+  obtain ⟨w₁, w₂, hw₁D, hw₂D, hw₁z, hw₂z, hwind⟩ := hexists
+  have hbound : ‖pathIntFrom (fun ζ => (ζ - w₁)⁻¹ - (ζ - w₂)⁻¹) p₂ lc‖ ≤ 4 * a / 15 := by
+    have h := s20v_ext_bound hr hk6 hw₁z hw₂z hp₂z hc (by rw [hce]; exact hp₁z)
+    rw [hk15] at h
+    calc _ ≤ 4 / (15 / a) := h
+      _ = 4 * a / 15 := by rw [div_div_eq_mul_div]
+  exact s20v_analytic hSD hw₁D hw₂D hp₁.1 hβ hβe hce (hnot w₁ hw₁D hw₁z) (hnot w₂ hw₂D hw₂z) hwind hbound
+
 /-- **Theorem 20.4**: an `a`-Schwarz domain is `k`-locally connected with `k = 1 + 15/a`.
 
-Not proved (kept as sorry).  The book's argument needs two things that are available neither
-in this development nor in Mathlib: Koebe's ¼-theorem in the form (20.14),
-`η_D(z) ≥ 1/(2 dist(z, ∂D))`, and the planar separation step "choose `wⱼ ∈ Aⱼ ∖ D` with
-`|wⱼ - z₀| = kr`" for the two sides `A₁, A₂` of the Jordan curve `β ∪ [z₁, z₂]`, which the
-book asserts without proof and which requires Janiszewski-type topology. -/
+Proof: `s20v_case_i` and `s20v_case_ii` (P2a interface, 2026-09-27).  The two steps that were missing on 2026-09-14
+are now available: Koebe's ¼-theorem in the form (20.14), `η_D(z) ≥ 1/(2 dist(z, ∂D))`, is `t203_density_ge`, and
+the planar separation step (points of `ℂ ∖ D` on both sides of `β ∪ [z₁, z₂]`) is replaced by the winding-number
+statement `s20v_ps` (Cousin splitting and Dixon's polygon Cauchy theorem, no Janiszewski-type topology). -/
 theorem thm20_4 {D : Set ℂ} {a : ℝ} (hD : IsSchwarzDomain D a) : IsKLocallyConnected D (1 + 15 / a) := by
-  sorry
+  have ha : 0 < a := hD.2.1
+  refine ⟨?_, fun z r hr => ⟨fun p hp q hq => s20v_case_i hD hr hp hq, fun p hp q hq => s20v_case_ii hD hr hp hq⟩⟩
+  have h15 : 0 ≤ 15 / a := by positivity
+  linarith
+
+/-! ### Gehring chain (s21u stage P4, coordinator 553e2d): Theorem 20.5
+
+The book's route: `thm20_4` (an `a`-Schwarz domain is `k`-locally connected, `k = 1 + 15/a`) ⇒ **W2** (a `k`-locally
+connected hyperbolic simply connected domain is a Jordan domain; the book's footnote) ⇒ `2(2k² + 1)`-bounded turning ⇒
+Theorem 18.1 (sufficiency, `thm18_1_quasicircle_of_boundedTurning`, S18).
+
+* **W2, bounded case** (`s20g_jordan_of_qlc`): Carathéodory's argument of `Lemmas/CaratheodoryJordan.lean` with local
+  connectivity (`s20g_QLC`) in place of the Jordan hypothesis: the conformal map `f : Δ → Ω` extends continuously
+  (`s20g_ext_continuous`, from clause (ii)) and injectively (`s20g_ext_injOn`, from clauses (i) and (ii) through the
+  disc crossing theorem `s20g_crossing`).
+* **W2, unbounded case** (`s20g_isJordanDomain`): `z ↦ 1/(z - c)` for a point `c` outside the closure
+  (`s20g_exists_exterior`) makes the domain bounded and keeps `s20g_QLC` (`s20g_qlc_inv`); the frontier in `ℂ̄`, which
+  contains `∞`, is carried back by the Möbius homeomorphism.
+* **Bounded turning** (`s20g_boundedTurning`): the crossing argument again, quantitatively, through the disc
+  uniformizer of the Jordan domain (`s20g_bt_cross`), and the two arcs of `C ∖ {z₁, z₂}` as its components
+  (`s20g_bt_arc_component`). -/
+
+/-- Qualitative local connectivity of `D` at its (finite) boundary points: near `w ∈ ∂D` points of `D` are joined in
+`D` near `w` (i′), and points of `D` away from `w` are joined in `D` off a smaller disc about `w` (ii′). -/
+def s20g_QLC (D : Set ℂ) : Prop :=
+  ∀ w ∈ frontier D,
+    (∀ ε > (0 : ℝ), ∃ δ > (0 : ℝ), ∀ p ∈ D ∩ ball w δ, ∀ q ∈ D ∩ ball w δ, JoinedIn (D ∩ ball w ε) p q) ∧
+      ∀ R > (0 : ℝ), ∃ ρ > (0 : ℝ), ∀ p ∈ D \ ball w R, ∀ q ∈ D \ ball w R, JoinedIn (D \ ball w ρ) p q
+
+/-- A `k`-locally connected domain is qualitatively locally connected: `δ = ε/(2k)` in (i′), `ρ = R/k` in (ii′). -/
+theorem s20g_qlc_of_kLC {D : Set ℂ} {k : ℝ} (hk : IsKLocallyConnected D k) : s20g_QLC D := by
+  obtain ⟨hk1, hlc⟩ := hk
+  have hk0 : 0 < k := lt_of_lt_of_le one_pos hk1
+  intro w _
+  refine ⟨fun ε hε => ⟨ε / (2 * k), by positivity, fun p hp q hq => ?_⟩,
+    fun R hR => ⟨R / k, by positivity, fun p hp q hq => (hlc w R hR).2 p hp q hq⟩⟩
+  have hr : 0 < ε / (2 * k) := by positivity
+  have hkr : k * (ε / (2 * k)) < ε := by
+    rw [mul_div_assoc', mul_comm 2 k, ← div_div, mul_div_cancel_left₀ ε hk0.ne']
+    linarith
+  exact ((hlc w _ hr).1 p ⟨hp.1, ball_subset_closedBall hp.2⟩ q ⟨hq.1, ball_subset_closedBall hq.2⟩).mono
+    (inter_subset_inter_right _ (closedBall_subset_ball hkr))
+
+/-- **Exterior point, one step.**  Let `L` be a continuous logarithm of `z - b` on `D`, and let `p, p'` be joined by
+a path in `D` all of whose points `z` satisfy `‖z - (b + u)‖ < 1`, `‖u‖ = 1`.  Then the change of `L` from `p` to
+`p'` is the change of the principal logarithm of `(z - b)/u`. -/
+theorem s20g_a_log_step {D : Set ℂ} {L : ℂ → ℂ} {b u p p' : ℂ} (hLc : ContinuousOn L D)
+    (hLe : EqOn (Complex.exp ∘ L) (fun z => z - b) D) (hu : ‖u‖ = 1) (γ : Path p p')
+    (hγD : ∀ t, γ t ∈ D) (hγb : ∀ t, ‖γ t - (b + u)‖ < 1) :
+    L p' - L p = Complex.log ((p' - b) / u) - Complex.log ((p - b) / u) := by
+  have hu0 : u ≠ 0 := norm_ne_zero_iff.1 (by rw [hu]; exact one_ne_zero)
+  have hext : ∀ t : ℝ, ∃ s, γ.extend t = γ s := fun t => ⟨_, rfl⟩
+  have hextD : ∀ t : ℝ, γ.extend t ∈ D := fun t => by
+    obtain ⟨s, hs⟩ := hext t
+    rw [hs]
+    exact hγD s
+  have h := lift_sub_eq_log_sub_log (γ := fun t => (γ.extend t - b) / u)
+    (L := fun t => L (γ.extend t) - Complex.log u) zero_le_one
+    ((γ.continuous_extend.sub continuous_const).div_const _).continuousOn
+    ((hLc.comp_continuous γ.continuous_extend hextD).sub continuous_const).continuousOn
+    (fun t _ => by
+      obtain ⟨s, hs⟩ := hext t
+      have h1 : (γ.extend t - b) / u = 1 + (γ.extend t - (b + u)) / u := by
+        field_simp
+        ring
+      rw [h1]
+      refine mem_slitPlane_of_norm_lt_one ?_
+      rw [norm_div, hu, div_one, hs]
+      exact hγb s)
+    (fun t _ => by
+      have h1 := hLe (hextD t)
+      simp only [Function.comp_apply] at h1
+      rw [Complex.exp_sub, h1, Complex.exp_log hu0])
+  simp only [Path.extend_zero, Path.extend_one] at h
+  rw [← h]
+  ring
+
+/-- **Exterior point** (W2, unbounded case): a `k`-locally connected hyperbolic simply connected domain has a point of
+`ℂ` outside its closure.
+
+*Truth*: trivial for bounded `D`.  In general pick `b ∈ ∂D` (`D ≠ ∅, ℂ`); we show `sphere b 1 ⊄ closure D`.  Otherwise
+take `N` large, `c_j = b + e^{2πij/N}` and `p_j ∈ D` with `‖p_j - c_j‖ < ε` (`p_N = p_0`).  Clause (i) of `hk` at
+`p_j` with radius `d = ‖p_{j+1} - p_j‖` joins `p_j` to `p_{j+1}` inside `D ∩ closedBall p_j (k d) ⊆ ball c_j 1` (`N`
+large, `ε` small).  Let `L` be a continuous logarithm of `z - b` on `D` (`b ∉ D`, `D` simply connected) and
+`ℓ_j z = log ((z - b)/(c_j - b))` (principal branch; `(z - b)/(c_j - b) ∈ ball 1 1 ⊆ slitPlane` on `ball c_j 1`).  On
+the connected image of the joining path `L - ℓ_j` is continuous with values in `log (c_j - b) + 2πiℤ`, hence
+constant, so `L p_{j+1} - L p_j = ℓ_j p_{j+1} - ℓ_j p_j`.  Summing over `j` (telescoping) gives
+`0 = Σ_j (arg ((p_{j+1} - b)/(c_j - b)) - arg ((p_j - b)/(c_j - b))) = 2π + O(Nε)`: a contradiction for `ε ≪ 1/N`.
+No closed loop is built; only the endpoint values of `L` are compared.
+
+*Route*: `Complex.exists_continuousOn_eqOn_exp_comp` (the continuous logarithm, as in
+`RMT.exists_holomorphic_log_of_simplyConnected`, RiemannMapping:504), `hD.2.2.1`, `hk.2` (clause (i)),
+`JoinedIn.somePath` and the connected range of a path, `Complex.log`/`Complex.arg` bounds near `1`. -/
+theorem s20g_exists_exterior {D : Set ℂ} {k : ℝ} (hD : IsHyperbolicSimplyConnected D)
+    (hk : IsKLocallyConnected D k) : ∃ c : ℂ, c ∉ closure D := by
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨hDo, -, hDsc, hDne⟩ := hD
+  obtain ⟨hk1, hlc⟩ := hk
+  have hk0 : 0 < k := lt_of_lt_of_le one_pos hk1
+  obtain ⟨b, hb⟩ := (Set.ne_univ_iff_exists_notMem D).1 hDne
+  obtain ⟨L, hLc, hLe⟩ := Complex.exists_continuousOn_eqOn_exp_comp hDsc hDo
+    (g := fun z : ℂ => z - b) (continuousOn_id.sub continuousOn_const) (by
+      rintro ⟨z, hz, hz0⟩
+      exact hb (sub_eq_zero.1 hz0 ▸ hz))
+  -- the number of points and the angle step
+  set N : ℕ := ⌈8 * π * k⌉₊ + 3 with hN
+  have hN3 : (3 : ℝ) ≤ N := by
+    rw [hN]
+    push_cast
+    linarith [Nat.cast_nonneg (α := ℝ) ⌈8 * π * k⌉₊]
+  have hNk : 8 * π * k ≤ N := by
+    rw [hN]
+    push_cast
+    linarith [Nat.le_ceil (8 * π * k)]
+  have hN0 : (0 : ℝ) < N := by linarith
+  set a : ℝ := 2 * π / N with ha
+  have ha0 : 0 < a := by positivity
+  have haπ : a < π := by
+    rw [ha, div_lt_iff₀ hN0]
+    nlinarith [Real.pi_pos]
+  have hka : k * a ≤ 1 / 4 := by
+    rw [ha, mul_div_assoc', div_le_iff₀ hN0]
+    nlinarith [Real.pi_pos]
+  set η : ℝ := π / (2 * N) with hη
+  have hη0 : 0 < η := by positivity
+  have haη : a - 2 * η = π / N := by
+    rw [ha, hη]
+    field_simp
+    ring
+  -- continuity of `arg` at `1` and at `e^{ia}`
+  have harg_a : arg (Complex.exp (a * I)) = a := by
+    rw [Complex.arg_exp_mul_I, (toIocMod_eq_self Real.two_pi_pos).2 ⟨by linarith, by linarith⟩]
+  have hslit_a : Complex.exp (a * I) ∈ slitPlane := by
+    rw [Complex.mem_slitPlane_iff_arg, harg_a]
+    exact ⟨haπ.ne, Complex.exp_ne_zero _⟩
+  obtain ⟨ε₁, hε₁, h1⟩ :=
+    Metric.continuousAt_iff.1 (Complex.continuousAt_arg Complex.one_mem_slitPlane) η hη0
+  obtain ⟨ε₂, hε₂, h2⟩ := Metric.continuousAt_iff.1 (Complex.continuousAt_arg hslit_a) η hη0
+  set ε : ℝ := min (1 / (12 * k)) (min ε₁ ε₂) with hε
+  have hε0 : 0 < ε := lt_min (by positivity) (lt_min hε₁ hε₂)
+  have hεk : 12 * k * ε ≤ 1 := by
+    have h3 := min_le_left (1 / (12 * k)) (min ε₁ ε₂)
+    rw [← hε, le_div_iff₀ (by positivity)] at h3
+    linarith
+  have hε1 : ε ≤ ε₁ := (min_le_right _ _).trans (min_le_left _ _)
+  have hε2 : ε ≤ ε₂ := (min_le_right _ _).trans (min_le_right _ _)
+  -- the points `b + u j` of the circle and nearby points `p j` of `D`
+  set u : ℕ → ℂ := fun j => Complex.exp (((j : ℝ) * a : ℝ) * I) with hu
+  have hu1 : ∀ j, ‖u j‖ = 1 := fun j => Complex.norm_exp_ofReal_mul_I _
+  have hu0 : ∀ j, u j ≠ 0 := fun j => Complex.exp_ne_zero _
+  have husucc : ∀ j : ℕ, u (j + 1) = u j * Complex.exp (a * I) := by
+    intro j
+    simp only [hu]
+    rw [← Complex.exp_add]
+    congr 1
+    push_cast
+    ring
+  have huN : u N = u 0 := by
+    simp only [hu]
+    rw [show ((N : ℝ) * a : ℝ) = 2 * π by rw [ha]; field_simp]
+    simp
+  have hq : ∀ j : ℕ, ∃ q ∈ D, ‖q - (b + u j)‖ < ε := by
+    intro j
+    obtain ⟨q, hqD, hqd⟩ := Metric.mem_closure_iff.1 (hcon (b + u j)) ε hε0
+    exact ⟨q, hqD, by rw [← dist_eq_norm, dist_comm]; exact hqd⟩
+  choose q hqD hqε using hq
+  set p : ℕ → ℂ := fun j => if j = N then q 0 else q j with hp
+  have hpD : ∀ j, p j ∈ D := fun j => by
+    simp only [hp]
+    split_ifs <;> exact hqD _
+  have hpε : ∀ j, ‖p j - (b + u j)‖ < ε := by
+    intro j
+    simp only [hp]
+    split_ifs with h
+    · rw [h, huN]
+      exact hqε 0
+    · exact hqε j
+  -- one step: the change of `L` is a principal-log difference
+  have step : ∀ j : ℕ, L (p (j + 1)) - L (p j) =
+      Complex.log ((p (j + 1) - b) / u j) - Complex.log ((p j - b) / u j) := by
+    intro j
+    set r : ℝ := a + 2 * ε with hr
+    have hr0 : 0 < r := by positivity
+    have hdist : ‖p (j + 1) - p j‖ ≤ r := by
+      have e1 : p (j + 1) - p j = (p (j + 1) - (b + u (j + 1))) + u j * (Complex.exp (a * I) - 1) -
+          (p j - (b + u j)) := by
+        rw [husucc]
+        ring
+      have e2 : ‖u j * (Complex.exp (a * I) - 1)‖ ≤ a := by
+        rw [norm_mul, hu1, one_mul, mul_comm]
+        have h3 := Real.norm_exp_I_mul_ofReal_sub_one_le (x := a)
+        rwa [Real.norm_of_nonneg ha0.le] at h3
+      rw [e1]
+      calc ‖(p (j + 1) - (b + u (j + 1))) + u j * (Complex.exp (a * I) - 1) - (p j - (b + u j))‖
+          ≤ ‖p (j + 1) - (b + u (j + 1))‖ + ‖u j * (Complex.exp (a * I) - 1)‖ + ‖p j - (b + u j)‖ :=
+            norm_sub_le_of_le (norm_add_le _ _) le_rfl
+        _ ≤ ε + a + ε := by linarith [hpε (j + 1), hpε j]
+        _ = r := by rw [hr]; ring
+    obtain ⟨γ, hγ⟩ := (hlc (p j) r hr0).1 (p j) ⟨hpD j, mem_closedBall_self hr0.le⟩ (p (j + 1))
+      ⟨hpD (j + 1), by rw [mem_closedBall, dist_eq_norm]; exact hdist⟩
+    refine s20g_a_log_step hLc hLe (hu1 j) γ (fun t => (hγ t).1) fun t => ?_
+    have h3 : ‖γ t - p j‖ ≤ k * r := by
+      have h4 := (hγ t).2
+      rwa [mem_closedBall, dist_eq_norm] at h4
+    calc ‖γ t - (b + u j)‖ = ‖(γ t - p j) + (p j - (b + u j))‖ := by ring_nf
+      _ ≤ ‖γ t - p j‖ + ‖p j - (b + u j)‖ := norm_add_le _ _
+      _ < k * r + ε := add_lt_add_of_le_of_lt h3 (hpε j)
+      _ ≤ 1 / 4 + 3 * k * ε := by rw [hr]; nlinarith
+      _ < 1 := by linarith
+  -- the telescoping sum vanishes, but every term has argument change `> 0`
+  have hsum : ∑ j ∈ Finset.range N, (L (p (j + 1)) - L (p j)) = 0 := by
+    rw [Finset.sum_range_sub (fun j => L (p j))]
+    simp [hp]
+  have him : ∑ j ∈ Finset.range N, (arg ((p (j + 1) - b) / u j) - arg ((p j - b) / u j)) = 0 := by
+    have h3 := congrArg Complex.im hsum
+    rw [Complex.im_sum] at h3
+    simp only [step, Complex.sub_im, Complex.log_im, Complex.zero_im] at h3
+    exact h3
+  have hterm : ∀ j : ℕ, 0 < arg ((p (j + 1) - b) / u j) - arg ((p j - b) / u j) := by
+    intro j
+    have hj := hu0 j
+    have e1 : dist ((p j - b) / u j) 1 < ε₁ := by
+      rw [dist_eq_norm, show (p j - b) / u j - 1 = (p j - (b + u j)) / u j by field_simp; ring, norm_div,
+        hu1, div_one]
+      exact (hpε j).trans_le hε1
+    have e2 : dist ((p (j + 1) - b) / u j) (Complex.exp (a * I)) < ε₂ := by
+      rw [dist_eq_norm, show (p (j + 1) - b) / u j - Complex.exp (a * I) =
+        (p (j + 1) - (b + u (j + 1))) / u j by rw [husucc]; field_simp; ring, norm_div, hu1, div_one]
+      exact (hpε (j + 1)).trans_le hε2
+    have f1 := h1 e1
+    have f2 := h2 e2
+    rw [Complex.arg_one, Real.dist_eq] at f1
+    rw [harg_a, Real.dist_eq] at f2
+    have g1 := abs_lt.1 f1
+    have g2 := abs_lt.1 f2
+    have h3 : 0 < π / N := by positivity
+    linarith
+  have hpos := Finset.sum_pos (fun j _ => hterm j) (Finset.nonempty_range_iff.2 (Nat.cast_pos.1 hN0).ne')
+  rw [him] at hpos
+  exact lt_irrefl _ hpos
+
+/-- `mobiusFn 0 1 1 (-c)` is the inversion `z ↦ (z - c)⁻¹`. -/
+theorem s20g_a_mob (c z : ℂ) : mobiusFn 0 1 1 (-c) z = (z - c)⁻¹ := by
+  rw [mobiusFn]
+  ring
+
+/-- Local Lipschitz bound for the inversion `z ↦ (z - c)⁻¹` near `z₀ ≠ c`: on
+`closedBall z₀ (‖z₀ - c‖/2)` it is `2/‖z₀ - c‖²`-Lipschitz at `z₀`. -/
+theorem s20g_a_inv_lip {c z z₀ : ℂ} (hz₀ : z₀ ≠ c) (h : ‖z - z₀‖ ≤ ‖z₀ - c‖ / 2) :
+    ‖(z - c)⁻¹ - (z₀ - c)⁻¹‖ ≤ 2 * ‖z - z₀‖ / ‖z₀ - c‖ ^ 2 := by
+  have hb : 0 < ‖z₀ - c‖ := norm_pos_iff.2 (sub_ne_zero.2 hz₀)
+  have h1 : ‖z₀ - c‖ ≤ ‖z - c‖ + ‖z - z₀‖ := by
+    calc ‖z₀ - c‖ = ‖(z - c) - (z - z₀)‖ := by rw [show (z - c) - (z - z₀) = z₀ - c by ring]
+      _ ≤ ‖z - c‖ + ‖z - z₀‖ := norm_sub_le _ _
+  have hv : ‖z₀ - c‖ / 2 ≤ ‖z - c‖ := by linarith
+  have hv' : 0 < ‖z - c‖ := by linarith
+  have hzc : z - c ≠ 0 := norm_pos_iff.1 hv'
+  have hz₀c : z₀ - c ≠ 0 := sub_ne_zero.2 hz₀
+  rw [show (z - c)⁻¹ - (z₀ - c)⁻¹ = (z₀ - z) / ((z - c) * (z₀ - c)) by field_simp; ring, norm_div,
+    norm_mul, norm_sub_rev z₀ z, div_le_div_iff₀ (by positivity) (by positivity)]
+  nlinarith [mul_nonneg (mul_nonneg (norm_nonneg (z - z₀)) hb.le) (sub_nonneg.2 hv)]
+
+/-- Pushing a joining path through the inversion `z ↦ (z - c)⁻¹` (continuous off `c`). -/
+theorem s20g_a_joined_inv {A B : Set ℂ} {c p q : ℂ} (h : JoinedIn A p q) (hc : ∀ z ∈ A, z ≠ c)
+    (hB : ∀ z ∈ A, (z - c)⁻¹ ∈ B) : JoinedIn B ((p - c)⁻¹) ((q - c)⁻¹) := by
+  have hcont : ContinuousOn (fun z : ℂ => (z - c)⁻¹) A :=
+    (continuousOn_id.sub continuousOn_const).inv₀ fun z hz => sub_ne_zero.2 (hc z hz)
+  exact (h.map hcont).mono (image_subset_iff.2 hB)
+
+/-- **Local connectivity after inversion** (W2, unbounded case): for `c ∉ closure D`, the image of a `k`-locally
+connected `D` under `z ↦ 1/(z - c)` is qualitatively locally connected.
+
+*Truth*: `T z = 1/(z - c)` is a homeomorphism of `ℂ ∖ {c}` onto `ℂ ∖ {0}`, bi-Lipschitz near each `z₀ ≠ c`
+(`‖T z - T z₀‖ = ‖z - z₀‖/(‖z - c‖ ‖z₀ - c‖)`).  A boundary point `w ≠ 0` of `T(D)` is `T z₀` with `z₀ = c + 1/w ∈ ∂D`
+(`T` homeomorphism off the poles); balls about `w` and about `z₀` are nested with factors `2/‖w‖²`, `2/‖z₀ - c‖²` once
+the radii are below `‖w‖/2`, `‖z₀ - c‖/2`, so (i)/(ii) of `hk` at `z₀` give (i′)/(ii′) at `w` (for (ii′) it suffices
+to treat small `R`: the condition is monotone in `R`).  The boundary point `w = 0` occurs when `D` is unbounded:
+`‖T z‖ < δ ↔ ‖z - c‖ > 1/δ`, so (i′) at `0` follows from clause (ii) of `hk` at `c` with radius `1/δ`
+(`δ = ε/(2k)`), and (ii′) at `0` from clause (i) at `c` with radius `1/R` (`ρ = R/k`).
+
+*Route*: `hk`, `uq_j_isConformalOnto_mobiusInv` (S13:4191, continuity of `T` on `D`), `JoinedIn.map` (the
+`ContinuousOn` form) or `Path.map'` to push the joining paths through `T`, `c ∉ closure D` (so `‖z - c‖ ≥ r > 0` on
+`D`). -/
+theorem s20g_qlc_inv {D : Set ℂ} {k : ℝ} {c : ℂ} (hk : IsKLocallyConnected D k) (hc : c ∉ closure D) :
+    s20g_QLC (mobiusFn 0 1 1 (-c) '' D) := by
+  obtain ⟨hk1, hlc⟩ := hk
+  have hk0 : 0 < k := lt_of_lt_of_le one_pos hk1
+  have hDc : ∀ z ∈ D, z ≠ c := fun z hz h => hc (h ▸ subset_closure hz)
+  have hpos : ∀ z ∈ D, 0 < ‖z - c‖ := fun z hz => norm_pos_iff.2 (sub_ne_zero.2 (hDc z hz))
+  rw [image_congr fun z _ => s20g_a_mob c z]
+  intro w _
+  rcases eq_or_ne w 0 with rfl | hw
+  · refine ⟨fun ε hε => ⟨ε / (2 * k), by positivity, ?_⟩, fun R hR => ⟨R / k, by positivity, ?_⟩⟩
+    · rintro _ ⟨⟨zp, hzp, rfl⟩, hp⟩ _ ⟨⟨zq, hzq, rfl⟩, hq⟩
+      have hr : 0 < 2 * k / ε := by positivity
+      have key : ∀ z ∈ D, (z - c)⁻¹ ∈ ball (0 : ℂ) (ε / (2 * k)) → z ∈ D \ ball c (2 * k / ε) := by
+        intro z hz hzb
+        refine ⟨hz, fun hzc => ?_⟩
+        rw [mem_ball_zero_iff, norm_inv] at hzb
+        rw [mem_ball, dist_eq_norm] at hzc
+        have hlt : ‖z - c‖⁻¹ * ‖z - c‖ < ε / (2 * k) * (2 * k / ε) :=
+          mul_lt_mul'' hzb hzc (inv_nonneg.2 (norm_nonneg _)) (norm_nonneg _)
+        rw [inv_mul_cancel₀ (hpos z hz).ne', div_mul_div_comm, mul_comm ε, div_self (by positivity)] at hlt
+        exact lt_irrefl _ hlt
+      refine s20g_a_joined_inv ((hlc c _ hr).2 zp (key zp hzp hp) zq (key zq hzq hq))
+        (fun z hz => hDc z hz.1) fun z hz => ⟨⟨z, hz.1, rfl⟩, ?_⟩
+      have h2 : 2 / ε ≤ ‖z - c‖ := by
+        have h3 := hz.2
+        rw [mem_ball, dist_eq_norm, not_lt] at h3
+        rwa [show 2 * k / ε / k = 2 / ε by field_simp] at h3
+      rw [mem_ball_zero_iff, norm_inv]
+      calc ‖z - c‖⁻¹ ≤ (2 / ε)⁻¹ := inv_anti₀ (by positivity) h2
+        _ = ε / 2 := inv_div 2 ε
+        _ < ε := half_lt_self hε
+    · rintro _ ⟨⟨zp, hzp, rfl⟩, hp⟩ _ ⟨⟨zq, hzq, rfl⟩, hq⟩
+      have hr : 0 < 1 / R := by positivity
+      have key : ∀ z ∈ D, (z - c)⁻¹ ∉ ball (0 : ℂ) R → z ∈ D ∩ closedBall c (1 / R) := by
+        intro z hz hzb
+        refine ⟨hz, ?_⟩
+        rw [mem_ball_zero_iff, norm_inv, not_lt, le_inv_comm₀ hR (hpos z hz)] at hzb
+        rwa [mem_closedBall, dist_eq_norm, one_div]
+      refine s20g_a_joined_inv ((hlc c _ hr).1 zp (key zp hzp hp) zq (key zq hzq hq))
+        (fun z hz => hDc z hz.1) fun z hz => ⟨⟨z, hz.1, rfl⟩, ?_⟩
+      have h2 : ‖z - c‖ ≤ k * (1 / R) := by
+        have h3 := hz.2
+        rwa [mem_closedBall, dist_eq_norm] at h3
+      rw [mem_ball_zero_iff, norm_inv, not_lt]
+      calc R / k = (k * (1 / R))⁻¹ := by field_simp
+        _ ≤ ‖z - c‖⁻¹ := inv_anti₀ (hpos z hz.1) h2
+  · set z₀ := c + w⁻¹ with hz₀def
+    have hz₀c : z₀ - c = w⁻¹ := by rw [hz₀def]; ring
+    have hw₀ : (z₀ - c)⁻¹ = w := by rw [hz₀c, inv_inv]
+    have ha : 0 < ‖w‖ := norm_pos_iff.2 hw
+    have hb : ‖z₀ - c‖ = ‖w‖⁻¹ := by rw [hz₀c, norm_inv]
+    have hz₀ne : z₀ ≠ c := fun h => by
+      rw [h, sub_self] at hz₀c
+      exact inv_ne_zero hw hz₀c.symm
+    -- points of the image near `w` come from points near `z₀`
+    have back : ∀ z ∈ D, ∀ t : ℝ, t ≤ ‖w‖ / 2 → ‖(z - c)⁻¹ - w‖ ≤ t → ‖z - z₀‖ ≤ 2 * t / ‖w‖ ^ 2 := by
+      intro z hz t ht hzt
+      have h := s20g_a_inv_lip (c := 0) (z := (z - c)⁻¹) (z₀ := w) hw (by rw [sub_zero]; exact hzt.trans ht)
+      simp only [sub_zero, inv_inv] at h
+      calc ‖z - z₀‖ = ‖(z - c) - w⁻¹‖ := by rw [hz₀def, sub_sub]
+        _ ≤ 2 * ‖(z - c)⁻¹ - w‖ / ‖w‖ ^ 2 := h
+        _ ≤ 2 * t / ‖w‖ ^ 2 := by gcongr
+    -- points near `z₀` go to points near `w`
+    have fwd : ∀ z : ℂ, ∀ t : ℝ, t ≤ ‖w‖⁻¹ / 2 → ‖z - z₀‖ ≤ t → ‖(z - c)⁻¹ - w‖ ≤ 2 * t * ‖w‖ ^ 2 := by
+      intro z t ht hzt
+      have h := s20g_a_inv_lip (c := c) (z := z) (z₀ := z₀) hz₀ne (by rw [hb]; exact hzt.trans ht)
+      rw [hw₀, hb] at h
+      calc ‖(z - c)⁻¹ - w‖ ≤ 2 * ‖z - z₀‖ / ‖w‖⁻¹ ^ 2 := h
+        _ ≤ 2 * t / ‖w‖⁻¹ ^ 2 := by gcongr
+        _ = 2 * t * ‖w‖ ^ 2 := by field_simp
+    refine ⟨fun ε hε => ?_, fun R hR => ?_⟩
+    · set δ := min (‖w‖ / (4 * k)) (ε / (8 * k)) with hδ
+      have hδ0 : 0 < δ := lt_min (by positivity) (by positivity)
+      have hδ1 : δ ≤ ‖w‖ / (4 * k) := min_le_left _ _
+      have hδ2 : δ ≤ ε / (8 * k) := min_le_right _ _
+      have hδ1' : 4 * k * δ ≤ ‖w‖ := by
+        rw [le_div_iff₀ (by positivity)] at hδ1
+        linarith
+      have hδ2' : 8 * k * δ ≤ ε := by
+        rw [le_div_iff₀ (by positivity)] at hδ2
+        linarith
+      have hδa : δ ≤ ‖w‖ / 2 := by nlinarith
+      refine ⟨δ, hδ0, ?_⟩
+      rintro _ ⟨⟨zp, hzp, rfl⟩, hp⟩ _ ⟨⟨zq, hzq, rfl⟩, hq⟩
+      set r := 2 * δ / ‖w‖ ^ 2 with hr
+      have hr0 : 0 < r := by positivity
+      have key : ∀ z ∈ D, (z - c)⁻¹ ∈ ball w δ → z ∈ D ∩ closedBall z₀ r := by
+        intro z hz hzb
+        rw [mem_ball, dist_eq_norm] at hzb
+        exact ⟨hz, by rw [mem_closedBall, dist_eq_norm]; exact back z hz δ hδa hzb.le⟩
+      refine s20g_a_joined_inv ((hlc z₀ r hr0).1 zp (key zp hzp hp) zq (key zq hzq hq))
+        (fun z hz => hDc z hz.1) fun z hz => ⟨⟨z, hz.1, rfl⟩, ?_⟩
+      have hkr : k * r ≤ ‖w‖⁻¹ / 2 := by
+        rw [hr, show k * (2 * δ / ‖w‖ ^ 2) = 4 * k * δ / (2 * ‖w‖ ^ 2) by ring,
+          show ‖w‖⁻¹ / 2 = ‖w‖ / (2 * ‖w‖ ^ 2) by field_simp]
+        gcongr
+      have hzr : ‖z - z₀‖ ≤ k * r := by
+        have h3 := hz.2
+        rwa [mem_closedBall, dist_eq_norm] at h3
+      have h := fwd z (k * r) hkr hzr
+      rw [mem_ball, dist_eq_norm]
+      calc ‖(z - c)⁻¹ - w‖ ≤ 2 * (k * r) * ‖w‖ ^ 2 := h
+        _ = 4 * k * δ := by rw [hr]; field_simp; ring
+        _ < ε := by nlinarith
+    · set r₁ := min (‖w‖⁻¹ / 2) (R / (4 * ‖w‖ ^ 2)) with hr₁
+      have hr₁0 : 0 < r₁ := lt_min (by positivity) (by positivity)
+      have hr₁a : r₁ ≤ ‖w‖⁻¹ / 2 := min_le_left _ _
+      have hr₁b : r₁ ≤ R / (4 * ‖w‖ ^ 2) := min_le_right _ _
+      have hr₁b' : 2 * r₁ * ‖w‖ ^ 2 < R := by
+        rw [le_div_iff₀ (by positivity)] at hr₁b
+        nlinarith
+      set s := r₁ / k with hs
+      have hs0 : 0 < s := by positivity
+      set ρ := min (‖w‖ / 2) (s * ‖w‖ ^ 2 / 4) with hρ
+      have hρ0 : 0 < ρ := lt_min (by positivity) (by positivity)
+      have hρa : ρ ≤ ‖w‖ / 2 := min_le_left _ _
+      have hρb : ρ ≤ s * ‖w‖ ^ 2 / 4 := min_le_right _ _
+      refine ⟨ρ, hρ0, ?_⟩
+      rintro _ ⟨⟨zp, hzp, rfl⟩, hp⟩ _ ⟨⟨zq, hzq, rfl⟩, hq⟩
+      have key : ∀ z ∈ D, (z - c)⁻¹ ∉ ball w R → z ∈ D \ ball z₀ r₁ := by
+        intro z hz hzb
+        refine ⟨hz, fun hzr => hzb ?_⟩
+        rw [mem_ball, dist_eq_norm] at hzr ⊢
+        exact (fwd z r₁ hr₁a hzr.le).trans_lt hr₁b'
+      refine s20g_a_joined_inv ((hlc z₀ r₁ hr₁0).2 zp (key zp hzp hp) zq (key zq hzq hq))
+        (fun z hz => hDc z hz.1) fun z hz => ⟨⟨z, hz.1, rfl⟩, fun hzb => hz.2 ?_⟩
+      rw [mem_ball, dist_eq_norm] at hzb ⊢
+      have h := back z hz.1 ρ hρa hzb.le
+      calc ‖z - z₀‖ ≤ 2 * ρ / ‖w‖ ^ 2 := h
+        _ ≤ 2 * (s * ‖w‖ ^ 2 / 4) / ‖w‖ ^ 2 := by gcongr
+        _ = s / 2 := by field_simp; ring
+        _ < s := half_lt_self hs0
+
+/-- A point `z ≠ u` of the closed unit disc, `‖u‖ = 1`, has `Re (1 - z conj u) > 0`. -/
+theorem s20g_b_re_pos {z u : ℂ} (hz : ‖z‖ ≤ 1) (hu : ‖u‖ = 1) (hne : z ≠ u) : 0 < (1 - z * conj u).re := by
+  have hz2 : z.re * z.re + z.im * z.im ≤ 1 := by
+    have h := Complex.sq_norm z
+    rw [Complex.normSq_apply] at h
+    nlinarith [norm_nonneg z]
+  have hu2 : u.re * u.re + u.im * u.im = 1 := by
+    have h := Complex.sq_norm u
+    rw [Complex.normSq_apply, hu] at h
+    linarith
+  have hd := Complex.normSq_pos.2 (sub_ne_zero.2 hne)
+  rw [Complex.normSq_apply, sub_re, sub_im] at hd
+  simp only [sub_re, one_re, mul_re, conj_re, conj_im]
+  nlinarith
+
+/-- `e^{ia} conj (e^{ib}) = e^{i(a - b)}`. -/
+theorem s20g_b_exp_mul_conj (a b : ℝ) :
+    Complex.exp (a * I) * conj (Complex.exp (b * I)) = Complex.exp (((a - b : ℝ) : ℂ) * I) := by
+  rw [← Complex.exp_conj, ← Complex.exp_add, map_mul, Complex.conj_ofReal, Complex.conj_I]
+  congr 1
+  push_cast
+  ring
+
+/-- The side lemma of the crossing theorem: along a side the lift change of `z - u` (up to a constant factor `w`)
+is a principal-branch difference. -/
+theorem s20g_b_side {L z : ℝ → ℂ} {u w : ℂ} (hu : ‖u‖ = 1) (hw : w ≠ 0)
+    (hL : ContinuousOn L (Icc 0 1)) (hz : ContinuousOn z (Icc 0 1))
+    (hzn : ∀ t ∈ Icc (0 : ℝ) 1, ‖z t‖ ≤ 1) (hzu : ∀ t ∈ Icc (0 : ℝ) 1, z t ≠ u)
+    (he : ∀ t ∈ Icc (0 : ℝ) 1, Complex.exp (L t) * w = 1 - z t * conj u) :
+    (L 1 - L 0).im = arg (1 - z 1 * conj u) - arg (1 - z 0 * conj u) := by
+  have hM := lift_sub_eq_log_sub_log (γ := fun t => 1 - z t * conj u) (L := fun t => L t + Complex.log w)
+    zero_le_one (continuousOn_const.sub (hz.mul continuousOn_const)) (hL.add continuousOn_const)
+    (fun t ht => Complex.mem_slitPlane_iff.2 (Or.inl (s20g_b_re_pos (hzn t ht) hu (hzu t ht))))
+    (fun t ht => by rw [Complex.exp_add, Complex.exp_log hw, he t ht])
+  have h : L 1 - L 0 = (L 1 + Complex.log w) - (L 0 + Complex.log w) := by ring
+  rw [h, hM, sub_im, Complex.log_im, Complex.log_im]
+
+/-- `arg (1 - e^{ia} conj e^{ib}) = (a - b)/2 - π/2` for `0 < a - b < 2π`. -/
+theorem s20g_b_arg_pos {a b : ℝ} (h0 : 0 < a - b) (h1 : a - b < 2 * π) :
+    arg (1 - Complex.exp (a * I) * conj (Complex.exp (b * I))) = (a - b) / 2 - π / 2 := by
+  rw [s20g_b_exp_mul_conj]
+  set x := (a - b) / 2 with hx
+  have hab : a - b = 2 * x := by rw [hx]; ring
+  have hs : 0 < Real.sin x := Real.sin_pos_of_pos_of_lt_pi (by linarith) (by linarith)
+  have hrepr : 1 - Complex.exp (((a - b : ℝ) : ℂ) * I) =
+      ((2 * Real.sin x : ℝ) : ℂ) *
+        (Complex.cos ((x - π / 2 : ℝ) : ℂ) + Complex.sin ((x - π / 2 : ℝ) : ℂ) * I) := by
+    rw [← Complex.ofReal_cos, ← Complex.ofReal_sin, Real.cos_sub_pi_div_two, Real.sin_sub_pi_div_two]
+    apply Complex.ext
+    · simp only [sub_re, one_re, Complex.exp_ofReal_mul_I_re, mul_re, ofReal_re, ofReal_im, add_re, add_im,
+        mul_im, I_re, I_im]
+      rw [hab, Real.cos_two_mul]
+      nlinarith [Real.sin_sq_add_cos_sq x]
+    · simp only [sub_im, one_im, Complex.exp_ofReal_mul_I_im, mul_re, ofReal_re, ofReal_im, add_re, add_im,
+        mul_im, I_re, I_im]
+      rw [hab, Real.sin_two_mul]
+      ring
+  rw [hrepr, Complex.arg_mul_cos_add_sin_mul_I (by linarith) ⟨by linarith [Real.pi_pos], by linarith⟩]
+
+/-- `arg (1 - e^{ia} conj e^{ib}) = (a - b)/2 + π/2` for `-2π < a - b < 0`. -/
+theorem s20g_b_arg_neg {a b : ℝ} (h0 : a - b < 0) (h1 : -(2 * π) < a - b) :
+    arg (1 - Complex.exp (a * I) * conj (Complex.exp (b * I))) = (a - b) / 2 + π / 2 := by
+  rw [s20g_b_exp_mul_conj]
+  set x := (a - b) / 2 with hx
+  have hab : a - b = 2 * x := by rw [hx]; ring
+  have hs : 0 < -Real.sin x := by
+    rw [← Real.sin_neg]
+    exact Real.sin_pos_of_pos_of_lt_pi (by linarith) (by linarith)
+  have hrepr : 1 - Complex.exp (((a - b : ℝ) : ℂ) * I) =
+      ((-2 * Real.sin x : ℝ) : ℂ) *
+        (Complex.cos ((x + π / 2 : ℝ) : ℂ) + Complex.sin ((x + π / 2 : ℝ) : ℂ) * I) := by
+    rw [← Complex.ofReal_cos, ← Complex.ofReal_sin, Real.cos_add_pi_div_two, Real.sin_add_pi_div_two]
+    apply Complex.ext
+    · simp only [sub_re, one_re, Complex.exp_ofReal_mul_I_re, mul_re, ofReal_re, ofReal_im, add_re, add_im,
+        mul_im, I_re, I_im]
+      rw [hab, Real.cos_two_mul]
+      nlinarith [Real.sin_sq_add_cos_sq x]
+    · simp only [sub_im, one_im, Complex.exp_ofReal_mul_I_im, mul_re, ofReal_re, ofReal_im, add_re, add_im,
+        mul_im, I_re, I_im]
+      rw [hab, Real.sin_two_mul]
+      ring
+  rw [hrepr, Complex.arg_mul_cos_add_sin_mul_I (by linarith) ⟨by linarith, by linarith [Real.pi_pos]⟩]
+
+/-- `e^{ia} conj e^{ia} = 1`. -/
+theorem s20g_b_exp_mul_conj_self (a : ℝ) : Complex.exp (a * I) * conj (Complex.exp (a * I)) = 1 := by
+  rw [s20g_b_exp_mul_conj, sub_self, Complex.ofReal_zero, zero_mul, Complex.exp_zero]
+
+/-- **Disc crossing theorem.**  Two paths in the closed unit disc, the first from `e^{iθ₁}` to `e^{iθ₂}`, the second
+from `e^{iα}` to `e^{iβ}`, with `θ₁ < α < θ₂ < β < θ₁ + 2π` (alternating endpoints on the circle), each meeting the
+circle only at its own endpoints, intersect.
+
+*Truth*: suppose not; then `Φ s t = γ s - η t` never vanishes on `[0,1]²`.  Going around the boundary of the square,
+the four sides `γ s - e^{iα}`, `e^{iθ₂} - η t`, `γ s - e^{iβ}` (reversed) and `e^{iθ₁} - η t` (reversed) take values
+in the open half-planes `{Re (v conj u) < 0}` resp. `{Re (v conj u) > 0}` for the unit vector `u` involved (a point
+`z ≠ u` of the closed disc has `Re (z conj u) < 1`).  So each side's log-lift change is a principal-branch difference
+depending only on the corner values, and `e^{ia} - e^{ib} = 2i sin ((a - b)/2) e^{i(a + b)/2}` gives the total
+`(θ₂ - θ₁)/2 - π + (β - α)/2 - π + (θ₁ - θ₂)/2 + (α - β)/2 = -2π`.  But the boundary loop contracts inside the square
+(`H r t = Φ (r • p t)` for `p` running around `∂[0,1]²`), so its lift change is `0` (W3a).  Contradiction.  (For
+non-alternating endpoints the same computation gives `0`, as it must.)
+
+*Route*: `Path.extend`, `exists_continuousOn_log_lift` (W1a, Winding:43), `lift_change_eq_of_homotopy` (W3a,
+Winding:197), `lift_sub_eq_log_sub_log` (W1e, Winding:116) after rotating each half-plane onto `{Re > 0}`,
+`lift_change_eq_of_lifts` (W1c, Winding:79). -/
+theorem s20g_crossing {θ₁ α θ₂ β : ℝ} (h₁ : θ₁ < α) (h₂ : α < θ₂) (h₃ : θ₂ < β) (h₄ : β < θ₁ + 2 * π)
+    (γ : Path (Complex.exp (θ₁ * I)) (Complex.exp (θ₂ * I))) (η : Path (Complex.exp (α * I)) (Complex.exp (β * I)))
+    (hγ : ∀ t, γ t ∈ unitDisc ∨ γ t = Complex.exp (θ₁ * I) ∨ γ t = Complex.exp (θ₂ * I))
+    (hη : ∀ t, η t ∈ unitDisc ∨ η t = Complex.exp (α * I) ∨ η t = Complex.exp (β * I)) :
+    ∃ s t, γ s = η t := by
+  by_contra hne
+  push Not at hne
+  have hball : ∀ {a b : ℝ} (p : Path (Complex.exp (a * I)) (Complex.exp (b * I))),
+      (∀ t, p t ∈ unitDisc ∨ p t = Complex.exp (a * I) ∨ p t = Complex.exp (b * I)) →
+        ∀ s, ‖p.extend s‖ ≤ 1 := by
+    intro a b p hp s
+    rcases hp (projIcc 0 1 zero_le_one s) with h | h | h
+    · exact (mem_ball_zero_iff.1 h).le
+    · show ‖p (projIcc 0 1 zero_le_one s)‖ ≤ 1
+      rw [h, Complex.norm_exp_ofReal_mul_I]
+    · show ‖p (projIcc 0 1 zero_le_one s)‖ ≤ 1
+      rw [h, Complex.norm_exp_ofReal_mul_I]
+  have hsc : IsSimplyConnected (univ : Set (ℝ × ℝ)) := by
+    have : ContractibleSpace ↥(univ : Set (ℝ × ℝ)) := convex_univ.contractibleSpace univ_nonempty
+    exact SimplyConnectedSpace.ofContractible _
+  have hΦc : Continuous fun p : ℝ × ℝ => γ.extend p.1 - η.extend p.2 :=
+    (γ.continuous_extend.comp continuous_fst).sub (η.continuous_extend.comp continuous_snd)
+  obtain ⟨L, hLc, hLe⟩ := Complex.exists_continuousOn_eqOn_exp_comp hsc isOpen_univ hΦc.continuousOn
+    (by rintro ⟨p, -, hp⟩; exact hne _ _ (sub_eq_zero.1 hp))
+  have hL : Continuous L := continuousOn_univ.1 hLc
+  have he : ∀ p, Complex.exp (L p) = γ.extend p.1 - η.extend p.2 := fun p => hLe (mem_univ p)
+  have hu : ∀ a : ℝ, ‖Complex.exp (a * I)‖ = 1 := Complex.norm_exp_ofReal_mul_I
+  have hw : ∀ a : ℝ, conj (Complex.exp (a * I)) ≠ 0 := fun a => (map_ne_zero _).2 (Complex.exp_ne_zero _)
+  have S1 : (L (1, 0) - L (0, 0)).im = arg (1 - γ.extend 1 * conj (Complex.exp (α * I))) -
+      arg (1 - γ.extend 0 * conj (Complex.exp (α * I))) :=
+    s20g_b_side (L := fun s => L (s, 0)) (hu α) (neg_ne_zero.2 (hw α))
+      (hL.comp (continuous_id.prodMk continuous_const)).continuousOn γ.continuous_extend.continuousOn
+      (fun t _ => hball γ hγ t) (fun t _ h => hne (projIcc 0 1 zero_le_one t) 0 (by rw [η.source]; exact h))
+      (fun t _ => by
+        rw [he, η.extend_zero]
+        linear_combination s20g_b_exp_mul_conj_self α)
+  have S2 : (L (1, 1) - L (1, 0)).im = arg (1 - η.extend 1 * conj (Complex.exp (θ₂ * I))) -
+      arg (1 - η.extend 0 * conj (Complex.exp (θ₂ * I))) :=
+    s20g_b_side (L := fun t => L (1, t)) (hu θ₂) (hw θ₂)
+      (hL.comp (continuous_const.prodMk continuous_id)).continuousOn η.continuous_extend.continuousOn
+      (fun t _ => hball η hη t)
+      (fun t _ h => hne 1 (projIcc 0 1 zero_le_one t) (by rw [γ.target]; exact h.symm))
+      (fun t _ => by
+        rw [he, γ.extend_one]
+        linear_combination s20g_b_exp_mul_conj_self θ₂)
+  have S3 : (L (1, 1) - L (0, 1)).im = arg (1 - γ.extend 1 * conj (Complex.exp (β * I))) -
+      arg (1 - γ.extend 0 * conj (Complex.exp (β * I))) :=
+    s20g_b_side (L := fun s => L (s, 1)) (hu β) (neg_ne_zero.2 (hw β))
+      (hL.comp (continuous_id.prodMk continuous_const)).continuousOn γ.continuous_extend.continuousOn
+      (fun t _ => hball γ hγ t) (fun t _ h => hne (projIcc 0 1 zero_le_one t) 1 (by rw [η.target]; exact h))
+      (fun t _ => by
+        rw [he, η.extend_one]
+        linear_combination s20g_b_exp_mul_conj_self β)
+  have S4 : (L (0, 1) - L (0, 0)).im = arg (1 - η.extend 1 * conj (Complex.exp (θ₁ * I))) -
+      arg (1 - η.extend 0 * conj (Complex.exp (θ₁ * I))) :=
+    s20g_b_side (L := fun t => L (0, t)) (hu θ₁) (hw θ₁)
+      (hL.comp (continuous_const.prodMk continuous_id)).continuousOn η.continuous_extend.continuousOn
+      (fun t _ => hball η hη t)
+      (fun t _ h => hne 0 (projIcc 0 1 zero_le_one t) (by rw [γ.source]; exact h.symm))
+      (fun t _ => by
+        rw [he, γ.extend_zero]
+        linear_combination s20g_b_exp_mul_conj_self θ₁)
+  rw [γ.extend_one, γ.extend_zero, s20g_b_arg_pos (by linarith) (by linarith),
+    s20g_b_arg_neg (by linarith) (by linarith)] at S1
+  rw [η.extend_one, η.extend_zero, s20g_b_arg_pos (by linarith) (by linarith),
+    s20g_b_arg_neg (by linarith) (by linarith)] at S2
+  rw [γ.extend_one, γ.extend_zero, s20g_b_arg_neg (a := θ₂) (by linarith) (by linarith),
+    s20g_b_arg_neg (a := θ₁) (by linarith) (by linarith)] at S3
+  rw [η.extend_one, η.extend_zero, s20g_b_arg_pos (a := β) (by linarith) (by linarith),
+    s20g_b_arg_pos (a := α) (by linarith) (by linarith)] at S4
+  have key : (L (1, 0) - L (0, 0)).im + (L (1, 1) - L (1, 0)).im - (L (1, 1) - L (0, 1)).im -
+      (L (0, 1) - L (0, 0)).im = 0 := by
+    simp only [sub_im]
+    ring
+  rw [S1, S2, S3, S4] at key
+  linarith [Real.pi_pos]
+
+/-- **Cluster sets are points** (W2a, the core of `s20g_ext_continuous`).  For a conformal map `f` of `Δ` onto a
+bounded domain `Ω` satisfying clause (ii′) of `s20g_QLC`, the cluster set at every `z₀ ∈ ∂Δ` is a singleton.  Wolff's
+circles `σ_n = f(Δ ∩ sphere z₀ ρ_n)` shrink to points; the points `f((1 - ρ_n) z₀)` accumulate at some `w* ∈ ∂Ω`, and
+(ii′) at `w*` joins a point of `f(Δ ∩ ball z₀ ρ_n)` near a second cluster value to `f 0` off a disc about `w*` that
+contains `σ_n`; pulled back by `f⁻¹` this path must cross the circle `sphere z₀ ρ_n`, a contradiction. -/
+theorem s20g_a_cluster {Ω : Set ℂ} (hΩbdd : Bornology.IsBounded Ω) {f : ℂ → ℂ}
+    (hf : IsConformalOnto f unitDisc Ω)
+    (hq : ∀ w ∈ frontier Ω, ∀ R > (0 : ℝ), ∃ ρ > (0 : ℝ), ∀ p ∈ Ω \ ball w R, ∀ q ∈ Ω \ ball w R,
+      JoinedIn (Ω \ ball w ρ) p q) {z₀ : ℂ} (hz₀ : ‖z₀‖ = 1) :
+    ∃ w, clusterSet f unitDisc z₀ = {w} := by
+  have hΩo : IsOpen Ω := hf.isOpen isOpen_ball
+  obtain ⟨ρ, -, hρpos, hρtendsto, hℓtendsto⟩ := wolff_length_area hΩbdd hf hz₀
+  set σ : ℕ → Set ℂ := fun n => f '' (unitDisc ∩ sphere z₀ (ρ n)) with hσ
+  have hσΩ : ∀ n, σ n ⊆ Ω := fun n => by
+    rw [hσ, ← hf.2.2]
+    exact image_mono inter_subset_left
+  -- `diam σ n → 0`
+  have hdiamσ0 : Tendsto (fun n => Metric.diam (σ n)) atTop (𝓝 0) := by
+    have hev1 : ∀ᶠ n in atTop, ρ n < 1 := hρtendsto.eventually_lt_const one_pos
+    have hev2 : ∀ᶠ n in atTop, arcLength f z₀ (ρ n) ≠ ⊤ := by
+      filter_upwards [hℓtendsto.eventually_lt_const one_pos] with n hn
+      exact hn.ne_top
+    have hℓ0 : Tendsto (fun n => (arcLength f z₀ (ρ n)).toReal) atTop (𝓝 0) := by
+      have h1 := (ENNReal.tendsto_toReal (a := (0 : ℝ≥0∞)) (by simp)).comp hℓtendsto
+      rw [ENNReal.toReal_zero] at h1
+      exact h1
+    have hle : ∀ᶠ n in atTop, Metric.diam (σ n) ≤ (arcLength f z₀ (ρ n)).toReal := by
+      filter_upwards [hev1, hev2] with n h1 h2
+      obtain ⟨-, -, -, -, hd, -⟩ := exists_ends_of_circleArc_image hΩbdd hf hz₀ (hρpos n) h1 h2
+      exact hd
+    exact squeeze_zero' (Eventually.of_forall fun n => Metric.diam_nonneg) hle hℓ0
+  -- the cluster set is nonempty
+  have hbdd : ∃ M, ∀ z ∈ unitDisc, ‖f z‖ ≤ M := by
+    obtain ⟨R, hR⟩ := (Metric.isBounded_iff_subset_closedBall (0 : ℂ)).1 hΩbdd
+    refine ⟨R, fun z hz => ?_⟩
+    have h1 : f z ∈ Ω := hf.2.2 ▸ mem_image_of_mem f hz
+    simpa using hR h1
+  obtain ⟨hne, -, -⟩ := clusterSet_isCompact_isConnected (mem_sphere_zero_iff_norm.2 hz₀) hf.1.continuousOn hbdd
+  suffices hsub : (clusterSet f unitDisc z₀).Subsingleton by
+    obtain ⟨w, hw⟩ := hne
+    exact ⟨w, hsub.eq_singleton_of_mem hw⟩
+  intro w₁ hw₁ w₂ hw₂
+  by_contra hne12
+  have hd : 0 < ‖w₁ - w₂‖ := norm_pos_iff.2 (sub_ne_zero.2 hne12)
+  -- the points `c n = f ((1 - ρ n) z₀)` (for small `ρ n`) accumulate at a boundary point `w*`
+  set τ : ℕ → ℝ := fun n => min (ρ n) (1 / 2) with hτ
+  have hτ0 : Tendsto τ atTop (𝓝 0) := by
+    have h1 := hρtendsto.min (tendsto_const_nhds (x := (1 / 2 : ℝ)))
+    rwa [min_eq_left (by norm_num : (0 : ℝ) ≤ 1 / 2)] at h1
+  set z : ℕ → ℂ := fun n => ((1 - τ n : ℝ) : ℂ) * z₀ with hz
+  have hτpos : ∀ n, 0 < τ n := fun n => lt_min (hρpos n) (by norm_num)
+  have hτhalf : ∀ n, τ n ≤ 1 / 2 := fun n => min_le_right _ _
+  have hznorm : ∀ n, ‖z n‖ = 1 - τ n := fun n => by
+    rw [hz, norm_mul, Complex.norm_real, Real.norm_of_nonneg (by linarith [hτhalf n]), hz₀, mul_one]
+  have hzΔ : ∀ n, z n ∈ unitDisc := fun n => by
+    rw [unitDisc, mem_ball_zero_iff, hznorm]
+    linarith [hτpos n]
+  have hzdist : ∀ n, ‖z n - z₀‖ = τ n := fun n => by
+    rw [hz, show ((1 - τ n : ℝ) : ℂ) * z₀ - z₀ = ((-τ n : ℝ) : ℂ) * z₀ by push_cast; ring, norm_mul,
+      Complex.norm_real, Real.norm_eq_abs, abs_neg, abs_of_pos (hτpos n), hz₀, mul_one]
+  have hzt : Tendsto z atTop (𝓝 z₀) := by
+    rw [tendsto_iff_norm_sub_tendsto_zero]
+    simpa only [hzdist] using hτ0
+  have hcΩ : ∀ n, f (z n) ∈ closure Ω := fun n => subset_closure (hf.mapsTo (hzΔ n))
+  obtain ⟨ws, hwscl, φ, hφ, hφt⟩ := hΩbdd.isCompact_closure.tendsto_subseq hcΩ
+  have hwsΩ : ws ∉ Ω := tendsto_boundary_of_isConformalOnto hf hz₀ (fun m => hzΔ (φ m))
+    (hzt.comp hφ.tendsto_atTop) hφt
+  have hwsfr : ws ∈ frontier Ω := by
+    rw [hΩo.frontier_eq]
+    exact ⟨hwscl, hwsΩ⟩
+  have h0Δ : (0 : ℂ) ∈ unitDisc := mem_ball_self one_pos
+  have hf0Ω : f 0 ∈ Ω := hf.mapsTo h0Δ
+  have hf0ws : 0 < ‖f 0 - ws‖ := norm_pos_iff.2 (sub_ne_zero.2 fun h => hwsΩ (h ▸ hf0Ω))
+  set R := min (‖w₁ - w₂‖ / 4) ‖f 0 - ws‖ with hR
+  have hR0 : 0 < R := lt_min (by positivity) hf0ws
+  obtain ⟨ρ', hρ'0, hjoin⟩ := hq ws hwsfr R hR0
+  -- a good index `n = φ m`
+  have hev : ∀ᶠ m in atTop, ρ (φ m) < 1 / 2 ∧ Metric.diam (σ (φ m)) < ρ' / 2 ∧
+      dist (f (z (φ m))) ws < ρ' / 2 :=
+    ((hρtendsto.comp hφ.tendsto_atTop).eventually_lt_const (by norm_num)).and
+      (((hdiamσ0.comp hφ.tendsto_atTop).eventually_lt_const (by positivity)).and
+        ((tendsto_iff_dist_tendsto_zero.1 hφt).eventually_lt_const (by positivity)))
+  obtain ⟨m, hm1, hm2, hm3⟩ := hev.exists
+  set n := φ m with hn
+  have hτn : τ n = ρ n := min_eq_left hm1.le
+  have hcσ : f (z n) ∈ σ n := ⟨z n, ⟨hzΔ n, by rw [mem_sphere, dist_eq_norm, hzdist, hτn]⟩, rfl⟩
+  have hσball : σ n ⊆ ball ws ρ' := by
+    intro x hx
+    have h1 : dist x (f (z n)) ≤ Metric.diam (σ n) :=
+      Metric.dist_le_diam_of_mem (hΩbdd.subset (hσΩ n)) hx hcσ
+    rw [mem_ball]
+    calc dist x ws ≤ dist x (f (z n)) + dist (f (z n)) ws := dist_triangle _ _ _
+      _ < ρ' / 2 + ρ' / 2 := add_lt_add_of_le_of_lt (h1.trans hm2.le) hm3
+      _ = ρ' := by ring
+  -- a second cluster value far from `ws`, approximated inside `f (Δ ∩ ball z₀ (ρ n))`
+  obtain ⟨w', hw'cl, hw'far⟩ : ∃ w' ∈ clusterSet f unitDisc z₀, ‖w₁ - w₂‖ / 2 ≤ ‖w' - ws‖ := by
+    by_cases h : ‖w₁ - w₂‖ / 2 ≤ ‖w₁ - ws‖
+    · exact ⟨w₁, hw₁, h⟩
+    · refine ⟨w₂, hw₂, ?_⟩
+      have h1 : ‖w₁ - w₂‖ ≤ ‖w₁ - ws‖ + ‖w₂ - ws‖ := by
+        calc ‖w₁ - w₂‖ = ‖(w₁ - ws) - (w₂ - ws)‖ := by ring_nf
+          _ ≤ ‖w₁ - ws‖ + ‖w₂ - ws‖ := norm_sub_le _ _
+      linarith
+  have hw'n : w' ∈ closure (f '' (unitDisc ∩ ball z₀ (ρ n))) := mem_iInter₂.1 hw'cl (ρ n) (hρpos n)
+  obtain ⟨x, ⟨y, hy, rfl⟩, hxw⟩ := Metric.mem_closure_iff.1 hw'n (‖w₁ - w₂‖ / 4) (by positivity)
+  have hxR : f y ∈ Ω \ ball ws R := by
+    refine ⟨hf.mapsTo hy.1, fun h => ?_⟩
+    rw [mem_ball, dist_eq_norm] at h
+    have h1 : ‖w' - ws‖ ≤ ‖w' - f y‖ + ‖f y - ws‖ := by
+      calc ‖w' - ws‖ = ‖(w' - f y) + (f y - ws)‖ := by ring_nf
+        _ ≤ ‖w' - f y‖ + ‖f y - ws‖ := norm_add_le _ _
+    rw [dist_eq_norm] at hxw
+    have h2 : R ≤ ‖w₁ - w₂‖ / 4 := min_le_left _ _
+    linarith
+  have h0R : f 0 ∈ Ω \ ball ws R := by
+    refine ⟨hf0Ω, fun h => ?_⟩
+    rw [mem_ball, dist_eq_norm] at h
+    have h2 : R ≤ ‖f 0 - ws‖ := min_le_right _ _
+    linarith
+  obtain ⟨γ, hγ⟩ := hjoin (f y) hxR (f 0) h0R
+  -- pull back by `g = f⁻¹` and cross the circle `sphere z₀ (ρ n)`
+  set g := Function.invFunOn f unitDisc with hg
+  have hgconf : IsConformalOnto g Ω unitDisc := hf.symm isOpen_ball
+  have hgc : ContinuousOn g Ω := hgconf.1.continuousOn
+  have hgf : ∀ v ∈ unitDisc, g (f v) = v := fun v hv => hf.2.1.leftInvOn_invFunOn hv
+  have hfg : ∀ v ∈ Ω, f (g v) = v := fun v hv => by
+    rw [← hf.2.2] at hv
+    exact Function.invFunOn_eq hv
+  have hhc : Continuous fun t => ‖g (γ t) - z₀‖ :=
+    ((hgc.comp_continuous γ.continuous fun t => (hγ t).1).sub continuous_const).norm
+  have h0 : ‖g (γ 0) - z₀‖ ≤ ρ n := by
+    rw [γ.source, hgf y hy.1]
+    have h1 := hy.2
+    rw [mem_ball, dist_eq_norm] at h1
+    exact h1.le
+  have h1 : ρ n ≤ ‖g (γ 1) - z₀‖ := by
+    rw [γ.target, hgf 0 h0Δ, zero_sub, norm_neg, hz₀]
+    linarith
+  obtain ⟨t, ht⟩ := intermediate_value_univ 0 1 hhc ⟨h0, h1⟩
+  have hgt : g (γ t) ∈ unitDisc ∩ sphere z₀ (ρ n) :=
+    ⟨hgconf.mapsTo (hγ t).1, by rw [mem_sphere, dist_eq_norm]; exact ht⟩
+  have hmem : γ t ∈ σ n := ⟨g (γ t), hgt, hfg _ (hγ t).1⟩
+  exact (hγ t).2 (hσball hmem)
+
+/-- **W2a: continuous extension.**  A conformal map of `Δ` onto a bounded domain `Ω` satisfying clause (ii′) of
+`s20g_QLC` (the only clause used; generalized in place 2026-09-27 so that Theorem C1 can use it) extends
+continuously to the closed disc (the conclusion of `exists_continuousOn_extension_of_isJordanCurve_frontier`, C8,
+with clause (ii′) in place of the Jordan hypothesis).
+
+*Truth*: fix `ζ ∈ ∂Δ`.  Wolff gives `ρ_n ↓ 0` with `diam σ_n → 0`, `σ_n = f(Δ ∩ sphere ζ ρ_n)`.  If the cluster set at
+`ζ` contained `w₁ ≠ w₂`: pick `c_n ∈ σ_n`; `c_n = f z_n` with `z_n → ζ`, so along a subsequence `c_n → w* ∈ ∂Ω`.
+`V_n = f(Δ ∩ ball ζ ρ_n)` has `w₁, w₂` in its closure, hence contains `x_n` with `‖x_n - c_n‖ ≥ ‖w₁ - w₂‖/3`, while
+`f 0 ∈ f(Δ ∖ closedBall ζ ρ_n)` stays at distance `≥ dist (f 0, ∂Ω)/2`.  (ii′) at `w*` with a fixed small `R` joins
+`x_n` to `f 0` in `Ω ∖ ball w* ρ`, which misses `σ_n` for large `n`; pulled back by `f⁻¹` this joins
+`Δ ∩ ball ζ ρ_n` to `Δ ∖ closedBall ζ ρ_n` inside `Δ ∖ sphere ζ ρ_n`, impossible (intermediate values of `‖z - ζ‖`).
+So every cluster set is a singleton, and the rest of C8's proof applies verbatim.
+
+*Route*: `wolff_length_area` (Lemmas/Caratheodory), `exists_ends_of_circleArc_image` (CaratheodoryJordan:2580, the
+diameter bound only), `clusterSet_isCompact_isConnected` (ClusterSets), `tendsto_boundary_of_isConformalOnto`
+(CaratheodoryJordan:2042), `continuous_extension_iff_forall_clusterSet_subsingleton` (ClusterSets), the body of
+`exists_continuousOn_extension_of_isJordanCurve_frontier` (C8, CaratheodoryJordan:3495). -/
+theorem s20g_ext_continuous {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω) {f : ℂ → ℂ}
+    (hf : IsConformalOnto f unitDisc Ω)
+    (hq : ∀ w ∈ frontier Ω, ∀ R > (0 : ℝ), ∃ ρ > (0 : ℝ), ∀ p ∈ Ω \ ball w R, ∀ q ∈ Ω \ ball w R,
+      JoinedIn (Ω \ ball w ρ) p q) :
+    ∃ F : ℂ → ℂ, ContinuousOn F (closedBall 0 1) ∧ EqOn F f unitDisc ∧
+      F '' sphere (0 : ℂ) 1 ⊆ frontier Ω ∧ F '' closedBall 0 1 = closure Ω := by
+  have hΩo : IsOpen Ω := hf.isOpen isOpen_ball
+  have hall : ∀ ζ ∈ sphere (0 : ℂ) 1, ∃ w, clusterSet f unitDisc ζ = {w} := fun ζ hζ =>
+    s20g_a_cluster hΩ hf hq (mem_sphere_zero_iff_norm.1 hζ)
+  obtain ⟨F, hFc, hFf⟩ := (continuous_extension_iff_forall_clusterSet_subsingleton hf.1).2 hall
+  have hcl : closure unitDisc = closedBall (0 : ℂ) 1 := closure_ball (0 : ℂ) one_ne_zero
+  rw [hcl] at hFc
+  -- `F ζ` is the cluster value at `ζ`
+  have hFζeq : ∀ ζ ∈ sphere (0 : ℂ) 1, ∀ w, clusterSet f unitDisc ζ = {w} → F ζ = w := by
+    intro ζ hζ w hw
+    have hζmemcl : ζ ∈ closure unitDisc := hcl ▸ sphere_subset_closedBall hζ
+    have hFcont' : ContinuousWithinAt F unitDisc ζ := (hFc ζ (hcl ▸ hζmemcl)).mono (hcl ▸ subset_closure)
+    have hftend : Tendsto f (𝓝[unitDisc] ζ) (𝓝 (F ζ)) := by
+      refine (show Tendsto F (𝓝[unitDisc] ζ) (𝓝 (F ζ)) from hFcont').congr' ?_
+      filter_upwards [self_mem_nhdsWithin] with z hz
+      exact hFf hz
+    have hFζmemcs : F ζ ∈ clusterSet f unitDisc ζ := by
+      rw [clusterSet]
+      refine mem_iInter₂.2 fun r hr => ?_
+      have hftend' : Tendsto f (𝓝[unitDisc ∩ ball ζ r] ζ) (𝓝 (F ζ)) :=
+        hftend.mono_left (nhdsWithin_mono ζ inter_subset_left)
+      exact mem_closure_image_of_tendsto_nhdsWithin
+        (mem_closure_unitDisc_inter_ball (mem_sphere_zero_iff_norm.1 hζ) hr) hftend'
+    rw [hw] at hFζmemcs
+    exact hFζmemcs
+  -- boundary values lie on `frontier Ω`
+  have hFζfr : ∀ ζ ∈ sphere (0 : ℂ) 1, F ζ ∈ frontier Ω := by
+    intro ζ hζ
+    obtain ⟨w', hw'⟩ := hall ζ hζ
+    rw [hFζeq ζ hζ w' hw', hΩo.frontier_eq]
+    have hw'memcs : w' ∈ clusterSet f unitDisc ζ := hw' ▸ rfl
+    have hw'mem_cl : w' ∈ closure Ω := by
+      refine closure_mono ?_ (mem_iInter₂.1 hw'memcs 1 one_pos)
+      rw [← hf.2.2]
+      exact image_mono inter_subset_left
+    have hw'notmem : w' ∉ Ω := by
+      have hex : ∀ k : ℕ, ∃ z : ℂ, z ∈ unitDisc ∧ dist z ζ < 1 / ((k : ℝ) + 1) ∧
+          dist (f z) w' < 1 / ((k : ℝ) + 1) := by
+        intro k
+        have hmem := mem_iInter₂.1 hw'memcs (1 / ((k : ℝ) + 1)) (by positivity)
+        obtain ⟨y, ⟨z, hz, rfl⟩, hdy⟩ := Metric.mem_closure_iff.1 hmem (1 / ((k : ℝ) + 1)) (by positivity)
+        exact ⟨z, hz.1, hz.2, by rwa [dist_comm] at hdy⟩
+      choose z hzmem hzdist hfzdist using hex
+      have hz0 : Tendsto (fun k : ℕ => (1 : ℝ) / ((k : ℝ) + 1)) atTop (𝓝 0) :=
+        tendsto_one_div_add_atTop_nhds_zero_nat
+      have hzζ : Tendsto z atTop (𝓝 ζ) := by
+        rw [tendsto_iff_dist_tendsto_zero]
+        exact squeeze_zero (fun k => dist_nonneg) (fun k => (hzdist k).le) hz0
+      have hfzw' : Tendsto (fun k => f (z k)) atTop (𝓝 w') := by
+        rw [tendsto_iff_dist_tendsto_zero]
+        exact squeeze_zero (fun k => dist_nonneg) (fun k => (hfzdist k).le) hz0
+      exact tendsto_boundary_of_isConformalOnto hf (mem_sphere_zero_iff_norm.1 hζ) hzmem hzζ hfzw'
+    exact ⟨hw'mem_cl, hw'notmem⟩
+  refine ⟨F, hFc, hFf, ?_, ?_⟩
+  · rintro w ⟨ζ, hζ, rfl⟩
+    exact hFζfr ζ hζ
+  · apply Subset.antisymm
+    · rintro w ⟨z, hz, rfl⟩
+      rcases eq_or_lt_of_le (mem_closedBall.1 hz) with heq | hlt
+      · exact frontier_subset_closure (hFζfr z heq)
+      · have hzud : z ∈ unitDisc := hlt
+        rw [hFf hzud]
+        exact subset_closure (hf.mapsTo hzud)
+    · have hwsub : Ω ⊆ F '' closedBall (0 : ℂ) 1 := by
+        rw [← hf.2.2]
+        rintro y ⟨z, hz, rfl⟩
+        exact ⟨z, ball_subset_closedBall hz, hFf hz⟩
+      exact ((isCompact_closedBall (0 : ℂ) 1).image_of_continuousOn hFc).isClosed.closure_subset_iff.2 hwsub
+
+/-- `e^{ia} ≠ e^{ib}` for `0 < b - a < 2π`. -/
+theorem s20g_b_exp_ne {a b : ℝ} (h0 : 0 < b - a) (h1 : b - a < 2 * π) :
+    Complex.exp (a * I) ≠ Complex.exp (b * I) := by
+  intro h
+  have h2 : Complex.exp (((b - a : ℝ) : ℂ) * I) = 1 := by
+    rw [← s20g_b_exp_mul_conj, ← h, s20g_b_exp_mul_conj_self]
+  have h3 : Real.cos (b - a) = 1 := by
+    have := congrArg Complex.re h2
+    rwa [Complex.exp_ofReal_mul_I_re, one_re] at this
+  have := (Real.cos_eq_one_iff_of_lt_of_lt (by linarith) h1).1 h3
+  linarith
+
+/-- Two distinct points of the unit circle are `e^{iθ₁}`, `e^{iθ₂}` with `θ₁ < θ₂ < θ₁ + 2π` (a copy of
+`s20g_angles`, which comes later in the file). -/
+theorem s20g_b_angles {ζ₁ ζ₂ : ℂ} (h₁ : ‖ζ₁‖ = 1) (h₂ : ‖ζ₂‖ = 1) (hne : ζ₁ ≠ ζ₂) :
+    ∃ θ₁ θ₂ : ℝ, θ₁ < θ₂ ∧ θ₂ < θ₁ + 2 * π ∧ Complex.exp (θ₁ * I) = ζ₁ ∧ Complex.exp (θ₂ * I) = ζ₂ := by
+  have he : ∀ ζ : ℂ, ‖ζ‖ = 1 → Complex.exp ((arg ζ : ℂ) * I) = ζ := fun ζ hζ => by
+    have h := Complex.norm_mul_exp_arg_mul_I ζ
+    rwa [hζ, Complex.ofReal_one, one_mul] at h
+  have hne' : arg ζ₁ ≠ arg ζ₂ := fun h => hne (by rw [← he ζ₁ h₁, ← he ζ₂ h₂, h])
+  have hb₁ := Complex.neg_pi_lt_arg ζ₁
+  have hb₂ := Complex.arg_le_pi ζ₁
+  have hc₁ := Complex.neg_pi_lt_arg ζ₂
+  have hc₂ := Complex.arg_le_pi ζ₂
+  rcases lt_or_gt_of_ne hne' with h | h
+  · exact ⟨arg ζ₁, arg ζ₂, h, by linarith, he ζ₁ h₁, he ζ₂ h₂⟩
+  · refine ⟨arg ζ₁, arg ζ₂ + 2 * π, by linarith, by linarith, he ζ₁ h₁, ?_⟩
+    rw [Complex.ofReal_add, add_mul, Complex.exp_add, he ζ₂ h₂]
+    have : Complex.exp (((2 * π : ℝ) : ℂ) * I) = 1 := by
+      rw [Complex.ofReal_mul, Complex.ofReal_ofNat]
+      exact Complex.exp_two_pi_mul_I
+    rw [this, mul_one]
+
+/-- Radial continuity at a point of the circle: a map continuous on the closed disc stays in an open set `U` about
+its value at `e^{ia}` along the radius `[r, 1] e^{ia}` for some `0 ≤ r < 1`. -/
+theorem s20g_b_radial {X : Type*} [TopologicalSpace X] {G : ℂ → X} (hG : ContinuousOn G (closedBall 0 1))
+    (a : ℝ) {U : Set X} (hU : IsOpen U) (ha : G (Complex.exp (a * I)) ∈ U) :
+    ∃ r : ℝ, 0 ≤ r ∧ r < 1 ∧ ∀ t : ℝ, r ≤ t → t ≤ 1 → G (t * Complex.exp (a * I)) ∈ U := by
+  have hζ : Complex.exp (a * I) ∈ closedBall (0 : ℂ) 1 :=
+    mem_closedBall_zero_iff.2 (Complex.norm_exp_ofReal_mul_I a).le
+  obtain ⟨ε, hε, hsub⟩ := Metric.mem_nhdsWithin_iff.1 ((hG _ hζ).preimage_mem_nhdsWithin (hU.mem_nhds ha))
+  refine ⟨max 0 (1 - ε / 2), le_max_left _ _, max_lt one_pos (by linarith), fun t ht1 ht2 => hsub ⟨?_, ?_⟩⟩
+  · have ht : 1 - ε / 2 ≤ t := le_trans (le_max_right _ _) ht1
+    rw [mem_ball, dist_eq_norm, show (t : ℂ) * Complex.exp (a * I) - Complex.exp (a * I) =
+      ((t - 1 : ℝ) : ℂ) * Complex.exp (a * I) by push_cast; ring, norm_mul, Complex.norm_exp_ofReal_mul_I,
+      mul_one, Complex.norm_real, Real.norm_eq_abs, abs_of_nonpos (by linarith)]
+    linarith
+  · have ht : 0 ≤ t := le_trans (le_max_left _ _) ht1
+    rw [mem_closedBall_zero_iff, norm_mul, Complex.norm_exp_ofReal_mul_I, mul_one, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_nonneg ht]
+    exact ht2
+
+/-- A path from `e^{ia}` to `e^{ib}` through the disc: the radius from `e^{ia}` to `r e^{ia}`, a middle path in the
+disc, and the radius from `r e^{ib}` to `e^{ib}`; it meets the circle only at its ends and keeps `G` in `P`. -/
+theorem s20g_b_join {X : Type*} [TopologicalSpace X] {G : ℂ → X} {P : Set X} {a b r : ℝ} (hr0 : 0 ≤ r)
+    (hr1 : r < 1) (ha : ∀ t : ℝ, r ≤ t → t ≤ 1 → G (t * Complex.exp (a * I)) ∈ P)
+    (hb : ∀ t : ℝ, r ≤ t → t ≤ 1 → G (t * Complex.exp (b * I)) ∈ P)
+    (hm : JoinedIn (unitDisc ∩ G ⁻¹' P) (r * Complex.exp (a * I)) (r * Complex.exp (b * I))) :
+    JoinedIn {z | (z ∈ unitDisc ∨ z = Complex.exp (a * I) ∨ z = Complex.exp (b * I)) ∧ G z ∈ P}
+      (Complex.exp (a * I)) (Complex.exp (b * I)) := by
+  have rad : ∀ c : ℝ, (∀ t : ℝ, r ≤ t → t ≤ 1 → G (t * Complex.exp (c * I)) ∈ P) →
+      JoinedIn {z | (z ∈ unitDisc ∨ z = Complex.exp (c * I)) ∧ G z ∈ P} (Complex.exp (c * I))
+        (r * Complex.exp (c * I)) := by
+    intro c hc
+    refine JoinedIn.ofLine (f := fun s : ℝ => ((1 - s + s * r : ℝ) : ℂ) * Complex.exp (c * I))
+      (by fun_prop) (by simp) (by simp) ?_
+    rintro _ ⟨s, ⟨hs0, hs1⟩, rfl⟩
+    have hl : r ≤ 1 - s + s * r := by nlinarith
+    have hu : 1 - s + s * r ≤ 1 := by nlinarith
+    refine ⟨?_, hc _ hl hu⟩
+    rcases hu.lt_or_eq with h | h
+    · left
+      rw [unitDisc, mem_ball_zero_iff, norm_mul, Complex.norm_exp_ofReal_mul_I, mul_one, Complex.norm_real,
+        Real.norm_eq_abs, abs_of_nonneg (by linarith)]
+      exact h
+    · right
+      simp only [h, Complex.ofReal_one, one_mul]
+  refine ((rad a ha).mono ?_).trans ((hm.mono ?_).trans ((rad b hb).symm.mono ?_))
+  · exact fun z hz => ⟨hz.1.elim Or.inl (fun h => Or.inr (Or.inl h)), hz.2⟩
+  · exact fun z hz => ⟨Or.inl hz.1, hz.2⟩
+  · exact fun z hz => ⟨hz.1.elim Or.inl (fun h => Or.inr (Or.inr h)), hz.2⟩
+
+/-- The crossing theorem for sets joining alternating points of the circle: they meet. -/
+theorem s20g_b_cross_sets {θ₁ α θ₂ β : ℝ} (h₁ : θ₁ < α) (h₂ : α < θ₂) (h₃ : θ₂ < β) (h₄ : β < θ₁ + 2 * π)
+    {S T : Set ℂ} (hS : JoinedIn S (Complex.exp (θ₁ * I)) (Complex.exp (θ₂ * I)))
+    (hT : JoinedIn T (Complex.exp (α * I)) (Complex.exp (β * I)))
+    (hS' : ∀ z ∈ S, z ∈ unitDisc ∨ z = Complex.exp (θ₁ * I) ∨ z = Complex.exp (θ₂ * I))
+    (hT' : ∀ z ∈ T, z ∈ unitDisc ∨ z = Complex.exp (α * I) ∨ z = Complex.exp (β * I)) : (S ∩ T).Nonempty := by
+  obtain ⟨s, t, hst⟩ := s20g_crossing h₁ h₂ h₃ h₄ hS.somePath hT.somePath
+    (fun t => hS' _ (hS.somePath_mem t)) (fun t => hT' _ (hT.somePath_mem t))
+  exact ⟨_, hS.somePath_mem s, hst ▸ hT.somePath_mem t⟩
+
+/-- On an open arc of the circle the extension of a conformal map of `Δ` is not constant. -/
+theorem s20g_b_arc_ne {Ω : Set ℂ} {f : ℂ → ℂ} (hf : IsConformalOnto f unitDisc Ω) {F : ℂ → ℂ}
+    (hFc : ContinuousOn F (closedBall 0 1)) (hFf : EqOn F f unitDisc) {a b : ℝ} (hab : a < b)
+    (hba : b < a + 2 * π) (w : ℂ) : ∃ α ∈ Ioo a b, F (Complex.exp (α * I)) ≠ w := by
+  by_contra hcon
+  push Not at hcon
+  have hAs : (fun x : ℝ => Complex.exp (x * I)) '' Ioo a b ⊆ sphere (0 : ℂ) 1 := by
+    rintro _ ⟨x, -, rfl⟩
+    exact mem_sphere_zero_iff_norm.2 (Complex.norm_exp_ofReal_mul_I x)
+  have hAn : ((fun x : ℝ => Complex.exp (x * I)) '' Ioo a b).Nontrivial :=
+    ⟨_, ⟨a + (b - a) / 3, ⟨by linarith, by linarith⟩, rfl⟩, _,
+      ⟨a + 2 * (b - a) / 3, ⟨by linarith, by linarith⟩, rfl⟩, s20g_b_exp_ne (by linarith) (by linarith)⟩
+  have hAc : IsPreconnected ((fun x : ℝ => Complex.exp (x * I)) '' Ioo a b) :=
+    isPreconnected_Ioo.image _ (by fun_prop : Continuous fun x : ℝ => Complex.exp (x * I)).continuousOn
+  have hsub : unitDisc ∪ (fun x : ℝ => Complex.exp (x * I)) '' Ioo a b ⊆ closedBall (0 : ℂ) 1 :=
+    union_subset ball_subset_closedBall (hAs.trans sphere_subset_closedBall)
+  have hconst := eqOn_const_of_eqOn_const_on_arc hAs hAn hAc (hf.1.congr hFf) (hFc.mono hsub)
+    (by rintro _ ⟨x, hx, rfl⟩; exact hcon x hx)
+  have h0 : (0 : ℂ) ∈ unitDisc := mem_ball_self one_pos
+  have h1 : (1 / 2 : ℂ) ∈ unitDisc := by
+    rw [unitDisc, mem_ball_zero_iff]
+    norm_num
+  have h01 := hf.2.1 h0 h1 (by rw [← hFf h0, ← hFf h1, hconst h0, hconst h1])
+  norm_num at h01
+
+/-- **W2b: injectivity of the extension** (the analogue of C9, `injOn_extension_of_isJordanCurve_frontier`, with
+`s20g_QLC Ω` in place of the Jordan hypothesis).
+
+*Truth*: interior points go to `Ω`, circle points to `∂Ω`, `f` is injective; so let `F ζ₁ = F ζ₂ = w` with
+`ζ_j = e^{iθ_j}`, `θ₁ < θ₂ < θ₁ + 2π`.  `F` is not `≡ w` on either open arc between them (else `f ≡ w` on `Δ` by
+`eqOn_const_of_eqOn_const_on_arc`), so there are `α ∈ (θ₁, θ₂)`, `β ∈ (θ₂, θ₁ + 2π)` with `b₁ = F e^{iα} ≠ w`,
+`b₂ = F e^{iβ} ≠ w`.  With `R = min ‖b_i - w‖/2`: (ii′) at `w` gives `ρ₀`; (i′) at `w` with `ε = min ρ₀ R` gives
+`δ ≤ ε`.  For `r < 1` near `1`, `F (t ζ_j) ∈ ball w δ` and `‖F (t e^{iα}) - w‖, ‖F (t e^{iβ}) - w‖ ≥ R` for
+`t ∈ [r, 1]`.  Join `f (r ζ₁)`, `f (r ζ₂)` in `Ω ∩ ball w ε` and `f (r e^{iα})`, `f (r e^{iβ})` in `Ω ∖ ball w ρ₀`;
+pulled back by `f⁻¹` and completed by radial segments these are paths as in `s20g_crossing`, whose `F`-images lie in
+`ball w ε` resp. outside it.  So they are disjoint: contradiction.
+
+*Route*: `s20g_crossing`, `eqOn_const_of_eqOn_const_on_arc` (ClusterSets), `IsConformalOnto.symm`, `Path.trans`,
+`Path.map'`, the case split of C9 (CaratheodoryJordan:4334). -/
+theorem s20g_ext_injOn {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω) {f : ℂ → ℂ}
+    (hf : IsConformalOnto f unitDisc Ω) (hq : s20g_QLC Ω) {F : ℂ → ℂ} (hFc : ContinuousOn F (closedBall 0 1))
+    (hFf : EqOn F f unitDisc) (hFs : F '' sphere (0 : ℂ) 1 ⊆ frontier Ω) : InjOn F (closedBall 0 1) := by
+  have _hb := hΩ
+  have hΩo : IsOpen Ω := hf.isOpen isOpen_ball
+  have hin : ∀ z : ℂ, ‖z‖ < 1 → F z ∈ Ω := fun z hz => by
+    rw [hFf (mem_ball_zero_iff.2 hz)]
+    exact hf.mapsTo (mem_ball_zero_iff.2 hz)
+  have hon : ∀ z : ℂ, ‖z‖ = 1 → F z ∉ Ω := fun z hz h => by
+    have h' := hFs ⟨z, mem_sphere_zero_iff_norm.2 hz, rfl⟩
+    rw [hΩo.frontier_eq] at h'
+    exact h'.2 h
+  intro z₁ hz₁ z₂ hz₂ hF
+  by_contra hne
+  rcases (mem_closedBall_zero_iff.1 hz₁).lt_or_eq with h₁ | h₁ <;>
+    rcases (mem_closedBall_zero_iff.1 hz₂).lt_or_eq with h₂ | h₂
+  · refine hne (hf.2.1 (mem_ball_zero_iff.2 h₁) (mem_ball_zero_iff.2 h₂) ?_)
+    rw [← hFf (mem_ball_zero_iff.2 h₁), ← hFf (mem_ball_zero_iff.2 h₂), hF]
+  · exact hon z₂ h₂ (hF ▸ hin z₁ h₁)
+  · exact hon z₁ h₁ (hF.symm ▸ hin z₂ h₂)
+  -- both ends on the circle
+  obtain ⟨θ₁, θ₂, h12, h21, he₁, he₂⟩ := s20g_b_angles h₁ h₂ hne
+  set w := F z₁ with hw_def
+  have hw : w ∈ frontier Ω := hFs ⟨z₁, mem_sphere_zero_iff_norm.2 h₁, rfl⟩
+  have hFθ₁ : F (Complex.exp (θ₁ * I)) = w := by rw [he₁]
+  have hFθ₂ : F (Complex.exp (θ₂ * I)) = w := by rw [he₂, ← hF]
+  obtain ⟨α, hα, hFα⟩ := s20g_b_arc_ne hf hFc hFf h12 h21 w
+  obtain ⟨β, hβ, hFβ⟩ := s20g_b_arc_ne hf hFc hFf h21 (by linarith) w
+  set bα := F (Complex.exp (α * I)) with hbα
+  set bβ := F (Complex.exp (β * I)) with hbβ
+  have hdα : 0 < ‖bα - w‖ := norm_pos_iff.2 (sub_ne_zero.2 hFα)
+  have hdβ : 0 < ‖bβ - w‖ := norm_pos_iff.2 (sub_ne_zero.2 hFβ)
+  set R := min ‖bα - w‖ ‖bβ - w‖ / 2 with hR_def
+  have hR : 0 < R := div_pos (lt_min hdα hdβ) two_pos
+  have hRα : R ≤ ‖bα - w‖ / 2 := by
+    have := min_le_left ‖bα - w‖ ‖bβ - w‖
+    linarith
+  have hRβ : R ≤ ‖bβ - w‖ / 2 := by
+    have := min_le_right ‖bα - w‖ ‖bβ - w‖
+    linarith
+  obtain ⟨hi, hii⟩ := hq w hw
+  obtain ⟨ρ, hρ, hρj⟩ := hii R hR
+  set ε := min ρ R with hε_def
+  have hε : 0 < ε := lt_min hρ hR
+  have hερ : ε ≤ ρ := min_le_left _ _
+  have hεR : ε ≤ R := min_le_right _ _
+  obtain ⟨δ, hδ, hδj⟩ := hi ε hε
+  set δ' := min δ ε with hδ'_def
+  have hδ' : 0 < δ' := lt_min hδ hε
+  have hfar : ∀ b' p : ℂ, R ≤ ‖b' - w‖ / 2 → p ∈ ball b' (‖b' - w‖ / 2) → R ≤ ‖p - w‖ := by
+    intro b' p hb' hp
+    rw [mem_ball, dist_eq_norm] at hp
+    have h1 := norm_sub_le_norm_sub_add_norm_sub b' p w
+    rw [norm_sub_rev b' p] at h1
+    linarith
+  obtain ⟨r₁, hr₁0, hr₁1, hr₁⟩ := s20g_b_radial hFc θ₁ (isOpen_ball (x := w) (ε := δ'))
+    (by rw [hFθ₁]; exact mem_ball_self hδ')
+  obtain ⟨r₂, -, hr₂1, hr₂⟩ := s20g_b_radial hFc θ₂ (isOpen_ball (x := w) (ε := δ'))
+    (by rw [hFθ₂]; exact mem_ball_self hδ')
+  obtain ⟨r₃, -, hr₃1, hr₃⟩ := s20g_b_radial hFc α (isOpen_ball (x := bα) (ε := ‖bα - w‖ / 2))
+    (mem_ball_self (by linarith))
+  obtain ⟨r₄, -, hr₄1, hr₄⟩ := s20g_b_radial hFc β (isOpen_ball (x := bβ) (ε := ‖bβ - w‖ / 2))
+    (mem_ball_self (by linarith))
+  set r := max (max r₁ r₂) (max r₃ r₄) with hr_def
+  have hrr₁ : r₁ ≤ r := le_trans (le_max_left _ _) (le_max_left _ _)
+  have hrr₂ : r₂ ≤ r := le_trans (le_max_right _ _) (le_max_left _ _)
+  have hrr₃ : r₃ ≤ r := le_trans (le_max_left _ _) (le_max_right _ _)
+  have hrr₄ : r₄ ≤ r := le_trans (le_max_right _ _) (le_max_right _ _)
+  have hr0 : 0 ≤ r := le_trans hr₁0 hrr₁
+  have hr1 : r < 1 := max_lt (max_lt hr₁1 hr₂1) (max_lt hr₃1 hr₄1)
+  have hrD : ∀ c : ℝ, (r : ℂ) * Complex.exp (c * I) ∈ unitDisc := fun c => by
+    rw [unitDisc, mem_ball_zero_iff, norm_mul, Complex.norm_exp_ofReal_mul_I, mul_one, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_nonneg hr0]
+    exact hr1
+  -- the inverse of `f`
+  have hg : IsConformalOnto (Function.invFunOn f unitDisc) Ω unitDisc := hf.symm isOpen_ball
+  have hgc : ContinuousOn (Function.invFunOn f unitDisc) Ω := hg.1.continuousOn
+  have hgf : ∀ z ∈ unitDisc, Function.invFunOn f unitDisc (f z) = z := fun z hz =>
+    hf.2.1.leftInvOn_invFunOn hz
+  have hFg : ∀ p ∈ Ω, Function.invFunOn f unitDisc p ∈ unitDisc ∧ F (Function.invFunOn f unitDisc p) = p := by
+    intro p hp
+    have hp' : p ∈ f '' unitDisc := hf.2.2.symm ▸ hp
+    refine ⟨hg.mapsTo hp, ?_⟩
+    rw [hFf (hg.mapsTo hp)]
+    exact Function.invFunOn_eq hp'
+  have hfr : ∀ c : ℝ, f ((r : ℂ) * Complex.exp (c * I)) = F ((r : ℂ) * Complex.exp (c * I)) := fun c =>
+    (hFf (hrD c)).symm
+  -- `Λ`: from `e^{iθ₁}` to `e^{iθ₂}` with `F`-image in `ball w ε`
+  have hΛr : ∀ (c r' : ℝ), r' ≤ r → (∀ t : ℝ, r' ≤ t → t ≤ 1 → F (t * Complex.exp (c * I)) ∈ ball w δ') →
+      ∀ t : ℝ, r ≤ t → t ≤ 1 → F (t * Complex.exp (c * I)) ∈ ball w ε := fun c r' hr' h t ht1 ht2 =>
+    ball_subset_ball (min_le_right _ _) (h t (le_trans hr' ht1) ht2)
+  have hΛm : JoinedIn (unitDisc ∩ F ⁻¹' ball w ε) (r * Complex.exp (θ₁ * I)) (r * Complex.exp (θ₂ * I)) := by
+    have hm₁ : f ((r : ℂ) * Complex.exp (θ₁ * I)) ∈ Ω ∩ ball w δ :=
+      ⟨hf.mapsTo (hrD θ₁), by rw [hfr]; exact ball_subset_ball (min_le_left _ _) (hr₁ r hrr₁ hr1.le)⟩
+    have hm₂ : f ((r : ℂ) * Complex.exp (θ₂ * I)) ∈ Ω ∩ ball w δ :=
+      ⟨hf.mapsTo (hrD θ₂), by rw [hfr]; exact ball_subset_ball (min_le_left _ _) (hr₂ r hrr₂ hr1.le)⟩
+    have hj := (hδj _ hm₁ _ hm₂).map (hgc.mono inter_subset_left)
+    rw [hgf _ (hrD θ₁), hgf _ (hrD θ₂)] at hj
+    refine hj.mono ?_
+    rintro _ ⟨p, ⟨hpΩ, hpB⟩, rfl⟩
+    exact ⟨(hFg p hpΩ).1, by rw [mem_preimage, (hFg p hpΩ).2]; exact hpB⟩
+  have hΛ := s20g_b_join hr0 hr1 (hΛr θ₁ r₁ hrr₁ hr₁) (hΛr θ₂ r₂ hrr₂ hr₂) hΛm
+  -- `Γ`: from `e^{iα}` to `e^{iβ}` with `F`-image outside `ball w ε`
+  have hΓr : ∀ (c r' : ℝ), r' ≤ r → R ≤ ‖F (Complex.exp (c * I)) - w‖ / 2 →
+      (∀ t : ℝ, r' ≤ t → t ≤ 1 → F (t * Complex.exp (c * I)) ∈
+        ball (F (Complex.exp (c * I))) (‖F (Complex.exp (c * I)) - w‖ / 2)) →
+      ∀ t : ℝ, r ≤ t → t ≤ 1 → R ≤ ‖F (t * Complex.exp (c * I)) - w‖ := fun c r' hr' hc h t ht1 ht2 =>
+    hfar _ _ hc (h t (le_trans hr' ht1) ht2)
+  have hout : ∀ p : ℂ, R ≤ ‖p - w‖ → p ∈ (ball w ε)ᶜ := fun p hp h => by
+    rw [mem_ball, dist_eq_norm] at h
+    linarith
+  have hΓm : JoinedIn (unitDisc ∩ F ⁻¹' (ball w ε)ᶜ) (r * Complex.exp (α * I)) (r * Complex.exp (β * I)) := by
+    have hm₃ : f ((r : ℂ) * Complex.exp (α * I)) ∈ Ω \ ball w R := by
+      refine ⟨hf.mapsTo (hrD α), fun h => ?_⟩
+      rw [hfr, mem_ball, dist_eq_norm] at h
+      have := hΓr α r₃ hrr₃ hRα hr₃ r le_rfl hr1.le
+      linarith
+    have hm₄ : f ((r : ℂ) * Complex.exp (β * I)) ∈ Ω \ ball w R := by
+      refine ⟨hf.mapsTo (hrD β), fun h => ?_⟩
+      rw [hfr, mem_ball, dist_eq_norm] at h
+      have := hΓr β r₄ hrr₄ hRβ hr₄ r le_rfl hr1.le
+      linarith
+    have hj := (hρj _ hm₃ _ hm₄).map (hgc.mono sdiff_subset)
+    rw [hgf _ (hrD α), hgf _ (hrD β)] at hj
+    refine hj.mono ?_
+    rintro _ ⟨p, ⟨hpΩ, hpB⟩, rfl⟩
+    refine ⟨(hFg p hpΩ).1, ?_⟩
+    rw [mem_preimage, (hFg p hpΩ).2]
+    exact fun h => hpB (ball_subset_ball hερ h)
+  have hΓ := s20g_b_join hr0 hr1 (fun t ht1 ht2 => hout _ (hΓr α r₃ hrr₃ hRα hr₃ t ht1 ht2))
+    (fun t ht1 ht2 => hout _ (hΓr β r₄ hrr₄ hRβ hr₄ t ht1 ht2)) hΓm
+  obtain ⟨z, hzΛ, hzΓ⟩ := s20g_b_cross_sets hα.1 hα.2 hβ.1 hβ.2 hΛ hΓ (fun z hz => hz.1) (fun z hz => hz.1)
+  exact hzΓ.2 hzΛ.2
+
+/-- **W2, bounded case**: the frontier in `ℂ̄` of a bounded, qualitatively locally connected domain `Ω` which is the
+conformal image of `Δ` is a Jordan curve: the extension `F` of `f` (`s20g_ext_continuous`, `s20g_ext_injOn`) maps
+the unit circle homeomorphically onto `∂Ω`. -/
+theorem s20g_jordan_of_qlc {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω) {f : ℂ → ℂ}
+    (hf : IsConformalOnto f unitDisc Ω) (hq : s20g_QLC Ω) : IsJordanCurve (frontier (toExt Ω)) := by
+  obtain ⟨F, hFc, hFf, hFs, hFi⟩ := s20g_ext_continuous hΩ hf fun w hw => (hq w hw).2
+  have hinj := s20g_ext_injOn hΩ hf hq hFc hFf hFs
+  have hΩo : IsOpen Ω := hf.isOpen isOpen_ball
+  have hfr : frontier Ω = F '' sphere (0 : ℂ) 1 := by
+    refine Subset.antisymm (fun w hw => ?_) hFs
+    have hwcl : w ∈ F '' closedBall 0 1 := hFi ▸ frontier_subset_closure hw
+    obtain ⟨z, hz, rfl⟩ := hwcl
+    rcases eq_or_lt_of_le (mem_closedBall_zero_iff.1 hz) with h | h
+    · exact ⟨z, mem_sphere_zero_iff_norm.2 h, rfl⟩
+    · have hzD : z ∈ unitDisc := mem_ball_zero_iff.2 h
+      have hFz : F z ∈ Ω := by
+        rw [hFf hzD]
+        exact hf.mapsTo hzD
+      rw [hΩo.frontier_eq] at hw
+      exact absurd hFz hw.2
+  have hmem : ∀ ζ : Circle, (ζ : ℂ) ∈ closedBall (0 : ℂ) 1 := fun ζ =>
+    mem_closedBall_zero_iff.2 (Circle.norm_coe ζ).le
+  rw [frontier_toExt_of_isBounded' hΩ hΩo, hfr]
+  refine ⟨fun ζ => ((F ζ : ℂ) : ExtPlane), ?_, fun ζ₁ ζ₂ h => ?_, ?_⟩
+  · exact OnePoint.continuous_coe.comp (hFc.comp_continuous continuous_subtype_val hmem)
+  · exact Circle.coe_injective (hinj (hmem ζ₁) (hmem ζ₂) (OnePoint.coe_injective h))
+  · ext y
+    constructor
+    · rintro ⟨ζ, rfl⟩
+      exact ⟨F ζ, ⟨ζ, mem_sphere_zero_iff_norm.2 (Circle.norm_coe ζ), rfl⟩, rfl⟩
+    · rintro ⟨_, ⟨z, hz, rfl⟩, rfl⟩
+      exact ⟨⟨z, hz⟩, rfl⟩
+
+/-- **W2** (the book's footnote): a `k`-locally connected hyperbolic simply connected domain is a Jordan domain; for
+unbounded `D` its boundary in `ℂ̄` is `∂D ∪ {∞}`.  Bounded `D`: `s20g_jordan_of_qlc`.  Unbounded `D`: move a point
+`c ∉ closure D` (`s20g_exists_exterior`) to `∞` by `T z = 1/(z - c)`; `T(D)` is bounded, conformally equivalent to
+`Δ` and qualitatively locally connected (`s20g_qlc_inv`), and the Möbius homeomorphism of `ℂ̄` carries the frontier of
+`D` onto that of `T(D)`. -/
+theorem s20g_isJordanDomain {D : Set ℂ} {k : ℝ} (hD : IsHyperbolicSimplyConnected D)
+    (hk : IsKLocallyConnected D k) : IsJordanDomain D := by
+  have hDo : IsOpen D := hD.1
+  refine ⟨hDo, hD.2.1, ?_⟩
+  obtain ⟨φ, hφ⟩ := lehto_exists_conformal hD
+  have hf : IsConformalOnto (Function.invFunOn φ D) unitDisc D := hφ.symm hDo
+  by_cases hb : Bornology.IsBounded D
+  · exact s20g_jordan_of_qlc hb hf (s20g_qlc_of_kLC hk)
+  · obtain ⟨c, hc⟩ := s20g_exists_exterior hD hk
+    have hcD : ∀ z ∈ D, z ≠ c := fun z hz h => hc (h ▸ subset_closure hz)
+    obtain ⟨r, hr, hrD⟩ := Metric.isOpen_iff.1 isClosed_closure.isOpen_compl c hc
+    have hbd : Bornology.IsBounded (mobiusFn 0 1 1 (-c) '' D) := by
+      refine (Metric.isBounded_closedBall (x := (0 : ℂ)) (r := 1 / r)).subset ?_
+      rintro _ ⟨z, hz, rfl⟩
+      have hzc : r ≤ ‖z - c‖ := by
+        by_contra h
+        exact hrD (mem_ball_iff_norm.2 (not_le.1 h)) (subset_closure hz)
+      rw [mem_closedBall_zero_iff, mobiusFn, show (0 : ℂ) * z + 1 = 1 by ring,
+        show (1 : ℂ) * z + -c = z - c by ring, norm_div, norm_one]
+      exact one_div_le_one_div_of_le hr hzc
+    have hJ' := s20g_jordan_of_qlc hbd ((uq_j_isConformalOnto_mobiusInv hcD).comp hf) (s20g_qlc_inv hk hc)
+    set e := mobiusHomeomorph 0 1 1 (-c) (uq_j_inv_det c)
+    have hfr : e '' frontier (toExt D) = frontier (toExt (mobiusFn 0 1 1 (-c) '' D)) := by
+      rw [e.image_frontier, uq_j_image_toExt hcD]
+    have h := uq_isJordanCurve_image e.symm hJ'
+    rw [← hfr, image_image] at h
+    simpa only [Homeomorph.symm_apply_apply, image_id'] using h
+
+/-- The frontier of `Δ` in `ℂ̄` is the unit circle (a local copy of `frontier_toExt_unitDisc`, UnitDiscJordan:23,
+which S20 does not import). -/
+theorem s20g_frontier_toExt_unitDisc : frontier (toExt unitDisc) = toExt (sphere (0 : ℂ) 1) := by
+  unfold unitDisc
+  rw [frontier_toExt_of_isBounded' isBounded_ball isOpen_ball, frontier_ball (0 : ℂ) one_ne_zero]
+
+/-- The domain of a conformal map onto an open set with a homeomorphic extension to the closures is open
+(invariance of domain, applied to the inverse map). -/
+theorem s20g_a_isOpen_of_homeoExt {D V : Set ℂ} (hV : IsOpen V) {φ : ℂ → ℂ} (hφ : IsConformalOnto φ D V)
+    {Φ : ExtPlane → ExtPlane} (hΦ : IsHomeoExtension φ D V Φ) : IsOpen D := by
+  obtain ⟨hΨ1, hΨ2, -, -⟩ := isHomeoExtension_invFunOn hφ hΦ
+  set ψ := Function.invFunOn φ D with hψ
+  have hVo : IsOpen (toExt V) := OnePoint.isOpenEmbedding_coe.isOpenMap _ hV
+  have hcont : ContinuousOn ψ V := by
+    intro w hw
+    have hK : closure (toExt V) ∈ 𝓝 ((w : ℂ) : ExtPlane) :=
+      Filter.mem_of_superset (hVo.mem_nhds (mem_image_of_mem _ hw)) subset_closure
+    have h1 : ContinuousAt (Function.invFunOn Φ (closure (toExt D))) (w : ExtPlane) := hΨ2.continuousAt hK
+    have h2 : ContinuousAt (((↑) : ℂ → ExtPlane) ∘ ψ) w := by
+      have h3 : ContinuousAt ((Function.invFunOn Φ (closure (toExt D))) ∘ ((↑) : ℂ → ExtPlane)) w :=
+        h1.comp OnePoint.continuous_coe.continuousAt
+      refine h3.congr ?_
+      filter_upwards [hV.mem_nhds hw] with w' hw'
+      exact hΨ1 w' hw'
+    exact (OnePoint.isOpenEmbedding_coe.isInducing.continuousAt_iff.2 h2).continuousWithinAt
+  have hinj : InjOn ψ V := fun a ha b hb hab => by
+    rw [← hφ.2.2] at ha hb
+    have hab' : Function.invFunOn φ D a = Function.invFunOn φ D b := hab
+    rw [← Function.invFunOn_eq ha, ← Function.invFunOn_eq hb, hab']
+  have himg : ψ '' V = D := by
+    rw [← hφ.2.2]
+    exact hφ.2.1.leftInvOn_invFunOn.image_image
+  rw [← himg]
+  exact isOpen_image_of_continuousOn_injOn hV hcont hinj
+
+/-- `e^{ia} ≠ e^{ib}` for `a < b < a + 2π`. -/
+theorem s20g_a_exp_ne {a b : ℝ} (hab : a < b) (hba : b < a + 2 * π) :
+    Complex.exp (a * I) ≠ Complex.exp (b * I) := by
+  intro h
+  obtain ⟨n, hn⟩ := Complex.exp_eq_exp_iff_exists_int.1 h
+  have him := congrArg Complex.im hn
+  simp at him
+  have h1 : (n : ℝ) * (2 * π) = a - b := by linarith
+  have h2 : -1 < (n : ℝ) := by nlinarith [Real.pi_pos]
+  have h3 : (n : ℝ) < 0 := by nlinarith [Real.pi_pos]
+  have h4 : -1 < n := by exact_mod_cast h2
+  have h5 : n < 0 := by exact_mod_cast h3
+  omega
+
+/-- The angle `s ∈ (θ, θ + 2π)` of `e^{is}` is `θ + π + arg (-(e^{is} / e^{iθ}))`. -/
+theorem s20g_a_ang_exp {θ s : ℝ} (hs : s ∈ Ioo θ (θ + 2 * π)) :
+    θ + π + arg (-(Complex.exp (s * I) / Complex.exp (θ * I))) = s := by
+  have h : -(Complex.exp (s * I) / Complex.exp (θ * I)) = Complex.exp (((s - θ - π : ℝ) : ℂ) * I) := by
+    rw [show ((s - θ - π : ℝ) : ℂ) * I = s * I - θ * I - π * I by push_cast; ring, Complex.exp_sub,
+      Complex.exp_sub, Complex.exp_pi_mul_I, div_neg, div_one]
+  rw [h, Complex.arg_exp_mul_I, (toIocMod_eq_self Real.two_pi_pos).2 ⟨by linarith [hs.1], by linarith [hs.2]⟩]
+  ring
+
+/-- On the unit circle, `u = e^{i(θ + π + arg (-(u / e^{iθ})))}`. -/
+theorem s20g_a_exp_ang (θ : ℝ) {u : ℂ} (hu : ‖u‖ = 1) :
+    Complex.exp (((θ + π + arg (-(u / Complex.exp (θ * I))) : ℝ) : ℂ) * I) = u := by
+  set v := -(u / Complex.exp (θ * I)) with hv
+  have hvn : ‖v‖ = 1 := by rw [hv, norm_neg, norm_div, hu, Complex.norm_exp_ofReal_mul_I, div_one]
+  have hve : Complex.exp (arg v * I) = v := by
+    have h := Complex.norm_mul_exp_arg_mul_I v
+    rwa [hvn, Complex.ofReal_one, one_mul] at h
+  push_cast
+  rw [add_mul, add_mul, Complex.exp_add, Complex.exp_add, hve, Complex.exp_pi_mul_I, hv]
+  have he : Complex.exp (θ * I) ≠ 0 := Complex.exp_ne_zero _
+  field_simp
+
+/-- For `u ≠ e^{iθ}` on the unit circle, `-(u / e^{iθ})` is in the slit plane. -/
+theorem s20g_a_ang_slit (θ : ℝ) {u : ℂ} (hu : ‖u‖ = 1) (hne : u ≠ Complex.exp (θ * I)) :
+    -(u / Complex.exp (θ * I)) ∈ slitPlane := by
+  set v := -(u / Complex.exp (θ * I)) with hv
+  have hvn : ‖v‖ = 1 := by rw [hv, norm_neg, norm_div, hu, Complex.norm_exp_ofReal_mul_I, div_one]
+  rw [Complex.mem_slitPlane_iff]
+  by_contra h
+  push Not at h
+  obtain ⟨hre, him⟩ := h
+  have hsq : ‖v‖ ^ 2 = v.re * v.re + v.im * v.im := by rw [Complex.sq_norm, Complex.normSq_apply]
+  rw [hvn, him] at hsq
+  have hre1 : v.re = -1 := by nlinarith
+  have hv1 : v = -1 := Complex.ext (by simp [hre1]) (by simp [him])
+  have he : Complex.exp (θ * I) ≠ 0 := Complex.exp_ne_zero _
+  apply hne
+  have h2 : u = -v * Complex.exp (θ * I) := by
+    rw [hv]
+    field_simp
+  rw [h2, hv1]
+  ring
+
+/-- **Components of the punctured boundary** (bounded turning).  With a disc uniformizer `Φ` of `D` (homeomorphic on
+`closure (toExt D)`), `Φ z₁ = e^{iθ₁}`, `Φ z₂ = e^{iθ₂}`, `θ₁ < θ₂ < θ₁ + 2π`: a point `p` over the open arc
+`(θ₁, θ₂)` lies in `∂D ∖ {z₁, z₂}`, and its component there lies over the same arc.
+
+*Truth*: `Φ` restricted to `closure (toExt D)` is a homeomorphism onto the closed disc (compact to Hausdorff) carrying
+`frontier (toExt D)` onto the unit circle.  `p ∉ {z₁, z₂}` because `exp (· * I)` is injective on `[θ₁, θ₁ + 2π)`.
+The two open arcs are connected, relatively open in the circle minus `{e^{iθ₁}, e^{iθ₂}}`, and partition it, so the
+component of `e^{it}` is contained in its own arc; a homeomorphism carries `connectedComponentIn` to
+`connectedComponentIn`.
+
+*Route*: `IsHomeoExtension.image_frontier` (Quadrilateral:113), `s20g_frontier_toExt_unitDisc` (above),
+`image_connectedComponentIn_of_isEmbedding` (Quadrilateral:38), `Complex.exp_eq_exp_iff_exists_int`,
+`isPreconnected_Ioo.image`. -/
+theorem s20g_bt_arc_component {D : Set ℂ} {φ : ℂ → ℂ} (hφ : IsConformalOnto φ D unitDisc)
+    {Φ : ExtPlane → ExtPlane} (hΦ : IsHomeoExtension φ D unitDisc Φ) {θ₁ θ₂ t : ℝ} (h12 : θ₁ < θ₂)
+    (h21 : θ₂ < θ₁ + 2 * π) {z₁ z₂ : ℂ} (hz₁ : (z₁ : ExtPlane) ∈ closure (toExt D))
+    (hz₂ : (z₂ : ExtPlane) ∈ closure (toExt D)) (hΦ₁ : Φ z₁ = ((Complex.exp (θ₁ * I) : ℂ) : ExtPlane))
+    (hΦ₂ : Φ z₂ = ((Complex.exp (θ₂ * I) : ℂ) : ExtPlane)) (ht : t ∈ Ioo θ₁ θ₂) {p : ExtPlane}
+    (hp : p ∈ closure (toExt D)) (hΦp : Φ p = ((Complex.exp (t * I) : ℂ) : ExtPlane)) :
+    p ∈ frontier (toExt D) \ {(z₁ : ExtPlane), (z₂ : ExtPlane)} ∧
+      ∀ q ∈ connectedComponentIn (frontier (toExt D) \ {(z₁ : ExtPlane), (z₂ : ExtPlane)}) p,
+        q ∈ closure (toExt D) ∧ ∃ s ∈ Ioo θ₁ θ₂, Φ q = ((Complex.exp (s * I) : ℂ) : ExtPlane) := by
+  have _ := h12
+  have hDo : IsOpen D := s20g_a_isOpen_of_homeoExt isOpen_ball hφ hΦ
+  have hfr : Φ '' frontier (toExt D) = toExt (sphere (0 : ℂ) 1) := by
+    rw [hΦ.image_frontier hDo isOpen_ball hφ.2.2]
+    exact s20g_frontier_toExt_unitDisc
+  have hfrK : frontier (toExt D) ⊆ closure (toExt D) := frontier_subset_closure
+  set S := frontier (toExt D) \ {(z₁ : ExtPlane), (z₂ : ExtPlane)} with hSdef
+  -- points of `S` go to the circle minus the two marked points
+  have hSu : ∀ q ∈ S, ∃ u : ℂ, ‖u‖ = 1 ∧ u ≠ Complex.exp (θ₁ * I) ∧ u ≠ Complex.exp (θ₂ * I) ∧
+      Φ q = (u : ExtPlane) := by
+    intro q hq
+    obtain ⟨u, hu, hΦq⟩ := hfr.subset (mem_image_of_mem Φ hq.1)
+    refine ⟨u, mem_sphere_zero_iff_norm.1 hu, fun h => hq.2 (Or.inl ?_), fun h => hq.2 (Or.inr ?_), hΦq.symm⟩
+    · exact hΦ.2.2.1 (hfrK hq.1) hz₁ (by rw [hΦ₁, ← hΦq, h])
+    · exact hΦ.2.2.1 (hfrK hq.1) hz₂ (by rw [hΦ₂, ← hΦq, h])
+  -- `p` lies in `S`
+  have hpfr : p ∈ frontier (toExt D) := by
+    have hmem : Φ p ∈ Φ '' frontier (toExt D) := by
+      rw [hfr, hΦp]
+      exact mem_image_of_mem _ (mem_sphere_zero_iff_norm.2 (Complex.norm_exp_ofReal_mul_I t))
+    obtain ⟨p', hp', hpp'⟩ := hmem
+    rw [← hΦ.2.2.1 (hfrK hp') hp hpp']
+    exact hp'
+  have hpS : p ∈ S := by
+    refine ⟨hpfr, ?_⟩
+    rintro (h | h)
+    · rw [h, hΦ₁] at hΦp
+      exact s20g_a_exp_ne ht.1 (by linarith [ht.2]) (OnePoint.coe_injective hΦp)
+    · rw [h, hΦ₂] at hΦp
+      exact s20g_a_exp_ne ht.2 (by linarith [ht.1]) (OnePoint.coe_injective hΦp).symm
+  refine ⟨hpS, fun q hq => ?_⟩
+  set C := connectedComponentIn S p with hC
+  have hCS : C ⊆ S := connectedComponentIn_subset S p
+  have hCpre : IsPreconnected (Φ '' C) :=
+    isPreconnected_connectedComponentIn.image Φ (hΦ.2.1.mono (hCS.trans (sdiff_subset.trans hfrK)))
+  set T : Set ℂ := {u | (u : ExtPlane) ∈ Φ '' C} with hT
+  have hTimg : ((↑) : ℂ → ExtPlane) '' T = Φ '' C := by
+    ext x
+    constructor
+    · rintro ⟨u, hu, rfl⟩
+      exact hu
+    · rintro ⟨q', hq', rfl⟩
+      obtain ⟨u, -, -, -, hu⟩ := hSu q' (hCS hq')
+      exact ⟨u, show ((u : ℂ) : ExtPlane) ∈ Φ '' C by rw [← hu]; exact ⟨q', hq', rfl⟩, hu.symm⟩
+  have hTpre : IsPreconnected T :=
+    OnePoint.isOpenEmbedding_coe.isInducing.isPreconnected_image.1 (hTimg ▸ hCpre)
+  have hTu : ∀ u ∈ T, ‖u‖ = 1 ∧ u ≠ Complex.exp (θ₁ * I) ∧ u ≠ Complex.exp (θ₂ * I) := by
+    rintro u ⟨q', hq', hqu⟩
+    obtain ⟨u', h1, h2, h3, hu'⟩ := hSu q' (hCS hq')
+    rw [hu'] at hqu
+    rw [← OnePoint.coe_injective hqu]
+    exact ⟨h1, h2, h3⟩
+  set g : ℂ → ℝ := fun u => θ₁ + π + arg (-(u / Complex.exp (θ₁ * I))) with hg
+  have hgc : ContinuousOn g T := by
+    intro u hu
+    have h1 : ContinuousAt (fun u : ℂ => -(u / Complex.exp (θ₁ * I))) u :=
+      (continuous_id.div_const (Complex.exp (θ₁ * I))).neg.continuousAt
+    have h2 : ContinuousAt (arg ∘ fun u : ℂ => -(u / Complex.exp (θ₁ * I))) u :=
+      ContinuousAt.comp (f := fun u : ℂ => -(u / Complex.exp (θ₁ * I)))
+        (Complex.continuousAt_arg (s20g_a_ang_slit θ₁ (hTu u hu).1 (hTu u hu).2.1)) h1
+    exact (continuousAt_const.add h2).continuousWithinAt
+  have hgT : IsPreconnected (g '' T) := hTpre.image g hgc
+  have htT : Complex.exp (t * I) ∈ T := ⟨p, mem_connectedComponentIn hpS, hΦp⟩
+  have hgt : g (Complex.exp (t * I)) = t := s20g_a_ang_exp ⟨ht.1, by linarith [ht.2]⟩
+  have hθ₂ : θ₂ ∉ g '' T := by
+    rintro ⟨u, hu, hgu⟩
+    apply (hTu u hu).2.2
+    rw [← hgu]
+    exact (s20g_a_exp_ang θ₁ (hTu u hu).1).symm
+  obtain ⟨u, h1, -, -, hu⟩ := hSu q (hCS hq)
+  have huT : u ∈ T := ⟨q, hq, hu⟩
+  refine ⟨hfrK (hCS hq).1, g u, ⟨?_, ?_⟩, ?_⟩
+  · have h := Complex.neg_pi_lt_arg (-(u / Complex.exp (θ₁ * I)))
+    simp only [hg]
+    linarith
+  · by_contra hle
+    push Not at hle
+    exact hθ₂ (hgT.Icc_subset ⟨_, htT, hgt⟩ ⟨u, huT, rfl⟩ ⟨ht.2.le, hle⟩)
+  · rw [hu]
+    exact congrArg _ (s20g_a_exp_ang θ₁ h1).symm
+
+/-- **Bounded turning, the crossing step.**  With a disc uniformizer `Φ` of a `k`-locally connected `D` and
+`Φ z_j = e^{iθ_j}` (`θ₁ < θ₂ < θ₁ + 2π`), one of the two arcs of `∂D` between `z₁` and `z₂` lies in
+`closedBall z₁ ((2k² + 1) ‖z₁ - z₂‖)` (in particular it avoids `∞`).
+
+*Truth*: `r = ‖z₁ - z₂‖ > 0` (`Φ` injective), `R = (2k² + 1) r`.  Suppose both arcs have points `Ψ e^{iα}`,
+`Ψ e^{iβ}` (`Ψ = Φ⁻¹` on the closed disc, `α ∈ (θ₁, θ₂)`, `β ∈ (θ₂, θ₁ + 2π)`) outside `toExt (closedBall z₁ R)`
+(possibly `∞`).  Clause (i) of `hk` at `z₁` with radius `2r` joins `x_j = Ψ (s e^{iθ_j})` (`s` near `1`, so
+`‖x_j - z_j‖ < r`) in `D ∩ closedBall z₁ (2kr)`; clause (ii) at `z₁` with radius `R` joins `Ψ (s e^{iα})`,
+`Ψ (s e^{iβ})` (outside `closedBall z₁ R`, an open condition in `ℂ̄`) in `D ∖ ball z₁ (R/k)`.  Pulled back by `φ` and
+completed by radial segments these are paths as in `s20g_crossing`; their `Ψ`-images lie in `closedBall z₁ (2kr)`
+resp. outside `ball z₁ (R/k)`, disjoint since `R/k = 2kr + r/k > 2kr`.  Contradiction.
+
+*Route*: `s20g_crossing`, `isHomeoExtension_invFunOn` (ImageQuad:63), `hk.2`, `IsConformalOnto.symm`,
+`Path.trans`, `Path.map'`. -/
+theorem s20g_bt_cross {D : Set ℂ} {k : ℝ} (hk : IsKLocallyConnected D k) {φ : ℂ → ℂ}
+    (hφ : IsConformalOnto φ D unitDisc) {Φ : ExtPlane → ExtPlane} (hΦ : IsHomeoExtension φ D unitDisc Φ)
+    {θ₁ θ₂ : ℝ} (h12 : θ₁ < θ₂) (h21 : θ₂ < θ₁ + 2 * π) {z₁ z₂ : ℂ}
+    (hz₁ : (z₁ : ExtPlane) ∈ closure (toExt D)) (hz₂ : (z₂ : ExtPlane) ∈ closure (toExt D))
+    (hΦ₁ : Φ z₁ = ((Complex.exp (θ₁ * I) : ℂ) : ExtPlane))
+    (hΦ₂ : Φ z₂ = ((Complex.exp (θ₂ * I) : ℂ) : ExtPlane)) :
+    (∀ p ∈ closure (toExt D), ∀ s ∈ Ioo θ₁ θ₂, Φ p = ((Complex.exp (s * I) : ℂ) : ExtPlane) →
+        p ∈ toExt (closedBall z₁ ((2 * k ^ 2 + 1) * ‖z₁ - z₂‖))) ∨
+      ∀ p ∈ closure (toExt D), ∀ s ∈ Ioo θ₂ (θ₁ + 2 * π), Φ p = ((Complex.exp (s * I) : ℂ) : ExtPlane) →
+        p ∈ toExt (closedBall z₁ ((2 * k ^ 2 + 1) * ‖z₁ - z₂‖)) := by
+  have hk1 : 1 ≤ k := hk.1
+  have hk0 : 0 < k := by linarith
+  -- the inverse extension `Ψ` and `G z = Ψ z` on the closed disc
+  have hΨ : IsHomeoExtension (Function.invFunOn φ D) unitDisc D (Function.invFunOn Φ (closure (toExt D))) :=
+    isHomeoExtension_invFunOn hφ hΦ
+  set Ψ := Function.invFunOn Φ (closure (toExt D)) with hΨ_def
+  have hcl : closure (toExt unitDisc) = toExt (closedBall 0 1) := by
+    rw [show unitDisc = ball (0 : ℂ) 1 from rfl, closure_toExt_of_isBounded isBounded_ball,
+      closure_ball (0 : ℂ) one_ne_zero]
+  set G : ℂ → ExtPlane := fun z => Ψ (z : ExtPlane) with hG_def
+  have hGc : ContinuousOn G (closedBall 0 1) :=
+    hΨ.2.1.comp OnePoint.continuous_coe.continuousOn (fun z hz => by rw [hcl]; exact ⟨z, hz, rfl⟩)
+  have hΨΦ : ∀ p ∈ closure (toExt D), Ψ (Φ p) = p := fun p hp => hΦ.2.2.1.leftInvOn_invFunOn hp
+  have hGe : ∀ {p : ExtPlane} {c : ℝ}, p ∈ closure (toExt D) → Φ p = ((Complex.exp (c * I) : ℂ) : ExtPlane) →
+      G (Complex.exp (c * I)) = p := fun hp he => by
+    show Ψ _ = _
+    rw [← he]
+    exact hΨΦ _ hp
+  have hinv : ∀ z ∈ unitDisc, Function.invFunOn φ D z ∈ D ∧ G z = ((Function.invFunOn φ D z : ℂ) : ExtPlane) := by
+    intro z hz
+    have hz' : z ∈ φ '' D := hφ.2.2.symm ▸ hz
+    exact ⟨Function.invFunOn_mem hz', hΨ.1 z hz⟩
+  have hφinv : ∀ z ∈ unitDisc, φ (Function.invFunOn φ D z) = z := fun z hz =>
+    Function.invFunOn_eq (hφ.2.2.symm ▸ hz : z ∈ φ '' D)
+  have hφD : ∀ y ∈ D, φ y ∈ unitDisc ∧ G (φ y) = (y : ExtPlane) := by
+    intro y hy
+    refine ⟨hφ.mapsTo hy, ?_⟩
+    show Ψ _ = _
+    rw [← hΦ.1 y hy]
+    exact hΨΦ _ (subset_closure (mem_image_of_mem _ hy))
+  -- the two points are distinct
+  have hz12 : z₁ ≠ z₂ := by
+    rintro rfl
+    exact s20g_b_exp_ne (by linarith) (by linarith) (OnePoint.coe_injective (hΦ₁.symm.trans hΦ₂))
+  set r₀ := ‖z₁ - z₂‖ with hr₀_def
+  have hr₀ : 0 < r₀ := norm_pos_iff.2 (sub_ne_zero.2 hz12)
+  set R := (2 * k ^ 2 + 1) * r₀ with hR_def
+  have hRpos : 0 < R := by positivity
+  have h2kR : k * (2 * r₀) ≤ R := by nlinarith
+  have hRk : k * (2 * r₀) < R / k := by
+    rw [lt_div_iff₀ hk0]
+    nlinarith
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨⟨pα, hpα, α, hα, hΦα, hpαR⟩, pβ, hpβ, β, hβ, hΦβ, hpβR⟩ := hcon
+  -- radii
+  have hU : ∀ (x : ℂ) (ρ : ℝ), IsOpen (toExt (ball x ρ)) := fun x ρ => OnePoint.isOpen_image_coe.2 isOpen_ball
+  have hV : IsOpen (toExt (closedBall z₁ R))ᶜ :=
+    ((isCompact_closedBall z₁ R).image OnePoint.continuous_coe).isClosed.isOpen_compl
+  obtain ⟨r₁, hr₁0, hr₁1, hr₁⟩ := s20g_b_radial hGc θ₁ (hU z₁ r₀)
+    (by rw [hGe hz₁ hΦ₁]; exact mem_image_of_mem _ (mem_ball_self hr₀))
+  obtain ⟨r₂, -, hr₂1, hr₂⟩ := s20g_b_radial hGc θ₂ (hU z₂ r₀)
+    (by rw [hGe hz₂ hΦ₂]; exact mem_image_of_mem _ (mem_ball_self hr₀))
+  obtain ⟨r₃, -, hr₃1, hr₃⟩ := s20g_b_radial hGc α hV (by rw [hGe hpα hΦα]; exact hpαR)
+  obtain ⟨r₄, -, hr₄1, hr₄⟩ := s20g_b_radial hGc β hV (by rw [hGe hpβ hΦβ]; exact hpβR)
+  set r := max (max r₁ r₂) (max r₃ r₄) with hr_def
+  have hrr₁ : r₁ ≤ r := le_trans (le_max_left _ _) (le_max_left _ _)
+  have hrr₂ : r₂ ≤ r := le_trans (le_max_right _ _) (le_max_left _ _)
+  have hrr₃ : r₃ ≤ r := le_trans (le_max_left _ _) (le_max_right _ _)
+  have hrr₄ : r₄ ≤ r := le_trans (le_max_right _ _) (le_max_right _ _)
+  have hr0 : 0 ≤ r := le_trans hr₁0 hrr₁
+  have hr1 : r < 1 := max_lt (max_lt hr₁1 hr₂1) (max_lt hr₃1 hr₄1)
+  have hrD : ∀ c : ℝ, (r : ℂ) * Complex.exp (c * I) ∈ unitDisc := fun c => by
+    rw [unitDisc, mem_ball_zero_iff, norm_mul, Complex.norm_exp_ofReal_mul_I, mul_one, Complex.norm_real,
+      Real.norm_eq_abs, abs_of_nonneg hr0]
+    exact hr1
+  -- `Λ`: from `e^{iθ₁}` to `e^{iθ₂}` with `G`-image in `closedBall z₁ (2kr₀)`
+  set P := toExt (closedBall z₁ (k * (2 * r₀))) with hP_def
+  have hB₁ : ball z₁ r₀ ⊆ closedBall z₁ (k * (2 * r₀)) :=
+    ball_subset_closedBall.trans (closedBall_subset_closedBall (by nlinarith))
+  have hB₂ : ball z₂ r₀ ⊆ closedBall z₁ (2 * r₀) := by
+    intro y hy
+    rw [mem_ball] at hy
+    rw [mem_closedBall]
+    have h1 := dist_triangle y z₂ z₁
+    rw [dist_eq_norm z₂ z₁, norm_sub_rev] at h1
+    linarith
+  have hB₂' : closedBall z₁ (2 * r₀) ⊆ closedBall z₁ (k * (2 * r₀)) :=
+    closedBall_subset_closedBall (by nlinarith)
+  have hΛ₁ : ∀ t : ℝ, r ≤ t → t ≤ 1 → G (t * Complex.exp (θ₁ * I)) ∈ P := fun t ht1 ht2 =>
+    image_mono hB₁ (hr₁ t (le_trans hrr₁ ht1) ht2)
+  have hΛ₂ : ∀ t : ℝ, r ≤ t → t ≤ 1 → G (t * Complex.exp (θ₂ * I)) ∈ P := fun t ht1 ht2 =>
+    image_mono (hB₂.trans hB₂') (hr₂ t (le_trans hrr₂ ht1) ht2)
+  have hΛm : JoinedIn (unitDisc ∩ G ⁻¹' P) (r * Complex.exp (θ₁ * I)) (r * Complex.exp (θ₂ * I)) := by
+    obtain ⟨hy₁D, hy₁G⟩ := hinv _ (hrD θ₁)
+    obtain ⟨hy₂D, hy₂G⟩ := hinv _ (hrD θ₂)
+    have hy₁ : Function.invFunOn φ D ((r : ℂ) * Complex.exp (θ₁ * I)) ∈ ball z₁ r₀ := by
+      rw [← coe_mem_toExt_iff, ← hy₁G]
+      exact hr₁ r hrr₁ hr1.le
+    have hy₂ : Function.invFunOn φ D ((r : ℂ) * Complex.exp (θ₂ * I)) ∈ ball z₂ r₀ := by
+      rw [← coe_mem_toExt_iff, ← hy₂G]
+      exact hr₂ r hrr₂ hr1.le
+    have hj := ((hk.2 z₁ (2 * r₀) (by positivity)).1 _
+      ⟨hy₁D, (ball_subset_closedBall.trans (closedBall_subset_closedBall (by linarith))) hy₁⟩ _
+      ⟨hy₂D, hB₂ hy₂⟩).map (hφ.1.continuousOn.mono inter_subset_left)
+    rw [hφinv _ (hrD θ₁), hφinv _ (hrD θ₂)] at hj
+    refine hj.mono ?_
+    rintro _ ⟨y, ⟨hyD, hyB⟩, rfl⟩
+    refine ⟨(hφD y hyD).1, ?_⟩
+    rw [mem_preimage, (hφD y hyD).2]
+    exact mem_image_of_mem _ hyB
+  have hΛ := s20g_b_join hr0 hr1 hΛ₁ hΛ₂ hΛm
+  -- `Γ`: from `e^{iα}` to `e^{iβ}` with `G`-image outside `closedBall z₁ (2kr₀)`
+  have hPR : Pᶜ ⊇ (toExt (closedBall z₁ R))ᶜ := compl_subset_compl.2 (image_mono (closedBall_subset_closedBall h2kR))
+  have hΓ₃ : ∀ t : ℝ, r ≤ t → t ≤ 1 → G (t * Complex.exp (α * I)) ∈ Pᶜ := fun t ht1 ht2 =>
+    hPR (hr₃ t (le_trans hrr₃ ht1) ht2)
+  have hΓ₄ : ∀ t : ℝ, r ≤ t → t ≤ 1 → G (t * Complex.exp (β * I)) ∈ Pᶜ := fun t ht1 ht2 =>
+    hPR (hr₄ t (le_trans hrr₄ ht1) ht2)
+  have hΓm : JoinedIn (unitDisc ∩ G ⁻¹' Pᶜ) (r * Complex.exp (α * I)) (r * Complex.exp (β * I)) := by
+    obtain ⟨hy₃D, hy₃G⟩ := hinv _ (hrD α)
+    obtain ⟨hy₄D, hy₄G⟩ := hinv _ (hrD β)
+    have hy₃ : Function.invFunOn φ D ((r : ℂ) * Complex.exp (α * I)) ∉ ball z₁ R := by
+      intro h
+      have h' := hr₃ r hrr₃ hr1.le
+      rw [hy₃G] at h'
+      exact h' (coe_mem_toExt_iff.2 (ball_subset_closedBall h))
+    have hy₄ : Function.invFunOn φ D ((r : ℂ) * Complex.exp (β * I)) ∉ ball z₁ R := by
+      intro h
+      have h' := hr₄ r hrr₄ hr1.le
+      rw [hy₄G] at h'
+      exact h' (coe_mem_toExt_iff.2 (ball_subset_closedBall h))
+    have hj := ((hk.2 z₁ R hRpos).2 _ ⟨hy₃D, hy₃⟩ _ ⟨hy₄D, hy₄⟩).map (hφ.1.continuousOn.mono sdiff_subset)
+    rw [hφinv _ (hrD α), hφinv _ (hrD β)] at hj
+    refine hj.mono ?_
+    rintro _ ⟨y, ⟨hyD, hyB⟩, rfl⟩
+    refine ⟨(hφD y hyD).1, ?_⟩
+    rw [mem_preimage, (hφD y hyD).2]
+    intro h
+    have hy := mem_closedBall.1 (coe_mem_toExt_iff.1 h)
+    exact hyB (mem_ball.2 (lt_of_le_of_lt hy hRk))
+  have hΓ := s20g_b_join hr0 hr1 hΓ₃ hΓ₄ hΓm
+  obtain ⟨z, hzΛ, hzΓ⟩ := s20g_b_cross_sets hα.1 hα.2 hβ.1 hβ.2 hΛ hΓ (fun z hz => hz.1) (fun z hz => hz.1)
+  exact hzΓ.2 hzΛ.2
+
+/-- Two distinct points of the unit circle are `e^{iθ₁}`, `e^{iθ₂}` with `θ₁ < θ₂ < θ₁ + 2π`. -/
+theorem s20g_angles {ζ₁ ζ₂ : ℂ} (h₁ : ‖ζ₁‖ = 1) (h₂ : ‖ζ₂‖ = 1) (hne : ζ₁ ≠ ζ₂) :
+    ∃ θ₁ θ₂ : ℝ, θ₁ < θ₂ ∧ θ₂ < θ₁ + 2 * π ∧ Complex.exp (θ₁ * I) = ζ₁ ∧ Complex.exp (θ₂ * I) = ζ₂ := by
+  have he : ∀ ζ : ℂ, ‖ζ‖ = 1 → Complex.exp ((arg ζ : ℂ) * I) = ζ := fun ζ hζ => by
+    have h := Complex.norm_mul_exp_arg_mul_I ζ
+    rwa [hζ, Complex.ofReal_one, one_mul] at h
+  have hne' : arg ζ₁ ≠ arg ζ₂ := fun h => hne (by rw [← he ζ₁ h₁, ← he ζ₂ h₂, h])
+  have hb₁ := Complex.neg_pi_lt_arg ζ₁
+  have hb₂ := Complex.arg_le_pi ζ₁
+  have hc₁ := Complex.neg_pi_lt_arg ζ₂
+  have hc₂ := Complex.arg_le_pi ζ₂
+  rcases lt_or_gt_of_ne hne' with h | h
+  · exact ⟨arg ζ₁, arg ζ₂, h, by linarith, he ζ₁ h₁, he ζ₂ h₂⟩
+  · refine ⟨arg ζ₁, arg ζ₂ + 2 * π, by linarith, by linarith, he ζ₁ h₁, ?_⟩
+    rw [Complex.ofReal_add, add_mul, Complex.exp_add, he ζ₂ h₂]
+    have : Complex.exp (((2 * π : ℝ) : ℂ) * I) = 1 := by
+      rw [Complex.ofReal_mul, Complex.ofReal_ofNat]
+      exact Complex.exp_two_pi_mul_I
+    rw [this, mul_one]
+
+/-- **Bounded turning** (the book: `k`-locally connected ⇒ `k²`-bounded turning; here with the constant
+`2(2k² + 1)`): through a disc uniformizer of the Jordan domain `D`, one arc of `∂D ∖ {z₁, z₂}` lies in
+`closedBall z₁ ((2k² + 1) ‖z₁ - z₂‖)` (`s20g_bt_cross`) and is the component of each of its points
+(`s20g_bt_arc_component`). -/
+theorem s20g_boundedTurning {D : Set ℂ} {k : ℝ} (hJ : IsJordanDomain D) (hk : IsKLocallyConnected D k) :
+    IsBoundedTurning (frontier (toExt D)) (2 * (2 * k ^ 2 + 1)) := by
+  have hk1 : 1 ≤ k := hk.1
+  refine ⟨hJ.2.2, by nlinarith, fun z₁ z₂ h₁ h₂ hne => ?_⟩
+  obtain ⟨φ, hφ, Φ, hΦ⟩ := s13x_th_exists_disc_uniformizer hJ
+  have hfr : Φ '' frontier (toExt D) = toExt (sphere (0 : ℂ) 1) := by
+    rw [hΦ.image_frontier hJ.1 isOpen_ball hφ.2.2]
+    exact s20g_frontier_toExt_unitDisc
+  have hcl₁ : (z₁ : ExtPlane) ∈ closure (toExt D) := frontier_subset_closure h₁
+  have hcl₂ : (z₂ : ExtPlane) ∈ closure (toExt D) := frontier_subset_closure h₂
+  obtain ⟨ζ₁, hζ₁, hΦζ₁⟩ : ∃ ζ ∈ sphere (0 : ℂ) 1, Φ z₁ = (ζ : ExtPlane) := by
+    obtain ⟨ζ, hζ, h⟩ := hfr.subset (mem_image_of_mem Φ h₁)
+    exact ⟨ζ, hζ, h.symm⟩
+  obtain ⟨ζ₂, hζ₂, hΦζ₂⟩ : ∃ ζ ∈ sphere (0 : ℂ) 1, Φ z₂ = (ζ : ExtPlane) := by
+    obtain ⟨ζ, hζ, h⟩ := hfr.subset (mem_image_of_mem Φ h₂)
+    exact ⟨ζ, hζ, h.symm⟩
+  have hζne : ζ₁ ≠ ζ₂ := by
+    rintro rfl
+    exact hne (OnePoint.coe_injective (hΦ.2.2.1 hcl₁ hcl₂ (hΦζ₁.trans hΦζ₂.symm)))
+  obtain ⟨θ₁, θ₂, h12, h21, he₁, he₂⟩ :=
+    s20g_angles (mem_sphere_zero_iff_norm.1 hζ₁) (mem_sphere_zero_iff_norm.1 hζ₂) hζne
+  rw [← he₁] at hΦζ₁
+  rw [← he₂] at hΦζ₂
+  set R := (2 * k ^ 2 + 1) * ‖z₁ - z₂‖ with hR
+  -- a point `p` over the angle `t` exists, since `Φ` maps `closure (toExt D)` onto the closed disc
+  have hpt : ∀ t : ℝ, ∃ p ∈ closure (toExt D), Φ p = ((Complex.exp (t * I) : ℂ) : ExtPlane) := by
+    intro t
+    have hmem : ((Complex.exp (t * I) : ℂ) : ExtPlane) ∈ closure (toExt unitDisc) := by
+      apply frontier_subset_closure
+      rw [s20g_frontier_toExt_unitDisc]
+      exact ⟨_, mem_sphere_zero_iff_norm.2 (Complex.norm_exp_ofReal_mul_I t), rfl⟩
+    rw [← hΦ.2.2.2] at hmem
+    obtain ⟨p, hp, hpe⟩ := hmem
+    exact ⟨p, hp, hpe⟩
+  -- the conclusion from an arc contained in the ball
+  have key : ∀ {a b : ℝ} {w₁ w₂ : ℂ}, a < b → b < a + 2 * π → (w₁ : ExtPlane) ∈ closure (toExt D) →
+      (w₂ : ExtPlane) ∈ closure (toExt D) → Φ w₁ = ((Complex.exp (a * I) : ℂ) : ExtPlane) →
+      Φ w₂ = ((Complex.exp (b * I) : ℂ) : ExtPlane) →
+      ({(w₁ : ExtPlane), (w₂ : ExtPlane)} : Set ExtPlane) = {(z₁ : ExtPlane), (z₂ : ExtPlane)} →
+      (∀ p ∈ closure (toExt D), ∀ s ∈ Ioo a b, Φ p = ((Complex.exp (s * I) : ℂ) : ExtPlane) →
+        p ∈ toExt (closedBall z₁ R)) →
+      ∃ p ∈ frontier (toExt D) \ {(z₁ : ExtPlane), (z₂ : ExtPlane)},
+        extInf ∉ connectedComponentIn (frontier (toExt D) \ {(z₁ : ExtPlane), (z₂ : ExtPlane)}) p ∧
+        Metric.ediam {z : ℂ | (z : ExtPlane) ∈
+          connectedComponentIn (frontier (toExt D) \ {(z₁ : ExtPlane), (z₂ : ExtPlane)}) p} ≤
+            ENNReal.ofReal (2 * (2 * k ^ 2 + 1) * ‖z₁ - z₂‖) := by
+    intro a b w₁ w₂ hab hba hw₁ hw₂ hΦw₁ hΦw₂ hset hball
+    obtain ⟨p, hp, hΦp⟩ := hpt ((a + b) / 2)
+    have hmid : (a + b) / 2 ∈ Ioo a b := ⟨by linarith, by linarith⟩
+    obtain ⟨hpC, hcomp⟩ := s20g_bt_arc_component hφ hΦ hab hba hw₁ hw₂ hΦw₁ hΦw₂ hmid hp hΦp
+    rw [hset] at hpC hcomp
+    have hin : ∀ q ∈ connectedComponentIn (frontier (toExt D) \ {(z₁ : ExtPlane), (z₂ : ExtPlane)}) p,
+        q ∈ toExt (closedBall z₁ R) := fun q hq => by
+      obtain ⟨hqcl, s, hs, hΦq⟩ := hcomp q hq
+      exact hball q hqcl s hs hΦq
+    refine ⟨p, hpC, fun hinf => ?_, ?_⟩
+    · obtain ⟨z, -, hz⟩ := hin extInf hinf
+      exact OnePoint.coe_ne_infty z hz
+    · refine Metric.ediam_le_of_forall_dist_le fun x hx y hy => ?_
+      obtain ⟨x', hx', hxx⟩ := hin x hx
+      obtain ⟨y', hy', hyy⟩ := hin y hy
+      rw [OnePoint.coe_injective hxx] at hx'
+      rw [OnePoint.coe_injective hyy] at hy'
+      calc dist x y ≤ dist x z₁ + dist y z₁ := dist_triangle_right x y z₁
+        _ ≤ R + R := add_le_add (mem_closedBall.1 hx') (mem_closedBall.1 hy')
+        _ = 2 * (2 * k ^ 2 + 1) * ‖z₁ - z₂‖ := by rw [hR]; ring
+  rcases s20g_bt_cross hk hφ hΦ h12 h21 hcl₁ hcl₂ hΦζ₁ hΦζ₂ with hA | hA
+  · exact key h12 h21 hcl₁ hcl₂ hΦζ₁ hΦζ₂ rfl hA
+  · have he : Complex.exp (((θ₁ + 2 * π : ℝ) : ℂ) * I) = Complex.exp (θ₁ * I) := by
+      rw [Complex.ofReal_add, add_mul, Complex.exp_add, Complex.ofReal_mul, Complex.ofReal_ofNat,
+        Complex.exp_two_pi_mul_I, mul_one]
+    exact key h21 (by linarith) hcl₂ hcl₁ hΦζ₂ (by rw [he]; exact hΦζ₁) (Set.pair_comm _ _) hA
 
 /-- **Theorem 20.5** (Gehring): an `a`-Schwarz domain is a `K`-quasidisc with `K` depending only
 on `a`. -/
 theorem thm20_5_gehring {a : ℝ} (ha : 0 < a) :
     ∃ K : ℝ, ∀ D : Set ℂ, IsSchwarzDomain D a → IsKQuasidisc D K := by
-  sorry
+  have hk1 : (1 : ℝ) ≤ 1 + 15 / a := le_add_of_nonneg_right (div_nonneg (by norm_num) ha.le)
+  obtain ⟨K, hK⟩ := thm18_1_quasicircle_of_boundedTurning (M := 2 * (2 * (1 + 15 / a) ^ 2 + 1)) (by nlinarith)
+  refine ⟨K, fun D hD => ?_⟩
+  have hlc := thm20_4 hD
+  have hJ := s20g_isJordanDomain hD.1 hlc
+  exact ⟨hJ, hK _ (s20g_boundedTurning hJ hlc)⟩
 
 /-- Theorems 20.3 and 20.5: a simply connected hyperbolic domain is a Schwarz domain iff it is a
 quasidisc. -/
 theorem schwarzDomain_iff_quasidisc {D : Set ℂ} (hD : IsHyperbolicSimplyConnected D) :
     (∃ a : ℝ, IsSchwarzDomain D a) ↔ ∃ K : ℝ, IsKQuasidisc D K := by
-  sorry
+  constructor
+  · rintro ⟨a, ha⟩
+    obtain ⟨K, hK⟩ := thm20_5_gehring ha.2.1
+    exact ⟨K, hK D ⟨hD, ha.2⟩⟩
+  · rintro ⟨K, hK⟩
+    have hK1 : 1 ≤ K := by
+      obtain ⟨-, f, hf, -⟩ := hK
+      exact hf.2.1
+    obtain ⟨c, -, h⟩ := thm20_3_ahlfors hK1
+    exact ⟨1 / c, (h D hK).1⟩
 
 end LiZhongQC

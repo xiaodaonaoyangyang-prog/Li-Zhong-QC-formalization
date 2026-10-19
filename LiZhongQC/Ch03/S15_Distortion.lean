@@ -19,8 +19,10 @@ import LiZhongQC.Ch02.S13_Representation
 normalized solution for `(t/s) μ_f`, is holomorphic (Theorems 13.7, 13.8), lifts through the covering `φ` of
 `ℂ ∖ {0, 1}` (§14.2), and Schwarz–Pick gives `δ(z, f(z)) ≤ ln K`; Lemma 15.1 by the book's maximum principle for
 the Poincaré density; Theorem 15.4 from Theorem 15.3, Lemma 15.1 and a radial lower bound for `δ`; Lemma 15.2
-and the sharpness of Theorem 15.4 from an explicit extremal map (affine stretch and reflection).  Still `sorry`:
-the sharpness of Theorem 15.3 and the historical notes.
+and the sharpness of Theorem 15.4 from an explicit extremal map (affine stretch and reflection).  The sharpness of
+Theorem 15.3 (`thm15_3_sharp`) takes a pair of lifts `τ₀, τ₁ ∈ ℍ` of `z₀, w₀` at distance `ln K` and descends the
+affine map of `ℂ` with `1 ↦ 1`, `τ₀ ↦ τ₁` through the normalized `℘` of the two tori.  The historical notes are
+proved too: `mori_constant_sharp`, `wang_chuanfang` and `wang_chuanfang_sharp`.  Nothing in this file is `sorry`.
 -/
 
 open Complex Set Metric Filter Topology MeasureTheory
@@ -1550,12 +1552,788 @@ theorem thm15_3_teichmuller {f : ℂ → ℂ} {K : ℝ} (hf : IsKQCNormalizedPla
     puncturedSphereDist z (f z) ≤ ENNReal.ofReal (Real.log K) := by
   exact td_thm15_3_of_motion modularPhi_covering (fun a b => td_puncturedSphereDist_le_dist a b) hf hz0 hz1
 
+/-! ### s15v track (coordinator 553e2d): sharpness of Theorem 15.3 (Teichmüller's extremal map)
+
+For lifts `τ₀, τ₁ ∈ ℍ` of `z₀, w₀` with `d_ℍ(τ₀, τ₁) ≤ ln K` (**layer L**: path lifting through the covering `φ`
+and compactness of the fibre), the `ℝ`-linear map `A` of the plane with `A 1 = 1`, `A τ₀ = τ₁` is
+`e^{d_ℍ(τ₀, τ₁)}`-q.c. and maps the lattice `⟨1, τ₀⟩` onto `⟨1, τ₁⟩`.  It descends through the normalized
+Weierstrass functions `P_τ = (℘_τ - e₃)/(e₂ - e₃)` (`P_τ((1+τ)/2) = 0`, `P_τ(τ/2) = 1`, `P_τ(1/2) = φ(τ)`) to a
+homeomorphism `F` of `ℂ` with `F(P_{τ₀} z) = P_{τ₁}(A z)`, which is `e^{d_ℍ(τ₀, τ₁)}`-q.c. off the three branch
+values `0, 1, φ(τ₀)` and hence everywhere (`s13x_removable`), fixes `0, 1` and sends `φ(τ₀)` to `φ(τ₁)`
+(**layer E**).  Layer L's path lifting is `s15v_lift_length`; that `℘` is onto `ℂ` is `s15v_wp_surj`. -/
+
+/-! #### E0. the `ℝ`-linear map `1 ↦ 1`, `τ₀ ↦ τ₁` -/
+
+/-- The `ℝ`-linear map `A(z) = a z + b z̄` with `a = (τ₁ - τ̄₀)/(τ₀ - τ̄₀)`, `b = (τ₀ - τ₁)/(τ₀ - τ̄₀)`; for
+`Im τ₀ ≠ 0` it sends `1 ↦ 1` and `τ₀ ↦ τ₁`. -/
+def s15v_aff (τ₀ τ₁ z : ℂ) : ℂ :=
+  (τ₁ - conj τ₀) / (τ₀ - conj τ₀) * z + (τ₀ - τ₁) / (τ₀ - conj τ₀) * conj z
+
+/-- `τ - τ̄ ≠ 0` off the real axis. -/
+theorem s15v_sub_conj_ne {τ : ℂ} (hτ : τ.im ≠ 0) : τ - conj τ ≠ 0 := by
+  intro h
+  apply hτ
+  have h2 : (τ - conj τ).im = 2 * τ.im := by
+    simp only [Complex.sub_im, Complex.conj_im]
+    ring
+  rw [h, Complex.zero_im] at h2
+  linarith
+
+/-- `A` is additive. -/
+theorem s15v_aff_add (τ₀ τ₁ z w : ℂ) :
+    s15v_aff τ₀ τ₁ (z + w) = s15v_aff τ₀ τ₁ z + s15v_aff τ₀ τ₁ w := by
+  simp only [s15v_aff, map_add]
+  ring
+
+/-- `A` is odd. -/
+theorem s15v_aff_neg (τ₀ τ₁ z : ℂ) : s15v_aff τ₀ τ₁ (-z) = -s15v_aff τ₀ τ₁ z := by
+  simp only [s15v_aff, map_neg]
+  ring
+
+/-- `A` is `ℝ`-homogeneous. -/
+theorem s15v_aff_ofReal_mul (τ₀ τ₁ z : ℂ) (x : ℝ) :
+    s15v_aff τ₀ τ₁ (x * z) = x * s15v_aff τ₀ τ₁ z := by
+  simp only [s15v_aff, map_mul, Complex.conj_ofReal]
+  ring
+
+/-- `A 1 = 1` and `A τ₀ = τ₁`. -/
+theorem s15v_aff_one_self {τ₀ : ℂ} (hτ₀ : τ₀.im ≠ 0) (τ₁ : ℂ) :
+    s15v_aff τ₀ τ₁ 1 = 1 ∧ s15v_aff τ₀ τ₁ τ₀ = τ₁ := by
+  have hd := s15v_sub_conj_ne hτ₀
+  constructor
+  · simp only [s15v_aff, map_one, mul_one]
+    field_simp
+    ring
+  · simp only [s15v_aff]
+    field_simp
+    ring
+
+/-- `A(x + y τ₀) = x + y τ₁` for real `x, y`. -/
+theorem s15v_aff_basis {τ₀ : ℂ} (hτ₀ : τ₀.im ≠ 0) (τ₁ : ℂ) (x y : ℝ) :
+    s15v_aff τ₀ τ₁ (x + y * τ₀) = x + y * τ₁ := by
+  obtain ⟨h1, hτ⟩ := s15v_aff_one_self hτ₀ τ₁
+  have hx : s15v_aff τ₀ τ₁ (x : ℂ) = x := by
+    have h := s15v_aff_ofReal_mul τ₀ τ₁ 1 x
+    rwa [mul_one, h1, mul_one] at h
+  rw [s15v_aff_add, s15v_aff_ofReal_mul, hx, hτ]
+
+/-- Every `z` is `x + y τ` with real `x, y` when `Im τ ≠ 0`. -/
+theorem s15v_decomp {τ : ℂ} (hτ : τ.im ≠ 0) (z : ℂ) :
+    ∃ x y : ℝ, z = x + y * τ := by
+  refine ⟨z.re - z.im / τ.im * τ.re, z.im / τ.im, ?_⟩
+  apply Complex.ext
+  · simp only [Complex.add_re, Complex.ofReal_re, Complex.mul_re, Complex.ofReal_im, zero_mul, sub_zero]
+    ring
+  · simp only [Complex.add_im, Complex.ofReal_im, Complex.mul_im, Complex.ofReal_re, zero_add, zero_mul,
+      add_zero]
+    field_simp
+
+/-- `A_{τ₁ τ₀} ∘ A_{τ₀ τ₁} = id`. -/
+theorem s15v_aff_inv {τ₀ τ₁ : ℂ} (hτ₀ : τ₀.im ≠ 0) (hτ₁ : τ₁.im ≠ 0) (z : ℂ) :
+    s15v_aff τ₁ τ₀ (s15v_aff τ₀ τ₁ z) = z := by
+  obtain ⟨x, y, rfl⟩ := s15v_decomp hτ₀ z
+  rw [s15v_aff_basis hτ₀, s15v_aff_basis hτ₁]
+
+/-- `A` is continuous. -/
+theorem s15v_aff_continuous (τ₀ τ₁ : ℂ) : Continuous (s15v_aff τ₀ τ₁) := by
+  unfold s15v_aff
+  fun_prop
+
+/-- `e^{2x} = (1 + tanh x)/(1 - tanh x)`. -/
+theorem s15v_exp_two_mul (x : ℝ) : Real.exp (2 * x) = (1 + Real.tanh x) / (1 - Real.tanh x) := by
+  have hc := Real.cosh_pos x
+  rw [Real.tanh_eq_sinh_div_cosh]
+  have h1 : 1 + Real.sinh x / Real.cosh x = Real.exp x / Real.cosh x := by
+    rw [← Real.cosh_add_sinh]
+    field_simp
+  have h2 : 1 - Real.sinh x / Real.cosh x = Real.exp (-x) / Real.cosh x := by
+    rw [← Real.cosh_sub_sinh]
+    field_simp
+  rw [h1, h2, div_div_div_cancel_right₀ hc.ne', ← Real.exp_sub]
+  ring_nf
+
+/-- **`A` is `e^{d_ℍ(τ₀, τ₁)}`-q.c.**: `|b|/|a| = |τ₀ - τ₁|/|τ₀ - τ̄₁| = tanh(d/2)`, so
+`(|a| + |b|)/(|a| - |b|) = e^d`. -/
+theorem s15v_aff_isKQC (τ₀ τ₁ : UpperHalfPlane) :
+    IsKQC (s15v_aff τ₀ τ₁) univ (Real.exp (dist τ₀ τ₁)) := by
+  have hD : 0 < ‖(τ₀ : ℂ) - conj (τ₀ : ℂ)‖ := norm_pos_iff.2 (s15v_sub_conj_ne τ₀.im_pos.ne')
+  have hN' : ‖(τ₁ : ℂ) - conj (τ₀ : ℂ)‖ = ‖(τ₀ : ℂ) - conj (τ₁ : ℂ)‖ := by
+    rw [← Complex.norm_conj, map_sub, Complex.conj_conj, norm_sub_rev]
+  have hMN : ‖(τ₀ : ℂ) - τ₁‖ < ‖(τ₀ : ℂ) - conj (τ₁ : ℂ)‖ := by
+    have e1 : ‖(τ₀ : ℂ) - conj (τ₁ : ℂ)‖ ^ 2 =
+        ((τ₀ : ℂ).re - (τ₁ : ℂ).re) ^ 2 + ((τ₀ : ℂ).im + (τ₁ : ℂ).im) ^ 2 := by
+      rw [Complex.sq_norm, Complex.normSq_apply]
+      simp only [Complex.sub_re, Complex.sub_im, Complex.conj_re, Complex.conj_im]
+      ring
+    have e2 : ‖(τ₀ : ℂ) - τ₁‖ ^ 2 = ((τ₀ : ℂ).re - (τ₁ : ℂ).re) ^ 2 + ((τ₀ : ℂ).im - (τ₁ : ℂ).im) ^ 2 := by
+      rw [Complex.sq_norm, Complex.normSq_apply]
+      simp only [Complex.sub_re, Complex.sub_im]
+      ring
+    have h0 : 0 < (τ₀ : ℂ).im := τ₀.im_pos
+    have h1 : 0 < (τ₁ : ℂ).im := τ₁.im_pos
+    have hsq : ‖(τ₀ : ℂ) - τ₁‖ ^ 2 < ‖(τ₀ : ℂ) - conj (τ₁ : ℂ)‖ ^ 2 := by
+      rw [e1, e2]
+      nlinarith
+    exact lt_of_pow_lt_pow_left₀ 2 (norm_nonneg _) hsq
+  have hN : 0 < ‖(τ₀ : ℂ) - conj (τ₁ : ℂ)‖ := (norm_nonneg _).trans_lt hMN
+  have hna : ‖((τ₁ : ℂ) - conj (τ₀ : ℂ)) / ((τ₀ : ℂ) - conj (τ₀ : ℂ))‖ =
+      ‖(τ₀ : ℂ) - conj (τ₁ : ℂ)‖ / ‖(τ₀ : ℂ) - conj (τ₀ : ℂ)‖ := by
+    rw [norm_div, hN']
+  have hnb : ‖((τ₀ : ℂ) - τ₁) / ((τ₀ : ℂ) - conj (τ₀ : ℂ))‖ =
+      ‖(τ₀ : ℂ) - τ₁‖ / ‖(τ₀ : ℂ) - conj (τ₀ : ℂ)‖ := norm_div _ _
+  have hlt : ‖((τ₀ : ℂ) - τ₁) / ((τ₀ : ℂ) - conj (τ₀ : ℂ))‖ <
+      ‖((τ₁ : ℂ) - conj (τ₀ : ℂ)) / ((τ₀ : ℂ) - conj (τ₀ : ℂ))‖ := by
+    rw [hna, hnb]
+    exact div_lt_div_of_pos_right hMN hD
+  have hK : (‖((τ₁ : ℂ) - conj (τ₀ : ℂ)) / ((τ₀ : ℂ) - conj (τ₀ : ℂ))‖ +
+        ‖((τ₀ : ℂ) - τ₁) / ((τ₀ : ℂ) - conj (τ₀ : ℂ))‖) /
+      (‖((τ₁ : ℂ) - conj (τ₀ : ℂ)) / ((τ₀ : ℂ) - conj (τ₀ : ℂ))‖ -
+        ‖((τ₀ : ℂ) - τ₁) / ((τ₀ : ℂ) - conj (τ₀ : ℂ))‖) = Real.exp (dist τ₀ τ₁) := by
+    have ht := UpperHalfPlane.tanh_half_dist τ₀ τ₁
+    rw [Complex.dist_eq, Complex.dist_eq] at ht
+    rw [show dist τ₀ τ₁ = 2 * (dist τ₀ τ₁ / 2) by ring, s15v_exp_two_mul, ht, hna, hnb, ← add_div, ← sub_div,
+      div_div_div_cancel_right₀ hD.ne', one_add_div hN.ne', one_sub_div hN.ne',
+      div_div_div_cancel_right₀ hN.ne']
+  have h := isKQC_of_isC1Quasiconformal (affine_isC1Quasiconformal (C := 0) hlt).1
+  rw [hK] at h
+  refine ad_isKQC_congr h fun z _ => ?_
+  simp only [s15v_aff, add_zero]
+
+/-! #### E1. the normalized Weierstrass function `P_τ` -/
+
+/-- The period pair `(1, τ)` of `τ ∈ ℍ`. -/
+def s15v_L (τ : UpperHalfPlane) : PeriodPair := periodPairOf τ τ.im_pos
+
+/-- Lattice membership: `x ∈ ⟨1, τ⟩` iff `x = m + n τ` with integers `m, n`. -/
+theorem s15v_mem_L (τ : UpperHalfPlane) {x : ℂ} :
+    x ∈ (s15v_L τ).lattice ↔ ∃ m n : ℤ, (m : ℂ) + n * (τ : ℂ) = x :=
+  wv_mem_lattice_one rfl
+
+/-- `A_{τ₀ τ₁}` maps the lattice `⟨1, τ₀⟩` onto `⟨1, τ₁⟩`. -/
+theorem s15v_aff_mem_iff (τ₀ τ₁ : UpperHalfPlane) {z : ℂ} :
+    s15v_aff τ₀ τ₁ z ∈ (s15v_L τ₁).lattice ↔ z ∈ (s15v_L τ₀).lattice := by
+  have fwd : ∀ (σ₀ σ₁ : UpperHalfPlane) (u : ℂ), u ∈ (s15v_L σ₀).lattice →
+      s15v_aff σ₀ σ₁ u ∈ (s15v_L σ₁).lattice := by
+    intro σ₀ σ₁ u hu
+    obtain ⟨m, n, rfl⟩ := (s15v_mem_L σ₀).1 hu
+    refine (s15v_mem_L σ₁).2 ⟨m, n, ?_⟩
+    have h := s15v_aff_basis σ₀.im_pos.ne' (σ₁ : ℂ) m n
+    push_cast at h
+    exact h.symm
+  constructor
+  · intro h
+    have h' := fwd τ₁ τ₀ _ h
+    rwa [s15v_aff_inv τ₀.im_pos.ne' τ₁.im_pos.ne'] at h'
+  · exact fwd τ₀ τ₁ z
+
+/-- The normalized Weierstrass function `P_τ = (℘_τ - e₃)/(e₂ - e₃)` of the lattice `⟨1, τ⟩`
+(`e₁, e₂, e₃ = weierstrassE τ 0, 1, 2`). -/
+def s15v_P (τ : UpperHalfPlane) (z : ℂ) : ℂ :=
+  ((s15v_L τ).weierstrassP z - weierstrassE τ 2) / (weierstrassE τ 1 - weierstrassE τ 2)
+
+/-- The half-period values: `e₁ = ℘(1/2)`, `e₂ = ℘(τ/2)`, `e₃ = ℘((1+τ)/2)`. -/
+theorem s15v_e_eq (τ : UpperHalfPlane) :
+    weierstrassE τ 0 = (s15v_L τ).weierstrassP (1 / 2) ∧
+      weierstrassE τ 1 = (s15v_L τ).weierstrassP ((τ : ℂ) / 2) ∧
+      weierstrassE τ 2 = (s15v_L τ).weierstrassP ((1 + (τ : ℂ)) / 2) := by
+  have hτ : 0 < (τ : ℂ).im := τ.im_pos
+  simp only [weierstrassE, dite_eq_left hτ]
+  exact ⟨rfl, rfl, rfl⟩
+
+/-- `e₂ ≠ e₃`. -/
+theorem s15v_e_ne (τ : UpperHalfPlane) : weierstrassE τ 1 - weierstrassE τ 2 ≠ 0 := by
+  obtain ⟨-, h1, h2⟩ := s15v_e_eq τ
+  rw [h1, h2, sub_ne_zero]
+  exact (half_period_values_ne (L := s15v_L τ) rfl τ.im_pos).2.2
+
+/-- The half periods `1/2`, `τ/2`, `(1+τ)/2` are not lattice points. -/
+theorem s15v_half_notMem (τ : UpperHalfPlane) :
+    (1 / 2 : ℂ) ∉ (s15v_L τ).lattice ∧ (τ : ℂ) / 2 ∉ (s15v_L τ).lattice ∧
+      (1 + (τ : ℂ)) / 2 ∉ (s15v_L τ).lattice :=
+  ⟨(s15v_L τ).ω₁_div_two_notMem_lattice, (s15v_L τ).ω₂_div_two_notMem_lattice,
+    wv_notMem_lattice_of_rat (1 / 2) (1 / 2) (by left; simp) (by
+      show (1 + (τ : ℂ)) / 2 = ((1 / 2 : ℚ) : ℂ) * 1 + ((1 / 2 : ℚ) : ℂ) * τ
+      push_cast
+      ring)⟩
+
+/-- `P_τ((1+τ)/2) = 0`, `P_τ(τ/2) = 1` and `P_τ(1/2) = φ(τ)`. -/
+theorem s15v_P_half (τ : UpperHalfPlane) :
+    s15v_P τ ((1 + (τ : ℂ)) / 2) = 0 ∧ s15v_P τ ((τ : ℂ) / 2) = 1 ∧ s15v_P τ (1 / 2) = modularPhi τ := by
+  obtain ⟨h0, h1, h2⟩ := s15v_e_eq τ
+  have hne := s15v_e_ne τ
+  refine ⟨?_, ?_, ?_⟩
+  · rw [s15v_P, ← h2, sub_self, zero_div]
+  · rw [s15v_P, ← h1, div_self hne]
+  · rw [s15v_P, ← h0, modularPhi, ← neg_sub (weierstrassE τ 2) (weierstrassE τ 0),
+      ← neg_sub (weierstrassE τ 2) (weierstrassE τ 1), neg_div_neg_eq]
+
+/-- The value distribution of `P_τ` off the lattice: `P_τ z = P_τ z'` iff `z ≡ ±z'`. -/
+theorem s15v_P_eq_iff (τ : UpperHalfPlane) {z z' : ℂ} (hz : z ∉ (s15v_L τ).lattice)
+    (hz' : z' ∉ (s15v_L τ).lattice) :
+    s15v_P τ z = s15v_P τ z' ↔ z - z' ∈ (s15v_L τ).lattice ∨ z + z' ∈ (s15v_L τ).lattice := by
+  rw [← weierstrassP_eq_iff_of_one rfl τ.im_pos hz hz', s15v_P, s15v_P, div_left_inj' (s15v_e_ne τ),
+    sub_left_inj]
+
+/-- `P_τ` is holomorphic off the lattice. -/
+theorem s15v_P_differentiableOn (τ : UpperHalfPlane) :
+    DifferentiableOn ℂ (s15v_P τ) ((s15v_L τ).lattice : Set ℂ)ᶜ := by
+  unfold s15v_P
+  exact ((s15v_L τ).differentiableOn_weierstrassP.sub_const _).div_const _
+
+/-- Open mapping: `P_τ` maps open subsets of `ℂ ∖ ⟨1, τ⟩` to open sets. -/
+theorem s15v_P_isOpen_image (τ : UpperHalfPlane) {s : Set ℂ} (hsΛ : s ⊆ ((s15v_L τ).lattice : Set ℂ)ᶜ)
+    (hs : IsOpen s) : IsOpen (s15v_P τ '' s) := by
+  have han : AnalyticOnNhd ℂ (s15v_P τ) ((s15v_L τ).lattice : Set ℂ)ᶜ :=
+    (s15v_P_differentiableOn τ).analyticOnNhd (s15v_L τ).isClosed_lattice.isOpen_compl
+  have hcount : ((s15v_L τ).lattice : Set ℂ).Countable := by
+    have : Countable (s15v_L τ).lattice := (s15v_L τ).latticeEquivProd.toEquiv.injective.countable
+    exact Set.countable_coe_iff.1 this
+  have hrank : 1 < Module.rank ℝ ℂ := by
+    rw [Complex.rank_real_complex]
+    norm_num
+  have hpc : IsPreconnected ((s15v_L τ).lattice : Set ℂ)ᶜ :=
+    (hcount.isPathConnected_compl_of_one_lt_rank hrank).isConnected.isPreconnected
+  rcases han.is_constant_or_isOpen hpc with ⟨c, hc⟩ | h
+  · exfalso
+    obtain ⟨-, n2, n3⟩ := s15v_half_notMem τ
+    obtain ⟨h0, h1, -⟩ := s15v_P_half τ
+    have e0 := hc _ n3
+    have e1 := hc _ n2
+    rw [h0] at e0
+    rw [h1] at e1
+    exact one_ne_zero (e1.trans e0.symm)
+  · exact h s hsΛ hs
+
+/-- **`℘` is onto `ℂ`.**  For a period pair `(1, τ)` with `0 < Im τ`, `℘` takes every value `c ∈ ℂ` at
+some non-lattice point.
+
+*Truth.* `℘ - c` is elliptic with exactly one pole, of order `2`, in a fundamental parallelogram, so it has zeros
+there of total multiplicity `2`; in particular one zero `z`, and `z ∉ L` (the lattice points are poles).
+Equivalently: `℘(L^c)` is open (open mapping, `℘` is not constant since `℘(1/2) ≠ ℘(τ/2)`) and closed (a sequence
+`℘(zₙ) → w` with `zₙ` in the compact closed fundamental parallelogram has a limit point `z*`; `z* ∈ L` is impossible
+since `‖℘‖ → ∞` there, so `z* ∉ L` and `℘ z* = w`), and `ℂ` is connected.  Mathlib's junk value `℘ = 0` on `L` is
+excluded by `z ∉ L`.
+
+*Route (either).*  (a) Argument principle, as in the first half of the proof of `weierstrassP_eq_iff_of_one`
+(`Lemmas/WeierstrassValues.lean:635`): a good fundamental rectangle `wv_exists_good_rect` (:576), the divisor sum
+`∑ d = 0` from `wv_rectBdry_logDeriv` (:308) and `wv_rectBdry_periodic` (:511), the pole `d p₀ = -2`
+(`wv_order_wpc_lattice`, :479); so some `p` has `d p > 0`, and `p ∉ L` is a zero of `℘ - c`.  (b) Clopen: the
+open mapping argument of `s15v_P_isOpen_image` (above) for `℘` on `L^c`, representatives in the box
+`wv_exists_rep` (:420), `IsCompact.tendsto_subseq`, and Mathlib's `tendsto_cobounded_of_meromorphicOrderAt_neg`
+with `PeriodPair.order_weierstrassP` at the lattice points. -/
+theorem s15v_wp_surj {L : PeriodPair} (h1 : L.ω₁ = 1) (hτ : 0 < L.ω₂.im) (c : ℂ) :
+    ∃ z, z ∉ L.lattice ∧ L.weierstrassP z = c := by
+  by_contra hcon
+  push Not at hcon
+  set F : ℂ → ℂ := fun ζ => L.weierstrassP ζ - c with hF
+  set v := L.ω₂.im with hv
+  obtain ⟨x₀, y₀, hgood⟩ := wv_exists_good_rect hτ c
+  set z₀ : ℂ := x₀ + y₀ * I with hz₀
+  set z₁ : ℂ := ((x₀ + 1 : ℝ) : ℂ) + ((y₀ + v : ℝ) : ℂ) * I with hz₁
+  have hz₀re : z₀.re = x₀ := by simp [hz₀]
+  have hz₀im : z₀.im = y₀ := by simp [hz₀]
+  have hz₁re : z₁.re = x₀ + 1 := by simp [hz₁]
+  have hz₁im : z₁.im = y₀ + v := by simp [hz₁]
+  have hre : z₀.re < z₁.re := by rw [hz₀re, hz₁re]; linarith
+  have him : z₀.im < z₁.im := by rw [hz₀im, hz₁im]; linarith
+  have hmero : MeromorphicOn F (wv_rectK z₀ z₁) := fun x _ => wv_meromorphic_wpc c x
+  have hbd : ∀ ζ ∈ wv_rectF z₀ z₁, AnalyticAt ℂ F ζ ∧ F ζ ≠ 0 := by
+    intro ζ hζ
+    have h0 := hgood ζ hζ
+    have hζL : ζ ∉ L.lattice := fun h => by
+      rw [wv_order_wpc_lattice c h] at h0; exact absurd h0 (by decide)
+    have han := wv_analyticAt_wpc c hζL
+    exact ⟨han, han.meromorphicNFAt.meromorphicOrderAt_eq_zero_iff.mp h0⟩
+  have hAP := wv_rectBdry_logDeriv hre him hmero (fun u _ => wv_order_wpc_ne_top c u) hbd
+  have hper : wv_rectBdry (logDeriv F) z₀ z₁ = 0 := by
+    apply wv_rectBdry_periodic L.ω₂
+    · intro ζ
+      exact wv_logDeriv_wpc_add c (by rw [← h1]; exact L.ω₁_mem_lattice) ζ
+    · intro ζ
+      exact wv_logDeriv_wpc_add c L.ω₂_mem_lattice ζ
+    · rw [hz₀re, hz₁re]
+    · rw [hz₀im, hz₁im]
+  rw [hper] at hAP
+  set d := MeromorphicOn.divisor F (wv_rectK z₀ z₁) with hd
+  set T := (d.finiteSupport (wv_isCompact_rectK z₀ z₁)).toFinset with hT
+  have hsumZ : ∑ p ∈ T, d p = 0 := by
+    have h2 : (2 * π * I : ℂ) ≠ 0 := by simp [Real.pi_ne_zero, I_ne_zero]
+    have : ∑ p ∈ T, (d p : ℂ) = 0 := by
+      rcases mul_eq_zero.mp hAP.symm with h | h
+      · exact absurd h h2
+      · exact h
+    exact_mod_cast this
+  -- at a lattice point of the rectangle the divisor is `-2`
+  have hlat : ∀ p ∈ wv_rectK z₀ z₁, p ∈ L.lattice → d p = -2 := by
+    intro p hpK hpL
+    rw [hd, MeromorphicOn.divisor_apply hmero hpK, wv_order_wpc_lattice c hpL]
+    rfl
+  -- every point of the support is a pole, since `℘ - c` has no zero off `L`
+  have hneg : ∀ p ∈ T, d p < 0 := by
+    intro p hp
+    rw [hT, Set.Finite.mem_toFinset, Function.mem_support] at hp
+    have hpK : p ∈ wv_rectK z₀ z₁ := d.supportWithinDomain hp
+    by_cases hpL : p ∈ L.lattice
+    · rw [hlat p hpK hpL]
+      norm_num
+    · exfalso
+      apply hp
+      have han := wv_analyticAt_wpc c hpL
+      have h0 : meromorphicOrderAt F p = 0 :=
+        han.meromorphicNFAt.meromorphicOrderAt_eq_zero_iff.mpr (sub_ne_zero.mpr (hcon p hpL))
+      rw [hd, MeromorphicOn.divisor_apply hmero hpK, h0]
+      rfl
+  -- a lattice point in the rectangle
+  obtain ⟨l₀, hl₀, h₀box⟩ := wv_exists_rep h1 hτ 0 x₀ y₀
+  have hp₀L : (0 - l₀) ∈ L.lattice := sub_mem (zero_mem _) hl₀
+  have hp₀K : (0 - l₀) ∈ wv_rectK z₀ z₁ := by
+    simp only [wv_rectK, mem_reProdIm, hz₀re, hz₁re, hz₀im, hz₁im]
+    rw [uIcc_of_le (by linarith), uIcc_of_le (by linarith)]
+    exact ⟨Ico_subset_Icc_self h₀box.1, Ico_subset_Icc_self h₀box.2⟩
+  have hp₀T : (0 - l₀) ∈ T := by
+    rw [hT, Set.Finite.mem_toFinset, Function.mem_support, hlat _ hp₀K hp₀L]
+    decide
+  have hlt := Finset.sum_neg hneg ⟨_, hp₀T⟩
+  omega
+
+/-- `P_τ` maps `ℂ ∖ ⟨1, τ⟩` onto `ℂ`. -/
+theorem s15v_P_surj (τ : UpperHalfPlane) (w : ℂ) : ∃ z, z ∉ (s15v_L τ).lattice ∧ s15v_P τ z = w := by
+  obtain ⟨z, hz, hc⟩ := s15v_wp_surj (L := s15v_L τ) rfl τ.im_pos
+    (weierstrassE τ 2 + w * (weierstrassE τ 1 - weierstrassE τ 2))
+  refine ⟨z, hz, ?_⟩
+  rw [s15v_P, hc, add_sub_cancel_left, mul_div_assoc, div_self (s15v_e_ne τ), mul_one]
+
+/-- Local injectivity: if `z ∉ ⟨1, τ⟩` is not a half period (`2z ∉ ⟨1, τ⟩`), `P_τ` is injective on an open
+neighbourhood of `z` off the lattice (the value distribution `z ≡ ±z'` and the discreteness of the lattice). -/
+theorem s15v_P_injOn_nhds (τ : UpperHalfPlane) {z : ℂ} (hz : z ∉ (s15v_L τ).lattice)
+    (h2z : 2 * z ∉ (s15v_L τ).lattice) :
+    ∃ V : Set ℂ, IsOpen V ∧ z ∈ V ∧ V ⊆ ((s15v_L τ).lattice : Set ℂ)ᶜ ∧ InjOn (s15v_P τ) V := by
+  have hΛc : IsOpen ((s15v_L τ).lattice : Set ℂ)ᶜ := (s15v_L τ).isClosed_lattice.isOpen_compl
+  obtain ⟨r₁, hr₁, h₁⟩ := Metric.isOpen_iff.1 hΛc z hz
+  obtain ⟨r₂, hr₂, h₂⟩ := Metric.isOpen_iff.1 hΛc (2 * z) h2z
+  obtain ⟨r₃, hr₃, h₃⟩ := Metric.mem_nhds_iff.1 ((s15v_L τ).compl_lattice_sdiff_singleton_mem_nhds 0)
+  set r := min r₁ (min (r₂ / 2) (r₃ / 2)) with hr
+  have hr0 : 0 < r := lt_min hr₁ (lt_min (by linarith) (by linarith))
+  have hrr₁ : r ≤ r₁ := min_le_left _ _
+  have hrr₂ : r ≤ r₂ / 2 := (min_le_right _ _).trans (min_le_left _ _)
+  have hrr₃ : r ≤ r₃ / 2 := (min_le_right _ _).trans (min_le_right _ _)
+  have hsub : ball z r ⊆ ((s15v_L τ).lattice : Set ℂ)ᶜ := (ball_subset_ball hrr₁).trans h₁
+  refine ⟨ball z r, isOpen_ball, mem_ball_self hr0, hsub, ?_⟩
+  intro z₁ hz₁ z₂ hz₂ heq
+  have hd₁ : dist z₁ z < r := hz₁
+  have hd₂ : dist z₂ z < r := hz₂
+  rcases (s15v_P_eq_iff τ (hsub hz₁) (hsub hz₂)).1 heq with h | h
+  · by_contra hne
+    have hb : z₁ - z₂ ∈ ball (0 : ℂ) r₃ := by
+      rw [mem_ball_zero_iff, ← dist_eq_norm]
+      linarith [dist_triangle_right z₁ z₂ z]
+    exact h₃ hb ⟨h, sub_ne_zero.2 hne⟩
+  · exfalso
+    have hb : z₁ + z₂ ∈ ball (2 * z) r₂ := by
+      rw [mem_ball, dist_eq_norm, show z₁ + z₂ - 2 * z = (z₁ - z) + (z₂ - z) by ring]
+      rw [dist_eq_norm] at hd₁ hd₂
+      linarith [norm_add_le (z₁ - z) (z₂ - z)]
+    exact h₂ hb h
+
+/-- At a half period `z` (`z ∉ ⟨1, τ⟩`, `2z ∈ ⟨1, τ⟩`), `P_τ z ∈ {0, 1, φ(τ)}`. -/
+theorem s15v_P_of_two_mul_mem (τ : UpperHalfPlane) {z : ℂ} (hz : z ∉ (s15v_L τ).lattice)
+    (h2z : 2 * z ∈ (s15v_L τ).lattice) :
+    s15v_P τ z = 0 ∨ s15v_P τ z = 1 ∨ s15v_P τ z = modularPhi τ := by
+  obtain ⟨m, n, hmn⟩ := (s15v_mem_L τ).1 h2z
+  obtain ⟨h0, h1, hφ⟩ := s15v_P_half τ
+  -- `P_τ (h + l) = P_τ h` for a lattice vector `l = m' + n' τ`
+  have hper : ∀ (h : ℂ) (m' n' : ℤ), s15v_P τ (h + ((m' : ℂ) + n' * τ)) = s15v_P τ h := by
+    intro h m' n'
+    have hl : (m' : ℂ) + n' * τ ∈ (s15v_L τ).lattice := (s15v_mem_L τ).2 ⟨m', n', rfl⟩
+    rw [s15v_P, s15v_P, (s15v_L τ).weierstrassP_add_coe h ⟨_, hl⟩]
+  obtain ⟨m', hm'⟩ := Int.even_or_odd' m
+  obtain ⟨n', hn'⟩ := Int.even_or_odd' n
+  rcases hm' with rfl | rfl <;> rcases hn' with rfl | rfl
+  · exact absurd ((s15v_mem_L τ).2 ⟨m', n', by push_cast at hmn; linear_combination hmn / 2⟩) hz
+  · right; left
+    have e : z = (τ : ℂ) / 2 + ((m' : ℂ) + n' * τ) := by push_cast at hmn; linear_combination -hmn / 2
+    rw [e, hper, h1]
+  · right; right
+    have e : z = 1 / 2 + ((m' : ℂ) + n' * τ) := by push_cast at hmn; linear_combination -hmn / 2
+    rw [e, hper, hφ]
+  · left
+    have e : z = (1 + (τ : ℂ)) / 2 + ((m' : ℂ) + n' * τ) := by push_cast at hmn; linear_combination -hmn / 2
+    rw [e, hper, h0]
+
+/-! #### E2. the descended map `F(P_{τ₀} z) = P_{τ₁}(A z)` -/
+
+/-- The descended map: `F(w) = P_{τ₁}(A z)` for a chosen `z ∉ ⟨1, τ₀⟩` with `P_{τ₀} z = w` (well defined by
+`s15v_F_P`). -/
+def s15v_F (τ₀ τ₁ : UpperHalfPlane) (w : ℂ) : ℂ :=
+  s15v_P τ₁ (s15v_aff τ₀ τ₁ (Classical.epsilon fun z => z ∉ (s15v_L τ₀).lattice ∧ s15v_P τ₀ z = w))
+
+/-- The defining identity `F(P_{τ₀} z) = P_{τ₁}(A z)` off the lattice. -/
+theorem s15v_F_P (τ₀ τ₁ : UpperHalfPlane) {z : ℂ} (hz : z ∉ (s15v_L τ₀).lattice) :
+    s15v_F τ₀ τ₁ (s15v_P τ₀ z) = s15v_P τ₁ (s15v_aff τ₀ τ₁ z) := by
+  have hspec := Classical.epsilon_spec (p := fun z' => z' ∉ (s15v_L τ₀).lattice ∧ s15v_P τ₀ z' = s15v_P τ₀ z)
+    ⟨z, hz, rfl⟩
+  obtain ⟨hz'Λ, hz'P⟩ := hspec
+  unfold s15v_F
+  have hA' := (s15v_aff_mem_iff τ₀ τ₁).not.2 hz'Λ
+  have hA := (s15v_aff_mem_iff τ₀ τ₁ (z := z)).not.2 hz
+  rw [s15v_P_eq_iff τ₁ hA' hA]
+  rcases (s15v_P_eq_iff τ₀ hz'Λ hz).1 hz'P with h | h
+  · left
+    rw [sub_eq_add_neg, ← s15v_aff_neg, ← s15v_aff_add, ← sub_eq_add_neg, s15v_aff_mem_iff]
+    exact h
+  · right
+    rw [← s15v_aff_add, s15v_aff_mem_iff]
+    exact h
+
+/-- `F_{τ₁ τ₀} ∘ F_{τ₀ τ₁} = id`. -/
+theorem s15v_F_F (τ₀ τ₁ : UpperHalfPlane) (w : ℂ) : s15v_F τ₁ τ₀ (s15v_F τ₀ τ₁ w) = w := by
+  obtain ⟨z, hz, rfl⟩ := s15v_P_surj τ₀ w
+  have hA := (s15v_aff_mem_iff τ₀ τ₁ (z := z)).not.2 hz
+  rw [s15v_F_P τ₀ τ₁ hz, s15v_F_P τ₁ τ₀ hA, s15v_aff_inv τ₀.im_pos.ne' τ₁.im_pos.ne']
+
+/-- `F` fixes `0` and `1` and sends `φ(τ₀)` to `φ(τ₁)`. -/
+theorem s15v_F_values (τ₀ τ₁ : UpperHalfPlane) :
+    s15v_F τ₀ τ₁ 0 = 0 ∧ s15v_F τ₀ τ₁ 1 = 1 ∧ s15v_F τ₀ τ₁ (modularPhi τ₀) = modularPhi τ₁ := by
+  obtain ⟨h0, h1, hφ⟩ := s15v_P_half τ₀
+  obtain ⟨h0', h1', hφ'⟩ := s15v_P_half τ₁
+  obtain ⟨n1, n2, n3⟩ := s15v_half_notMem τ₀
+  have hb := s15v_aff_basis τ₀.im_pos.ne' (τ₁ : ℂ)
+  have a0 : s15v_aff τ₀ τ₁ ((1 + (τ₀ : ℂ)) / 2) = (1 + (τ₁ : ℂ)) / 2 := by
+    have h := hb (1 / 2) (1 / 2)
+    push_cast at h
+    rw [show (1 + (τ₀ : ℂ)) / 2 = 1 / 2 + 1 / 2 * τ₀ by ring, h]
+    ring
+  have a1 : s15v_aff τ₀ τ₁ ((τ₀ : ℂ) / 2) = (τ₁ : ℂ) / 2 := by
+    have h := hb 0 (1 / 2)
+    push_cast at h
+    rw [show (τ₀ : ℂ) / 2 = 0 + 1 / 2 * τ₀ by ring, h]
+    ring
+  have aφ : s15v_aff τ₀ τ₁ (1 / 2) = 1 / 2 := by
+    have h := hb (1 / 2) 0
+    push_cast at h
+    rw [show (1 / 2 : ℂ) = 1 / 2 + 0 * τ₀ by ring, h]
+    ring
+  refine ⟨?_, ?_, ?_⟩
+  · calc s15v_F τ₀ τ₁ 0 = s15v_F τ₀ τ₁ (s15v_P τ₀ ((1 + (τ₀ : ℂ)) / 2)) := by rw [h0]
+      _ = 0 := by rw [s15v_F_P τ₀ τ₁ n3, a0, h0']
+  · calc s15v_F τ₀ τ₁ 1 = s15v_F τ₀ τ₁ (s15v_P τ₀ ((τ₀ : ℂ) / 2)) := by rw [h1]
+      _ = 1 := by rw [s15v_F_P τ₀ τ₁ n2, a1, h1']
+  · rw [← hφ, s15v_F_P τ₀ τ₁ n1, aφ, hφ']
+
+/-- `F` is continuous: it lifts through the quotient map `P_{τ₀} : ℂ ∖ ⟨1, τ₀⟩ → ℂ` to `P_{τ₁} ∘ A`. -/
+theorem s15v_F_continuous (τ₀ τ₁ : UpperHalfPlane) : Continuous (s15v_F τ₀ τ₁) := by
+  have hUo : IsOpen ((s15v_L τ₀).lattice : Set ℂ)ᶜ := (s15v_L τ₀).isClosed_lattice.isOpen_compl
+  let p : ↥(((s15v_L τ₀).lattice : Set ℂ)ᶜ) → ℂ := fun z => s15v_P τ₀ z
+  have hpc : Continuous p :=
+    (s15v_P_differentiableOn τ₀).continuousOn.comp_continuous continuous_subtype_val fun z => z.2
+  have hpo : IsOpenMap p := by
+    intro s hs
+    obtain ⟨O, hO, rfl⟩ := isOpen_induced_iff.1 hs
+    have e : p '' (Subtype.val ⁻¹' O) = s15v_P τ₀ '' (O ∩ ((s15v_L τ₀).lattice : Set ℂ)ᶜ) := by
+      ext w
+      constructor
+      · rintro ⟨z, hz, rfl⟩
+        exact ⟨z, ⟨hz, z.2⟩, rfl⟩
+      · rintro ⟨z, ⟨hzO, hzU⟩, rfl⟩
+        exact ⟨⟨z, hzU⟩, hzO, rfl⟩
+    rw [e]
+    exact s15v_P_isOpen_image τ₀ inter_subset_right (hO.inter hUo)
+  have hps : Function.Surjective p := fun w => by
+    obtain ⟨z, hz, hzw⟩ := s15v_P_surj τ₀ w
+    exact ⟨⟨z, hz⟩, hzw⟩
+  rw [(hpo.isQuotientMap hpc hps).continuous_iff]
+  have e : s15v_F τ₀ τ₁ ∘ p = fun z : ↥(((s15v_L τ₀).lattice : Set ℂ)ᶜ) => s15v_P τ₁ (s15v_aff τ₀ τ₁ z) :=
+    funext fun z => s15v_F_P τ₀ τ₁ z.2
+  rw [e]
+  exact (s15v_P_differentiableOn τ₁).continuousOn.comp_continuous
+    ((s15v_aff_continuous _ _).comp continuous_subtype_val) fun z => (s15v_aff_mem_iff τ₀ τ₁).not.2 z.2
+
+/-- `F` is a homeomorphism of the plane, with inverse `F_{τ₁ τ₀}`. -/
+theorem s15v_F_homeomorph (τ₀ τ₁ : UpperHalfPlane) : ∃ e : ℂ ≃ₜ ℂ, ⇑e = s15v_F τ₀ τ₁ :=
+  ⟨{ toFun := s15v_F τ₀ τ₁
+     invFun := s15v_F τ₁ τ₀
+     left_inv := s15v_F_F τ₀ τ₁
+     right_inv := s15v_F_F τ₁ τ₀
+     continuous_toFun := s15v_F_continuous τ₀ τ₁
+     continuous_invFun := s15v_F_continuous τ₁ τ₀ }, rfl⟩
+
+/-- On an open `V ⊆ ℂ ∖ ⟨1, τ₀⟩` where `P_{τ₀}` is injective, `F = P_{τ₁} ∘ A ∘ (P_{τ₀}|_V)⁻¹` is
+`e^{d_ℍ(τ₀, τ₁)}`-q.c. on `P_{τ₀}(V)`. -/
+theorem s15v_F_isKQC_local (τ₀ τ₁ : UpperHalfPlane) {V : Set ℂ} (hV : IsOpen V)
+    (hVΛ : V ⊆ ((s15v_L τ₀).lattice : Set ℂ)ᶜ) (hinj : InjOn (s15v_P τ₀) V) :
+    IsKQC (s15v_F τ₀ τ₁) (s15v_P τ₀ '' V) (Real.exp (dist τ₀ τ₁)) := by
+  have hconf : IsConformalOnto (s15v_P τ₀) V (s15v_P τ₀ '' V) :=
+    ⟨(s15v_P_differentiableOn τ₀).mono hVΛ, hinj, rfl⟩
+  have hU : IsOpen (s15v_P τ₀ '' V) := hconf.isOpen hV
+  have hψc : IsConformalOnto (Function.invFunOn (s15v_P τ₀) V) (s15v_P τ₀ '' V) V := hconf.symm hV
+  have h12 := thm7_1_comp (isKQC_one_of_conformal hU hψc) (s15v_aff_isKQC τ₀ τ₁) (subset_univ _)
+  have hV'eq : s15v_aff τ₀ τ₁ '' V = s15v_aff τ₁ τ₀ ⁻¹' V :=
+    congrFun (Set.image_eq_preimage_of_inverse (f := s15v_aff τ₀ τ₁) (g := s15v_aff τ₁ τ₀)
+      (s15v_aff_inv τ₀.im_pos.ne' τ₁.im_pos.ne') (s15v_aff_inv τ₁.im_pos.ne' τ₀.im_pos.ne')) V
+  have hV'o : IsOpen (s15v_aff τ₀ τ₁ '' V) := by
+    rw [hV'eq]
+    exact hV.preimage (s15v_aff_continuous _ _)
+  have hV'Λ : s15v_aff τ₀ τ₁ '' V ⊆ ((s15v_L τ₁).lattice : Set ℂ)ᶜ := by
+    rintro _ ⟨v, hv, rfl⟩
+    exact (s15v_aff_mem_iff τ₀ τ₁).not.2 (hVΛ hv)
+  have hinj' : InjOn (s15v_P τ₁) (s15v_aff τ₀ τ₁ '' V) := by
+    rintro _ ⟨v₁, h₁, rfl⟩ _ ⟨v₂, h₂, rfl⟩ h
+    have hv : v₁ = v₂ := by
+      refine hinj h₁ h₂ ((s15v_P_eq_iff τ₀ (hVΛ h₁) (hVΛ h₂)).2 ?_)
+      rcases (s15v_P_eq_iff τ₁ (hV'Λ ⟨v₁, h₁, rfl⟩) (hV'Λ ⟨v₂, h₂, rfl⟩)).1 h with h' | h'
+      · left
+        rw [← s15v_aff_mem_iff τ₀ τ₁, sub_eq_add_neg, s15v_aff_add, s15v_aff_neg, ← sub_eq_add_neg]
+        exact h'
+      · right
+        rw [← s15v_aff_mem_iff τ₀ τ₁, s15v_aff_add]
+        exact h'
+    rw [hv]
+  have h3 : IsKQC (s15v_P τ₁) (s15v_aff τ₀ τ₁ '' V) 1 :=
+    isKQC_one_of_conformal hV'o ⟨(s15v_P_differentiableOn τ₁).mono hV'Λ, hinj', rfl⟩
+  have hsub : (s15v_aff τ₀ τ₁ ∘ Function.invFunOn (s15v_P τ₀) V) '' (s15v_P τ₀ '' V) ⊆
+      s15v_aff τ₀ τ₁ '' V := by
+    rw [image_comp, hψc.2.2]
+  have h123 := thm7_1_comp h12 h3 hsub
+  rw [one_mul, mul_one] at h123
+  refine ad_isKQC_congr h123 ?_
+  rintro _ ⟨v, hv, rfl⟩
+  show s15v_F τ₀ τ₁ (s15v_P τ₀ v) =
+    s15v_P τ₁ (s15v_aff τ₀ τ₁ (Function.invFunOn (s15v_P τ₀) V (s15v_P τ₀ v)))
+  rw [s15v_F_P τ₀ τ₁ (hVΛ hv), hinj.leftInvOn_invFunOn hv]
+
+/-- A finite set meets every vertical and every horizontal line in a countable set. -/
+theorem s15v_sections_countable {L : Set ℂ} (hL : L.Finite) :
+    (∀ᵐ x : ℝ, {y : ℝ | (x : ℂ) + (y : ℂ) * I ∈ L}.Countable) ∧
+      (∀ᵐ y : ℝ, {x : ℝ | (x : ℂ) + (y : ℂ) * I ∈ L}.Countable) := by
+  refine ⟨Filter.Eventually.of_forall fun x => ?_, Filter.Eventually.of_forall fun y => ?_⟩
+  · refine (hL.image Complex.im).countable.mono ?_
+    intro y hy
+    exact ⟨_, hy, by simp⟩
+  · refine (hL.image Complex.re).countable.mono ?_
+    intro x hx
+    exact ⟨_, hx, by simp⟩
+
+/-- `F` is `e^{d_ℍ(τ₀, τ₁)}`-q.c. on the plane: it is so near every point off the branch values `0, 1, φ(τ₀)`,
+which are removable. -/
+theorem s15v_F_isKQC (τ₀ τ₁ : UpperHalfPlane) : IsKQC (s15v_F τ₀ τ₁) univ (Real.exp (dist τ₀ τ₁)) := by
+  obtain ⟨e, he⟩ := s15v_F_homeomorph τ₀ τ₁
+  have hg : IsHomeomorphOnto (s15v_F τ₀ τ₁) univ (s15v_F τ₀ τ₁ '' univ) := by
+    have h := nxI1_isHomeomorphOnto_of_homeomorph e
+    rw [he] at h
+    have hs : Function.Surjective (s15v_F τ₀ τ₁) := he ▸ e.surjective
+    rwa [image_univ, hs.range_eq]
+  have hfin : ({0, 1, modularPhi τ₀} : Set ℂ).Finite := Set.toFinite _
+  obtain ⟨hv, hh⟩ := s15v_sections_countable hfin
+  refine s13x_removable isOpen_univ (Real.one_le_exp dist_nonneg) hg (hfin.measure_zero _) hv hh ?_
+  intro w hw
+  obtain ⟨z, hz, rfl⟩ := s15v_P_surj τ₀ w
+  have h2z : 2 * z ∉ (s15v_L τ₀).lattice := by
+    intro h2
+    apply hw.2
+    rcases s15v_P_of_two_mul_mem τ₀ hz h2 with h | h | h <;> simp [h]
+  obtain ⟨V, hVo, hzV, hVΛ, hVi⟩ := s15v_P_injOn_nhds τ₀ hz h2z
+  exact ⟨_, s15v_P_isOpen_image τ₀ hVΛ hVo, ⟨z, hzV, rfl⟩, subset_univ _,
+    s15v_F_isKQC_local τ₀ τ₁ hVo hVΛ hVi⟩
+
+/-- **Layer E.**  `F_{τ₀ τ₁}` is an `e^{d_ℍ(τ₀, τ₁)}`-q.c. map of the plane onto itself fixing `0, 1`, with
+`F(φ(τ₀)) = φ(τ₁)`. -/
+theorem s15v_F_normalized (τ₀ τ₁ : UpperHalfPlane) :
+    IsKQCNormalizedPlane (s15v_F τ₀ τ₁) (Real.exp (dist τ₀ τ₁)) ∧
+      s15v_F τ₀ τ₁ (modularPhi τ₀) = modularPhi τ₁ := by
+  obtain ⟨e, he⟩ := s15v_F_homeomorph τ₀ τ₁
+  obtain ⟨h0, h1, hφ⟩ := s15v_F_values τ₀ τ₁
+  have hs : s15v_F τ₀ τ₁ '' univ = univ := by
+    rw [image_univ, ← he]
+    exact e.surjective.range_eq
+  exact ⟨⟨s15v_F_isKQC τ₀ τ₁, hs, h0, h1⟩, hφ⟩
+
+/-! #### L. lifts realizing `δ` -/
+
+/-- `φ` is injective on an open neighbourhood in `ℍ` of every point of `ℍ` (`φ` is a covering). -/
+theorem s15v_phi_injOn_nhds (τ : UpperHalfPlane) :
+    ∃ U : Set ℂ, IsOpen U ∧ (τ : ℂ) ∈ U ∧ U ⊆ upperHalf ∧ InjOn modularPhi U := by
+  obtain ⟨hrange, hcov⟩ := modularPhi_covering
+  have hτS : modularPhiH τ ∈ {z : ℂ | z ≠ 0 ∧ z ≠ 1} := hrange ▸ mem_range_self τ
+  obtain ⟨e, hτe, he⟩ := hcov.isLocalHomeomorphOn τ hτS
+  refine ⟨(↑) '' e.source, UpperHalfPlane.isOpenEmbedding_coe.isOpenMap _ e.open_source, ⟨τ, hτe, rfl⟩,
+    ?_, ?_⟩
+  · rintro _ ⟨σ, -, rfl⟩
+    exact σ.im_pos
+  · rintro _ ⟨σ₁, h₁, rfl⟩ _ ⟨σ₂, h₂, rfl⟩ h
+    have h' : e σ₁ = e σ₂ := by
+      have e₁ : modularPhiH σ₁ = e σ₁ := by rw [he]
+      have e₂ : modularPhiH σ₂ = e σ₂ := by rw [he]
+      rw [← e₁, ← e₂]
+      exact h
+    exact congrArg _ (e.injOn h₁ h₂ h')
+
+/-- `φ' ≠ 0` on `ℍ`. -/
+theorem s15v_deriv_ne_zero {w : ℂ} (hw : 0 < w.im) : deriv modularPhi w ≠ 0 := by
+  obtain ⟨U, hU, hwU, hUH, hinj⟩ := s15v_phi_injOn_nhds ⟨w, hw⟩
+  exact deriv_ne_zero_of_injOn hU (mphi_differentiableOn_modularPhi_upperHalf.mono hUH) hinj hwU
+
+/-- (14.6) as a product: `η(φ w) |φ'(w)| = 1/Im w` on `ℍ`. -/
+theorem s15v_density_mul_deriv {w : ℂ} (hw : 0 < w.im) :
+    puncturedSphereDensity (modularPhi w) * ‖deriv modularPhi w‖ = 1 / w.im := by
+  rw [(eq14_6_well_defined hw hw rfl).2]
+  have := norm_pos_iff.2 (s15v_deriv_ne_zero hw)
+  field_simp
+
+/-- A continuous `G : ℝ → ℍ` lifting through `φ` a map `f` that is Lipschitz on `[0, 1]` is itself Lipschitz on
+`[0, 1]`: near each `t`, `G = ψ ∘ f` with `ψ` the holomorphic (hence locally Lipschitz) inverse of `φ` on an open
+set where `φ` is injective; then compactness of `[0, 1]`. -/
+theorem s15v_a_lipschitzOn {f G : ℝ → ℂ} {K : ℝ≥0} (hf : LipschitzOnWith K f (Icc 0 1)) (hG : Continuous G)
+    (hGH : ∀ s ∈ Icc (0 : ℝ) 1, 0 < (G s).im) (hGf : ∀ s ∈ Icc (0 : ℝ) 1, modularPhi (G s) = f s) :
+    ∃ L : ℝ≥0, LipschitzOnWith L G (Icc 0 1) := by
+  refine LocallyLipschitzOn.exists_lipschitzOnWith_of_compact isCompact_Icc ?_
+  intro t ht
+  obtain ⟨U, hUo, htU, hUH, hinj⟩ := s15v_phi_injOn_nhds ⟨G t, hGH t ht⟩
+  have htU' : G t ∈ U := htU
+  have hconf : IsConformalOnto modularPhi U (modularPhi '' U) :=
+    ⟨mphi_differentiableOn_modularPhi_upperHalf.mono hUH, hinj, rfl⟩
+  have hVo : IsOpen (modularPhi '' U) := hconf.isOpen hUo
+  have hψL := locallyLipschitzOn_of_differentiableOn_open hVo (hconf.symm hUo).1
+  have hft : f t ∈ modularPhi '' U := ⟨G t, htU', hGf t ht⟩
+  obtain ⟨K', n, hn, hK'⟩ := hψL hft
+  rw [hVo.nhdsWithin_eq hft] at hn
+  refine ⟨K' * K, Icc 0 1 ∩ (G ⁻¹' U ∩ f ⁻¹' n), ?_, ?_⟩
+  · exact inter_mem self_mem_nhdsWithin (inter_mem
+      (mem_nhdsWithin_of_mem_nhds (hG.continuousAt.preimage_mem_nhds (hUo.mem_nhds htU')))
+      ((hf.continuousOn t ht).preimage_mem_nhdsWithin hn))
+  · have hcomp := hK'.comp (hf.mono (inter_subset_left (t := G ⁻¹' U ∩ f ⁻¹' n)))
+      (fun s (hs : s ∈ Icc 0 1 ∩ (G ⁻¹' U ∩ f ⁻¹' n)) => hs.2.2)
+    intro a ha b hb
+    have heq : ∀ s ∈ Icc 0 1 ∩ (G ⁻¹' U ∩ f ⁻¹' n), G s = (Function.invFunOn modularPhi U ∘ f) s := by
+      intro s hs
+      rw [Function.comp_apply, ← hGf s hs.1, hinj.leftInvOn_invFunOn hs.2.1]
+    rw [heq a ha, heq b hb]
+    exact hcomp ha hb
+
+/-- Along a lift `G` of `f` through `φ`, the Poincaré integrand of `G` in `ℍ` equals the `η`-integrand of `f`
+at every `t ∈ (0, 1)`: `f' = φ'(G) G'` (both sides `0` when `G` is not differentiable) and
+`η(φ w) |φ'(w)| = 1/Im w`. -/
+theorem s15v_a_integrand {f G : ℝ → ℂ} (hG : Continuous G) (hGH : ∀ s ∈ Icc (0 : ℝ) 1, 0 < (G s).im)
+    (hGf : ∀ s ∈ Icc (0 : ℝ) 1, modularPhi (G s) = f s) {t : ℝ} (ht : t ∈ Ioo (0 : ℝ) 1) :
+    ENNReal.ofReal (poincareDensity upperHalf (G t)) * ‖deriv G t‖ₑ =
+      ENNReal.ofReal (puncturedSphereDensity (f t)) * ‖deriv f t‖ₑ := by
+  have htI : t ∈ Icc (0 : ℝ) 1 := Ioo_subset_Icc_self ht
+  have hy : 0 < (G t).im := hGH t htI
+  obtain ⟨U, hUo, htU, hUH, hinj⟩ := s15v_phi_injOn_nhds ⟨G t, hy⟩
+  have htU' : G t ∈ U := htU
+  have hconf : IsConformalOnto modularPhi U (modularPhi '' U) :=
+    ⟨mphi_differentiableOn_modularPhi_upperHalf.mono hUH, hinj, rfl⟩
+  have hev : ∀ᶠ s in 𝓝 t, G s ∈ U := hG.continuousAt.preimage_mem_nhds (hUo.mem_nhds htU')
+  have hch := hconf.deriv_comp hUo hev
+  have hfeq : modularPhi ∘ G =ᶠ[𝓝 t] f := by
+    filter_upwards [Ioo_mem_nhds ht.1 ht.2] with s hs
+    exact hGf s (Ioo_subset_Icc_self hs)
+  rw [hfeq.deriv_eq] at hch
+  rw [hch, ← hGf t htI, poincareDensity_upperHalf hy, enorm_mul, ← mul_assoc,
+    ← ofReal_norm (deriv modularPhi (G t)), ← ENNReal.ofReal_mul' (norm_nonneg _), s15v_density_mul_deriv hy]
+
+/-- **Path lifting.**  A rectifiable path `γ` in `ℂ ∖ {0, 1}` from `z = φ(τ₀)` to `w` lifts through `φ` to
+a path in `ℍ` from `τ₀` to some `τ₁` with `φ(τ₁) = w` and `d_ℍ(τ₀, τ₁) ≤ l_η(γ)`.
+
+*Truth.* `γ|[0,1]` is continuous with values in `ℂ ∖ {0, 1}`, so it lifts through the covering `φ` to a continuous
+`Γ : [0,1] → ℍ` with `Γ 0 = τ₀`, `φ ∘ Γ = γ`; put `τ₁ = Γ 1`.  Near each `t`, `Γ = ψ ∘ γ` with `ψ` the holomorphic
+inverse of `φ` on an open `U ∋ Γ t` where `φ` is injective (`s15v_phi_injOn_nhds`), so `Γ` is locally Lipschitz on
+`[0,1]`, hence Lipschitz (compactness), and the curve `t ↦ Γ(proj t)` is a path in `ℍ` from `τ₀` to `τ₁`.  For every
+`t ∈ (0,1)`, `γ = φ ∘ Γ` near `t` gives `γ'(t) = φ'(Γ t) Γ'(t)` (`IsConformalOnto.deriv_comp`, no differentiability
+needed: both sides vanish together), and `η(φ Γ) |φ'(Γ)| = 1/Im Γ` (`s15v_density_mul_deriv`), so the two
+integrands are EQUAL and `l_ℍ(Γ) = l_η(γ)`.  Finally `d_ℍ(τ₀, τ₁) = poincareDist ℍ τ₀ τ₁ ≤ l_ℍ(Γ)` by definition.
+No junk: `η` is the honest density on `ℂ ∖ {0, 1}` (`eq14_6_well_defined`), `rhoLength` may be `⊤` (then trivial),
+and the lift is unique so no branch choice is involved.
+
+*Route.* `modularPhi_covering` (S14:6324) and Mathlib `IsCoveringMapOn.existsUnique_continuousMap_lifts` on
+`Icc (0:ℝ) 1` (convex, so simply connected and locally path connected; the same call as `td_lift_holomorphic`,
+S15:1364); `s15v_phi_injOn_nhds`, `IsConformalOnto.symm`/`.deriv_comp` (`Lemmas/Conformal.lean`:122/186),
+`locallyLipschitzOn_of_differentiableOn_open` (S14:542), `LocallyLipschitzOn.exists_lipschitzOnWith_of_compact`,
+`poincareDensity_upperHalf` (S14:746), `poincareDist_upperHalf` (S14:899), `s15v_density_mul_deriv`;
+compare the forward direction `td_puncturedSphereDist_le_dist` (S15:1257). -/
+theorem s15v_lift_length {z w : ℂ} {γ : LRCurve} (hγ : IsPathIn {z : ℂ | z ≠ 0 ∧ z ≠ 1} z w γ)
+    {τ₀ : UpperHalfPlane} (hτ₀ : modularPhiH τ₀ = z) :
+    ∃ τ₁ : UpperHalfPlane, modularPhiH τ₁ = w ∧
+      ENNReal.ofReal (dist τ₀ τ₁) ≤ γ.rhoLength fun z => ENNReal.ofReal (puncturedSphereDensity z) := by
+  have : ContractibleSpace (Icc (0 : ℝ) 1) :=
+    (convex_Icc (0 : ℝ) 1).contractibleSpace ⟨0, by simp⟩
+  have : SimplyConnectedSpace (Icc (0 : ℝ) 1) := SimplyConnectedSpace.ofContractible _
+  have : LocallyPathConnectedSpace (Icc (0 : ℝ) 1) := (convex_Icc (0 : ℝ) 1).locallyPathConnectedSpace
+  obtain ⟨⟨K, hK⟩, h0, h1, htr⟩ := hγ
+  let f : C(Icc (0 : ℝ) 1, ℂ) := ⟨fun t => γ.toFun t, hK.continuousOn.domRestrict⟩
+  obtain ⟨Γ₀, ⟨hΓ0, hΓ⟩, -⟩ := modularPhi_covering.2.existsUnique_continuousMap_lifts f
+    (a₀ := ⟨0, by simp⟩) (e₀ := τ₀) (by rw [hτ₀]; exact h0.symm) (fun t => htr ⟨t, t.2, rfl⟩)
+  set G : ℝ → ℂ := fun t => (Γ₀ (projIcc 0 1 zero_le_one t) : ℂ)
+  have hGc : Continuous G :=
+    UpperHalfPlane.continuous_coe.comp (Γ₀.continuous.comp continuous_projIcc)
+  have hGH : ∀ s ∈ Icc (0 : ℝ) 1, 0 < (G s).im := fun s _ => (Γ₀ (projIcc 0 1 zero_le_one s)).im_pos
+  have hGf : ∀ s ∈ Icc (0 : ℝ) 1, modularPhi (G s) = γ.toFun s := by
+    intro s hs
+    have e := congrFun hΓ (projIcc 0 1 zero_le_one s)
+    have e2 : ((projIcc 0 1 zero_le_one s : Icc (0 : ℝ) 1) : ℝ) = s := by rw [projIcc_of_mem _ hs]
+    calc modularPhi (G s) = modularPhiH (Γ₀ (projIcc 0 1 zero_le_one s)) := rfl
+      _ = γ.toFun (projIcc 0 1 zero_le_one s : ℝ) := e
+      _ = γ.toFun s := by rw [e2]
+  obtain ⟨L, hL⟩ := s15v_a_lipschitzOn hK hGc hGH hGf
+  let Γ : LRCurve := ⟨G, fun x hx => ⟨L, Icc 0 1, mem_nhdsWithin_of_mem_nhds (Icc_mem_nhds hx.1 hx.2), hL⟩⟩
+  set τ₁ : UpperHalfPlane := Γ₀ (projIcc 0 1 zero_le_one 1)
+  have hG0 : G 0 = τ₀ := by
+    show ((Γ₀ (projIcc 0 1 zero_le_one 0) : UpperHalfPlane) : ℂ) = τ₀
+    rw [projIcc_left]
+    exact congrArg _ hΓ0
+  have hpath : IsPathIn upperHalf τ₀ τ₁ Γ := by
+    refine ⟨⟨L, hL⟩, hG0, rfl, ?_⟩
+    rintro _ ⟨s, hs, rfl⟩
+    exact hGH s hs
+  refine ⟨τ₁, ?_, ?_⟩
+  · show modularPhi (G 1) = w
+    rw [hGf 1 (right_mem_Icc.2 zero_le_one), h1]
+  · rw [← poincareDist_upperHalf]
+    refine (iInf₂_le Γ hpath).trans (le_of_eq ?_)
+    unfold LRCurve.rhoLength
+    refine setLIntegral_congr_fun measurableSet_Ioo fun t ht => ?_
+    exact s15v_a_integrand hGc hGH hGf ht
+
+/-- **Layer L.**  If `δ(z₀, w₀) ≤ r`, some lifts `τ₀, τ₁ ∈ ℍ` of `z₀, w₀` have `d_ℍ(τ₀, τ₁) ≤ r`: lifts within
+`r + ε` for every `ε > 0` (`s15v_lift_length`), and the fibre `φ⁻¹(w₀)` meets the compact ball
+`closedBall τ₀ (r + 1)` of the proper space `ℍ` in a compact set, on which `d_ℍ(τ₀, ·)` attains its minimum. -/
+theorem s15v_exists_lifts_le {z₀ w₀ : ℂ} (hz₀ : z₀ ≠ 0 ∧ z₀ ≠ 1) {r : ℝ} (hr : 0 ≤ r)
+    (hδ : puncturedSphereDist z₀ w₀ ≤ ENNReal.ofReal r) :
+    ∃ τ₀ τ₁ : UpperHalfPlane, modularPhiH τ₀ = z₀ ∧ modularPhiH τ₁ = w₀ ∧ dist τ₀ τ₁ ≤ r := by
+  obtain ⟨τ₀, hτ₀⟩ : z₀ ∈ range modularPhiH := modularPhi_covering.1 ▸ hz₀
+  have hε : ∀ ε : ℝ, 0 < ε → ∃ τ₁ : UpperHalfPlane, modularPhiH τ₁ = w₀ ∧ dist τ₀ τ₁ < r + ε := by
+    intro ε hε
+    have hlt : puncturedSphereDist z₀ w₀ < ENNReal.ofReal (r + ε) :=
+      hδ.trans_lt ((ENNReal.ofReal_lt_ofReal_iff (by linarith)).2 (by linarith))
+    unfold puncturedSphereDist metricDist at hlt
+    obtain ⟨γ, hγ⟩ := iInf_lt_iff.1 hlt
+    obtain ⟨hγp, hγl⟩ := iInf_lt_iff.1 hγ
+    obtain ⟨τ₁, hτ₁, hle⟩ := s15v_lift_length hγp hτ₀
+    exact ⟨τ₁, hτ₁, (ENNReal.ofReal_lt_ofReal_iff (by linarith)).1 (hle.trans_lt hγl)⟩
+  obtain ⟨σ, hσ, hσd⟩ := hε 1 one_pos
+  set S : Set UpperHalfPlane := {τ | modularPhiH τ = w₀} ∩ closedBall τ₀ (r + 1) with hS
+  have hSc : IsCompact S :=
+    (isCompact_closedBall τ₀ (r + 1)).inter_left (isClosed_eq td_continuous_modularPhiH continuous_const)
+  have hSne : S.Nonempty := ⟨σ, hσ, by rw [mem_closedBall, dist_comm]; exact hσd.le⟩
+  obtain ⟨τ₁, hτ₁S, hmin⟩ := hSc.exists_isMinOn hSne (continuous_const.dist continuous_id).continuousOn
+  refine ⟨τ₀, τ₁, hτ₀, hτ₁S.1, le_of_forall_pos_lt_add fun ε hε' => ?_⟩
+  obtain ⟨σ', hσ', hσ'd⟩ := hε (min ε 1) (lt_min hε' one_pos)
+  have hσ'S : σ' ∈ S := ⟨hσ', by rw [mem_closedBall, dist_comm]; linarith [min_le_right ε 1]⟩
+  have hle : dist τ₀ τ₁ ≤ dist τ₀ σ' := hmin hσ'S
+  linarith [min_le_left ε 1]
+
 /-- **Theorem 15.3** (sharpness): for `K ≥ 1` and `z₀, w₀ ∈ ℂ̄(0, 1, ∞)` with
 `ln K = δ(z₀, w₀)` there is a `K`-q.c. map fixing `0, 1, ∞` with `f(z₀) = w₀`. -/
 theorem thm15_3_sharp {K : ℝ} (hK : 1 ≤ K) {z₀ w₀ : ℂ} (hz₀ : z₀ ≠ 0 ∧ z₀ ≠ 1)
     (hw₀ : w₀ ≠ 0 ∧ w₀ ≠ 1) (hδ : ENNReal.ofReal (Real.log K) = puncturedSphereDist z₀ w₀) :
     ∃ f : ℂ → ℂ, IsKQCNormalizedPlane f K ∧ f z₀ = w₀ := by
-  sorry
+  have _ := hw₀
+  obtain ⟨τ₀, τ₁, h₀, h₁, hd⟩ := s15v_exists_lifts_le hz₀ (Real.log_nonneg hK) hδ.ge
+  obtain ⟨⟨hF, hFs, hF0, hF1⟩, hFφ⟩ := s15v_F_normalized τ₀ τ₁
+  refine ⟨s15v_F τ₀ τ₁, ⟨hF.mono ?_, hFs, hF0, hF1⟩, ?_⟩
+  · calc Real.exp (dist τ₀ τ₁) ≤ Real.exp (Real.log K) := Real.exp_le_exp.2 hd
+      _ = K := Real.exp_log (by linarith)
+  · rw [← h₀, ← h₁]
+    exact hFφ
 
 /-! ### tdist: the Poincaré density of `ℂ̄(0, 1, ∞)` and the maximum principle of Lemma 15.1 -/
 
@@ -3580,12 +4358,650 @@ theorem thm15_4_sharp {K : ℝ} (hK : 1 ≤ K) :
       _ = F π := by rw [h0', mul_one, hπ]
       _ ≤ sSup (range F) := le_csSup hcpt.bddAbove ⟨π, rfl⟩
 
+/-- A `Λ(ρ₂)/Λ(ρ₁)`-q.c. self-map of `ℍ` whose boundary extension takes `∞, -1, 0, ρ₁` to `∞, -1, 0, ρ₂`
+(`0 < ρ₁ ≤ ρ₂`; standard maps of Theorem 1.1 and an affine stretch, as in `td_half_plane_map`). -/
+theorem s15m_half_plane_map {ρ₁ ρ₂ : ℝ} (hρ₁ : 0 < ρ₁) (hρ₁₂ : ρ₁ ≤ ρ₂) :
+    ∃ (f : ℂ → ℂ) (F : ExtPlane → ExtPlane),
+      IsKQC f upperHalf (quadLambda ρ₂ / quadLambda ρ₁) ∧ f '' upperHalf = upperHalf ∧
+      IsHomeoExtension f upperHalf upperHalf F ∧ ∀ i, F (td_Vert ρ₁ i) = td_Vert ρ₂ i := by
+  have hρ₂ : 0 < ρ₂ := hρ₁.trans_le hρ₁₂
+  set K := quadLambda ρ₂ / quadLambda ρ₁ with hKdef
+  have hΛ₁ := b4_num_quadLambda_pos hρ₁
+  have hK : 1 ≤ K := by
+    rw [hKdef, le_div_iff₀ hΛ₁, one_mul]
+    exact quadLambda_strictMono.1.monotoneOn (mem_Ioi.2 hρ₁) (mem_Ioi.2 hρ₂) hρ₁₂
+  obtain ⟨a₁, b₁, hQ₁⟩ := thm1_1_exists_rectangle (td_Quad hρ₁)
+  obtain ⟨a₂, b₂, hQ₂⟩ := thm1_1_exists_rectangle (td_Quad hρ₂)
+  have hm₁ : a₁ / b₁ = quadLambda ρ₁ := by
+    rw [← modulus_eq_of_equivRect _ hQ₁, td_Quad_modulus]
+  have hm₂ : a₂ / b₂ = quadLambda ρ₂ := by
+    rw [← modulus_eq_of_equivRect _ hQ₂, td_Quad_modulus]
+  obtain ⟨φ₁, ha₁, hb₁, hφ₁', Φ₁, hΦ₁', hΦ₁v'⟩ := hQ₁
+  obtain ⟨φ₂, ha₂, hb₂, hφ₂', Φ₂, hΦ₂', hΦ₂v'⟩ := hQ₂
+  have hφ₁ : IsConformalOnto φ₁ upperHalf (rectangle a₁ b₁) := hφ₁'
+  have hΦ₁ : IsHomeoExtension φ₁ upperHalf (rectangle a₁ b₁) Φ₁ := hΦ₁'
+  have hΦ₁v : ∀ i, Φ₁ (td_Vert ρ₁ i) = rectVert a₁ b₁ i := hΦ₁v'
+  have hφ₂ : IsConformalOnto φ₂ upperHalf (rectangle a₂ b₂) := hφ₂'
+  have hΦ₂ : IsHomeoExtension φ₂ upperHalf (rectangle a₂ b₂) Φ₂ := hΦ₂'
+  have hΦ₂v : ∀ i, Φ₂ (td_Vert ρ₂ i) = rectVert a₂ b₂ i := hΦ₂v'
+  -- the stretch `e`, of dilatation `α/β = K`
+  have hα : 0 < a₂ / a₁ := div_pos ha₂ ha₁
+  have hβ : 0 < b₂ / b₁ := div_pos hb₂ hb₁
+  have hαβ : (a₂ / a₁) / (b₂ / b₁) = K := by
+    rw [hKdef, ← hm₁, ← hm₂]
+    field_simp
+  have hβα : b₂ / b₁ ≤ a₂ / a₁ := by
+    have h' : a₂ / a₁ = K * (b₂ / b₁) := by rw [← hαβ]; field_simp
+    rw [h']
+    nlinarith
+  set e := td_Stretch (a₂ / a₁) (b₂ / b₁) hα.ne' hβ.ne' with hedef
+  have heK : IsKQC e univ K := hαβ ▸ td_Stretch_isKQC hα.ne' hβ.ne' hβ hβα
+  have heR : e '' rectangle a₁ b₁ = rectangle a₂ b₂ := td_Stretch_image_rectangle ha₁ hb₁ ha₂ hb₂
+  -- `f = ψ₂ ∘ e ∘ φ₁`
+  set ψ₂ := Function.invFunOn φ₂ upperHalf with hψ₂def
+  have hψ₂ : IsConformalOnto ψ₂ (rectangle a₂ b₂) upperHalf := hφ₂.symm isOpen_upperHalf
+  have hq₁ := isKQC_one_of_conformal isOpen_upperHalf hφ₁
+  have hqe : IsKQC e (rectangle a₁ b₁) K :=
+    ac_t_isKQC_restrict heK (isOpen_rectangle _ _) (subset_univ _)
+  have hq₂ := isKQC_one_of_conformal (isOpen_rectangle _ _) hψ₂
+  have h1 : IsKQC (e ∘ φ₁) upperHalf (1 * K) := thm7_1_comp hq₁ hqe hφ₁.2.2.le
+  have hmaps : MapsTo (e ∘ φ₁) upperHalf (rectangle a₂ b₂) := by
+    intro z hz
+    rw [← heR]
+    exact mem_image_of_mem e (hφ₁.mapsTo hz)
+  have h2 : IsKQC (ψ₂ ∘ (e ∘ φ₁)) upperHalf (1 * K * 1) :=
+    thm7_1_comp h1 hq₂ (by rw [image_comp, hφ₁.2.2, heR])
+  rw [one_mul, mul_one] at h2
+  have himg : (ψ₂ ∘ (e ∘ φ₁)) '' upperHalf = upperHalf := by
+    rw [image_comp, image_comp, hφ₁.2.2, heR, hψ₂.2.2]
+  -- the extension `F = Ψ₂ ∘ E ∘ Φ₁`
+  set E : ExtPlane ≃ₜ ExtPlane := e.onePointCongr with hEdef
+  have hE : ∀ w : ℂ, E (w : ExtPlane) = ((e w : ℂ) : ExtPlane) := fun w => rfl
+  have hEimg : E '' toExt (rectangle a₁ b₁) = toExt (rectangle a₂ b₂) := by
+    rw [← heR]
+    simp only [toExt, image_image, hE]
+  have hext₁ : IsHomeoExtension (e ∘ φ₁) upperHalf (rectangle a₂ b₂) (E ∘ Φ₁) :=
+    hΦ₁.comp_homeomorph hφ₁.mapsTo E (fun w _ => hE w) hEimg
+  have hΨ₂ := isHomeoExtension_invFunOn hφ₂ hΦ₂
+  have hF := hΨ₂.comp hext₁ hmaps
+  refine ⟨_, _, h2, himg, hF, fun i => ?_⟩
+  -- vertices: `Φ₁(v₁ i) = R₁ i`, `E(R₁ i) = R₂ i`, `Ψ₂(R₂ i) = v₂ i`
+  have hER : E (rectVert a₁ b₁ i) = rectVert a₂ b₂ i := by
+    have ha1 := ha₁.ne'
+    have hb1 := hb₁.ne'
+    fin_cases i
+    · show E ((0 : ℂ) : ExtPlane) = ((0 : ℂ) : ExtPlane)
+      rw [hE]; congr 1; rw [hedef, td_Stretch_apply]; apply Complex.ext <;> simp
+    · show E (((a₁ : ℝ) : ℂ) : ExtPlane) = (((a₂ : ℝ) : ℂ) : ExtPlane)
+      rw [hE]; congr 1; rw [hedef, td_Stretch_apply]; apply Complex.ext <;> simp [ha1]
+    · show E (((a₁ : ℂ) + (b₁ : ℂ) * I : ℂ) : ExtPlane) = (((a₂ : ℂ) + (b₂ : ℂ) * I : ℂ) : ExtPlane)
+      rw [hE]; congr 1; rw [hedef, td_Stretch_apply]; apply Complex.ext <;> simp [ha1, hb1]
+    · show E (((b₁ : ℂ) * I : ℂ) : ExtPlane) = (((b₂ : ℂ) * I : ℂ) : ExtPlane)
+      rw [hE]; congr 1; rw [hedef, td_Stretch_apply]; apply Complex.ext <;> simp [hb1]
+  have hΨ : Function.invFunOn Φ₂ (closure (toExt upperHalf)) (rectVert a₂ b₂ i) = td_Vert ρ₂ i := by
+    rw [← hΦ₂v i]
+    exact hΦ₂.2.2.1.leftInvOn_invFunOn (td_Vert_mem_closure hρ₂ i)
+  show Function.invFunOn Φ₂ (closure (toExt upperHalf)) (E (Φ₁ (td_Vert ρ₁ i))) = _
+  have h1i : Φ₁ (td_Vert ρ₁ i) = rectVert a₁ b₁ i := hΦ₁v i
+  rw [h1i, hER, hΨ]
+
+/-- The reflected map: a `Λ(ρ₂)/Λ(ρ₁)`-q.c. self-map `g` of the plane, symmetric in the real axis,
+mapping `ℍ` into `ℍ`, fixing `0` and `-1` and taking `ρ₁` to `ρ₂` (as in `td_sharp_map`). -/
+theorem s15m_plane_map {ρ₁ ρ₂ : ℝ} (hρ₁ : 0 < ρ₁) (hρ₁₂ : ρ₁ ≤ ρ₂) :
+    ∃ g : ℂ → ℂ, IsKQC g univ (quadLambda ρ₂ / quadLambda ρ₁) ∧ g '' univ = univ ∧
+      (∀ z, g (conj z) = conj (g z)) ∧ MapsTo g upperHalf upperHalf ∧
+      g 0 = 0 ∧ g (-1) = -1 ∧ g ρ₁ = ρ₂ := by
+  obtain ⟨f, F, hfK, hfimg, hF, hFv⟩ := s15m_half_plane_map hρ₁ hρ₁₂
+  have hFinf : F extInf = extInf := hFv 0
+  -- `f → ∞` at `∞` in `ℍ`
+  have hinf : Tendsto f (cocompact ℂ ⊓ 𝓟 upperHalf) (cocompact ℂ) := by
+    have hinfmem : extInf ∈ closure (toExt upperHalf) :=
+      frontier_subset_closure infty_mem_frontier_upperHalf
+    have hcoe : Tendsto (fun z : ℂ => (z : ExtPlane)) (cocompact ℂ ⊓ 𝓟 upperHalf)
+        (𝓝[closure (toExt upperHalf)] extInf) := by
+      rw [tendsto_nhdsWithin_iff]
+      refine ⟨?_, ?_⟩
+      · have h := OnePoint.tendsto_coe_infty (X := ℂ)
+        rw [coclosedCompact_eq_cocompact] at h
+        exact h.mono_left inf_le_left
+      · filter_upwards [mem_inf_of_right (mem_principal_self upperHalf)] with z hz
+        exact subset_closure ⟨z, hz, rfl⟩
+    have h2 : Tendsto (fun z : ℂ => F (z : ExtPlane)) (cocompact ℂ ⊓ 𝓟 upperHalf) (𝓝 extInf) := by
+      have h := (hF.2.1 extInf hinfmem).tendsto.comp hcoe
+      rwa [hFinf] at h
+    have h3 : Tendsto (fun z : ℂ => ((f z : ℂ) : ExtPlane)) (cocompact ℂ ⊓ 𝓟 upperHalf)
+        (𝓝 extInf) := by
+      refine h2.congr' ?_
+      filter_upwards [mem_inf_of_right (mem_principal_self upperHalf)] with z hz
+      exact hF.1 z hz
+    have hcc : comap ((↑) : ℂ → ExtPlane) (𝓝 extInf) = cocompact ℂ := by
+      rw [OnePoint.comap_coe_nhds_infty, coclosedCompact_eq_cocompact]
+    have h4 : Tendsto f (cocompact ℂ ⊓ 𝓟 upperHalf) (comap ((↑) : ℂ → ExtPlane) (𝓝 extInf)) :=
+      tendsto_comap_iff.2 h3
+    rwa [hcc] at h4
+  obtain ⟨g, hgK, hgs, hgf, hsym⟩ := qc_reflection_extension hfK hfimg hinf
+  have hgc : Continuous g := continuousOn_univ.1 hgK.2.2.1.1
+  -- boundary values `g(x) = F(x)`
+  have hbv : ∀ x : ℝ, (((g x : ℂ)) : ExtPlane) = F ((x : ℂ) : ExtPlane) := by
+    intro x
+    have hxcl : (x : ℂ) ∈ closure upperHalf := by
+      rw [Metric.mem_closure_iff]
+      intro ε hε
+      refine ⟨(x : ℂ) + ((ε / 2 : ℝ) : ℂ) * I, ?_, ?_⟩
+      · show 0 < ((x : ℂ) + ((ε / 2 : ℝ) : ℂ) * I).im
+        simp only [Complex.add_im, Complex.ofReal_im, Complex.mul_im, Complex.ofReal_re,
+          Complex.I_im, Complex.I_re, mul_one, mul_zero, add_zero, zero_add]
+        linarith
+      · rw [dist_eq_norm, show (x : ℂ) - ((x : ℂ) + ((ε / 2 : ℝ) : ℂ) * I) =
+          -(((ε / 2 : ℝ) : ℂ) * I) by ring, norm_neg, norm_mul, Complex.norm_I, mul_one,
+          Complex.norm_real, Real.norm_of_nonneg (by linarith)]
+        linarith
+    have : (𝓝[upperHalf] (x : ℂ)).NeBot := mem_closure_iff_nhdsWithin_neBot.1 hxcl
+    have hxmem : ((x : ℂ) : ExtPlane) ∈ closure (toExt upperHalf) :=
+      frontier_subset_closure (ofReal_mem_frontier_upperHalf x)
+    have hcoe : Tendsto (fun z : ℂ => (z : ExtPlane)) (𝓝[upperHalf] (x : ℂ))
+        (𝓝[closure (toExt upperHalf)] ((x : ℂ) : ExtPlane)) := by
+      rw [tendsto_nhdsWithin_iff]
+      refine ⟨(OnePoint.continuous_coe.tendsto _).mono_left nhdsWithin_le_nhds, ?_⟩
+      filter_upwards [self_mem_nhdsWithin] with z hz
+      exact subset_closure ⟨z, hz, rfl⟩
+    have hA : Tendsto (fun z : ℂ => F (z : ExtPlane)) (𝓝[upperHalf] (x : ℂ))
+        (𝓝 (F ((x : ℂ) : ExtPlane))) :=
+      (hF.2.1 _ hxmem).tendsto.comp hcoe
+    have hB : Tendsto (fun z : ℂ => ((g z : ℂ) : ExtPlane)) (𝓝[upperHalf] (x : ℂ))
+        (𝓝 ((g x : ℂ) : ExtPlane)) :=
+      ((OnePoint.continuous_coe.comp hgc).tendsto _).mono_left nhdsWithin_le_nhds
+    have hAB : (fun z : ℂ => F (z : ExtPlane)) =ᶠ[𝓝[upperHalf] (x : ℂ)]
+        (fun z : ℂ => ((g z : ℂ) : ExtPlane)) := by
+      filter_upwards [self_mem_nhdsWithin] with z hz
+      rw [hF.1 z hz, hgf hz]
+    exact tendsto_nhds_unique hB (hA.congr' hAB)
+  have hgm1 : g (-1) = -1 := by
+    have h := hbv (-1)
+    have h' : F ((((-1 : ℝ) : ℂ)) : ExtPlane) = (((-1 : ℝ) : ℂ) : ExtPlane) := hFv 1
+    rw [h'] at h
+    have := OnePoint.coe_injective h
+    simpa using this
+  have hg0 : g 0 = 0 := by
+    have h := hbv 0
+    have h' : F (((0 : ℂ)) : ExtPlane) = ((0 : ℂ) : ExtPlane) := hFv 2
+    rw [Complex.ofReal_zero, h'] at h
+    exact OnePoint.coe_injective h
+  have hg1 : g ρ₁ = ρ₂ := by
+    have h := hbv ρ₁
+    have h' : F ((((ρ₁ : ℝ) : ℂ)) : ExtPlane) = (((ρ₂ : ℝ) : ℂ) : ExtPlane) := hFv 3
+    rw [h'] at h
+    exact OnePoint.coe_injective h
+  refine ⟨g, hgK, hgs, hsym, fun z hz => ?_, hg0, hgm1, hg1⟩
+  rw [hgf hz, ← hfimg]
+  exact mem_image_of_mem f hz
+
+/-- A homeomorphism `g` of the plane, symmetric in the real axis, with `g 0 = 0` and `g (-1) = -1`,
+preserves the ray `[0, +∞)` and hence its complement. -/
+theorem s15m_image_slit {g : ℂ → ℂ} (hc : Continuous g) (hinj : Function.Injective g)
+    (hsurj : Function.Surjective g) (hsym : ∀ z, g (conj z) = conj (g z)) (h0 : g 0 = 0)
+    (hm1 : g (-1) = -1) :
+    g '' {z : ℂ | z.im = 0 ∧ 0 ≤ z.re}ᶜ = {z : ℂ | z.im = 0 ∧ 0 ≤ z.re}ᶜ := by
+  have hreal : ∀ x : ℝ, (g x).im = 0 := by
+    intro x
+    have h := hsym x
+    rw [Complex.conj_ofReal] at h
+    have h' := congrArg Complex.im h
+    rw [Complex.conj_im] at h'
+    linarith
+  set φ : ℝ → ℝ := fun x => (g x).re with hφ
+  have hgφ : ∀ x : ℝ, g x = (φ x : ℂ) := fun x => Complex.ext (by simp [hφ]) (by simp [hreal x])
+  have hφc : Continuous φ := by
+    simp only [hφ]
+    fun_prop
+  have hφi : Function.Injective φ := by
+    intro x y hxy
+    have h : g x = g y := by rw [hgφ, hgφ, hxy]
+    exact_mod_cast hinj h
+  have e1 : φ (-1) = -1 := by simp [hφ, hm1]
+  have e0 : φ 0 = 0 := by simp [hφ, h0]
+  have hmono : StrictMono φ := by
+    rcases hφc.strictMono_of_inj hφi with h | h
+    · exact h
+    · exfalso
+      have := h (show (-1 : ℝ) < 0 by norm_num)
+      linarith
+  have hray : g '' {z : ℂ | z.im = 0 ∧ 0 ≤ z.re} = {z : ℂ | z.im = 0 ∧ 0 ≤ z.re} := by
+    ext w
+    constructor
+    · rintro ⟨z, ⟨hz1, hz2⟩, rfl⟩
+      have hz : z = (z.re : ℂ) := Complex.ext (by simp) (by simp [hz1])
+      rw [hz, hgφ]
+      refine ⟨by simp, ?_⟩
+      simp only [ofReal_re]
+      have := hmono.monotone hz2
+      rwa [e0] at this
+    · rintro ⟨hw1, hw2⟩
+      obtain ⟨z, rfl⟩ := hsurj w
+      have hzc : conj z = z := by
+        apply hinj
+        rw [hsym]
+        exact Complex.ext (by simp) (by simp [hw1])
+      have hz1 : z.im = 0 := Complex.conj_eq_iff_im.1 hzc
+      have hz : z = (z.re : ℂ) := Complex.ext (by simp) (by simp [hz1])
+      refine ⟨z, ⟨hz1, ?_⟩, rfl⟩
+      by_contra hneg
+      have h1 := hmono (not_le.1 hneg)
+      rw [e0] at h1
+      rw [hz, hgφ] at hw2
+      simp only [ofReal_re] at hw2
+      linarith
+  rw [Set.image_compl_eq ⟨hinj, hsurj⟩, hray]
+
+/-- The conformal map `z ↦ ((i - z)/(1 - i z))²` of `Δ` onto `ℂ ∖ [0, +∞)` (it takes `0` to `-1`). -/
+theorem s15m_S_conformal :
+    IsConformalOnto (fun z => mo_ma2_cay z ^ 2) unitDisc {z : ℂ | z.im = 0 ∧ 0 ≤ z.re}ᶜ :=
+  mo_ma2_isConformalOnto_sq.comp mo_ma2_isConformalOnto_cay
+
+/-- `u ↦ (i - u)/(1 - i u)` is continuous off its pole. -/
+theorem s15m_cay_continuousAt {p : ℂ} (hp : (1 : ℂ) - I * p ≠ 0) : ContinuousAt mo_ma2_cay p := by
+  show ContinuousAt (fun u : ℂ => (I - u) / (1 - I * u)) p
+  exact (continuousAt_const.sub continuousAt_id).div
+    (continuousAt_const.sub (continuousAt_const.mul continuousAt_id)) hp
+
+/-- The pole `u = -i` of `u ↦ (i - u)/(1 - i u)` is not real. -/
+theorem s15m_cay_den_real (x : ℝ) : (1 : ℂ) - I * x ≠ 0 := by
+  intro h
+  have h' := congrArg Complex.re h
+  simp at h'
+
+/-- `u ↦ (i - u)/(1 - i u)` maps the real line into the unit circle. -/
+theorem s15m_cay_norm_real (x : ℝ) : ‖mo_ma2_cay x‖ = 1 := by
+  have hden := s15m_cay_den_real x
+  have h : ‖I - (x : ℂ)‖ = ‖(1 : ℂ) - I * x‖ := by
+    rw [← sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _), Complex.sq_norm, Complex.sq_norm,
+      normSq_apply, normSq_apply]
+    simp
+    ring
+  rw [mo_ma2_cay, norm_div, h, div_self (norm_ne_zero_iff.2 hden)]
+
+/-- The two boundary points `(i ∓ s)/(1 ∓ i s)` are `4|s|/(1 + s²)` apart. -/
+theorem s15m_cay_dist (s : ℝ) :
+    ‖mo_ma2_cay ((1 * s : ℝ) : ℂ) - mo_ma2_cay ((-1 * s : ℝ) : ℂ)‖ = 4 * |s| / (1 + s ^ 2) := by
+  have ha := s15m_cay_den_real (1 * s)
+  have hb := s15m_cay_den_real (-1 * s)
+  have hc : (1 : ℂ) + (s : ℂ) ^ 2 ≠ 0 := by
+    have : (1 : ℂ) + (s : ℂ) ^ 2 = ((1 + s ^ 2 : ℝ) : ℂ) := by push_cast; ring
+    rw [this, ofReal_ne_zero]
+    positivity
+  have key : mo_ma2_cay ((1 * s : ℝ) : ℂ) - mo_ma2_cay ((-1 * s : ℝ) : ℂ) =
+      (-4 * (s : ℂ)) / (1 + (s : ℂ) ^ 2) := by
+    rw [mo_ma2_cay, mo_ma2_cay, div_sub_div _ _ ha hb, div_eq_div_iff (mul_ne_zero ha hb) hc]
+    push_cast
+    linear_combination (2 * (s : ℂ) - 2 * (s : ℂ) ^ 3) * I_sq
+  rw [key, show (-4 * (s : ℂ)) / (1 + (s : ℂ) ^ 2) = ((-4 * s / (1 + s ^ 2) : ℝ) : ℂ) by push_cast; ring,
+    Complex.norm_real, Real.norm_eq_abs, abs_div, abs_mul, abs_of_pos (by positivity : (0 : ℝ) < 1 + s ^ 2)]
+  norm_num
+
+/-- The principal square root `w^{1/2}` has nonnegative real part. -/
+theorem s15m_re_sqrt_nonneg (w : ℂ) : 0 ≤ (w ^ (2⁻¹ : ℂ)).re := by
+  rcases eq_or_ne w 0 with rfl | hw
+  · rw [Complex.zero_cpow (by norm_num)]
+    simp
+  · rw [Complex.cpow_def_of_ne_zero hw, Complex.exp_re]
+    apply mul_nonneg (Real.exp_pos _).le
+    apply Real.cos_nonneg_of_mem_Icc
+    have h1 := Complex.neg_pi_lt_arg w
+    have h2 := Complex.arg_le_pi w
+    have him : (Complex.log w * 2⁻¹).im = Complex.arg w / 2 := by
+      rw [Complex.mul_im, Complex.log_im]
+      norm_num
+      ring
+    rw [him]
+    constructor <;> linarith
+
+/-- If `ε Im w > 0` then `ε Im w^{1/2} > 0` (the principal root has `Re ≥ 0` and `w = (w^{1/2})²`). -/
+theorem s15m_im_sqrt_sign {w : ℂ} {ε : ℝ} (h : 0 < ε * w.im) : 0 < ε * (w ^ (2⁻¹ : ℂ)).im := by
+  have hr : (w ^ (2⁻¹ : ℂ)) ^ 2 = w := Complex.cpow_ofNat_inv_pow w 2
+  have hre := s15m_re_sqrt_nonneg w
+  have him : w.im = 2 * (w ^ (2⁻¹ : ℂ)).re * (w ^ (2⁻¹ : ℂ)).im := by
+    conv_lhs => rw [← hr]
+    rw [pow_two, Complex.mul_im]
+    ring
+  rw [him] at h
+  by_contra hle
+  have hle' : ε * (w ^ (2⁻¹ : ℂ)).im ≤ 0 := not_lt.1 hle
+  nlinarith
+
+/-- **The Mori extremal map on the disc**: for `0 < ρ₁ ≤ ρ₂` there is a `Λ(ρ₂)/Λ(ρ₁)`-q.c. self-map `f`
+of `Δ` fixing `0` whose radial limits at the boundary points `(i ∓ √ρ₁)/(1 ∓ i√ρ₁)` are
+`(i ∓ √ρ₂)/(1 ∓ i√ρ₂)` (the reflected half-plane map conjugated by `z ↦ ((i - z)/(1 - i z))²`). -/
+theorem s15m_disc_map {ρ₁ ρ₂ : ℝ} (hρ₁ : 0 < ρ₁) (hρ₁₂ : ρ₁ ≤ ρ₂) :
+    ∃ f : ℂ → ℂ, IsKQC f unitDisc (quadLambda ρ₂ / quadLambda ρ₁) ∧ f '' unitDisc = unitDisc ∧
+      f 0 = 0 ∧ ∀ ε : ℝ, (ε = 1 ∨ ε = -1) →
+        Tendsto (fun t : ℝ => f ((t : ℂ) * mo_ma2_cay ((ε * Real.sqrt ρ₁ : ℝ) : ℂ))) (𝓝[<] 1)
+          (𝓝 (mo_ma2_cay ((ε * Real.sqrt ρ₂ : ℝ) : ℂ))) := by
+  have hρ₂ : 0 < ρ₂ := hρ₁.trans_le hρ₁₂
+  obtain ⟨g, hgK, hgs, hsym, hgH, hg0, hgm1, hg1⟩ := s15m_plane_map hρ₁ hρ₁₂
+  set K := quadLambda ρ₂ / quadLambda ρ₁ with hKdef
+  set Ω : Set ℂ := {z : ℂ | z.im = 0 ∧ 0 ≤ z.re}ᶜ with hΩdef
+  set S : ℂ → ℂ := fun z => mo_ma2_cay z ^ 2 with hSdef
+  have hS : IsConformalOnto S unitDisc Ω := s15m_S_conformal
+  have hΩo : IsOpen Ω :=
+    ((isClosed_eq continuous_im continuous_const).inter (isClosed_le continuous_const continuous_re)).isOpen_compl
+  have hgc : Continuous g := continuousOn_univ.1 hgK.2.2.1.1
+  have hginj : Function.Injective g := fun x y h => hgK.2.2.1.2.1 (mem_univ x) (mem_univ y) h
+  have hgsurj : Function.Surjective g := fun w => by
+    have hw : w ∈ g '' univ := by rw [hgs]; exact mem_univ w
+    obtain ⟨z, -, hz⟩ := hw
+    exact ⟨z, hz⟩
+  have hgΩ : g '' Ω = Ω := s15m_image_slit hgc hginj hgsurj hsym hg0 hgm1
+  have hDo : IsOpen unitDisc := isOpen_ball
+  -- q.c.
+  have h1 := isKQC_one_of_conformal hDo hS
+  have h2 : IsKQC g Ω K := ac_t_isKQC_restrict hgK hΩo (subset_univ _)
+  have h3 := thm7_1_comp h1 h2 hS.2.2.le
+  have h4 := isKQC_one_of_conformal hΩo (hS.symm hDo)
+  have h5 := thm7_1_comp h3 h4 (by rw [image_comp, hS.2.2, hgΩ])
+  rw [one_mul, mul_one] at h5
+  -- identification of `S⁻¹`
+  have hid : ∀ y x, x ∈ unitDisc → S x = y → Function.invFunOn S unitDisc y = x := by
+    rintro y x hx rfl
+    exact hS.2.1.leftInvOn_invFunOn hx
+  refine ⟨fun z => Function.invFunOn S unitDisc (g (S z)), h5, ?_, ?_, ?_⟩
+  · show (Function.invFunOn S unitDisc ∘ (g ∘ S)) '' unitDisc = unitDisc
+    rw [image_comp, image_comp, hS.2.2, hgΩ, (hS.symm hDo).2.2]
+  · have hS0 : S 0 = -1 := by simp [hSdef, mo_ma2_cay]
+    show Function.invFunOn S unitDisc (g (S 0)) = 0
+    rw [hS0, hgm1]
+    exact hid _ _ (mem_ball_self one_pos) hS0
+  intro ε hε
+  have hε2 : ε * ε = 1 := by rcases hε with rfl | rfl <;> norm_num
+  set s₁ := Real.sqrt ρ₁ with hs₁def
+  set s₂ := Real.sqrt ρ₂ with hs₂def
+  have hs₁ : 0 < s₁ := Real.sqrt_pos.2 hρ₁
+  set u := mo_ma2_cay ((ε * s₁ : ℝ) : ℂ) with hu
+  have hcu : mo_ma2_cay u = ((ε * s₁ : ℝ) : ℂ) := mo_ma2_cay_cay (s15m_cay_den_real _)
+  have hεs₁ : ε * s₁ ≠ 0 := by
+    intro h
+    have := congrArg (fun x => ε * x) h
+    simp only [mul_zero, ← mul_assoc, hε2, one_mul] at this
+    linarith
+  have hu_den : (1 : ℂ) - I * u ≠ 0 := by
+    intro h
+    have hmI : u = -I := by linear_combination I * h + u * I_sq
+    have h0 : mo_ma2_cay u = 0 := by
+      rw [hmI, mo_ma2_cay]
+      simp
+    rw [hcu, ofReal_eq_zero] at h0
+    exact hεs₁ h0
+  have hSu : S u = (ρ₁ : ℂ) := by
+    simp only [hSdef, hcu]
+    rw [← ofReal_pow, mul_pow, hs₁def, Real.sq_sqrt hρ₁.le, sq, hε2, one_mul]
+  -- the explicit branch `Φ(z) = cay(ε · (g(S z))^{1/2})`
+  set Φ : ℂ → ℂ := fun z => mo_ma2_cay ((ε : ℂ) * (g (S z)) ^ (2⁻¹ : ℂ)) with hΦdef
+  have hgSu : g (S u) = (ρ₂ : ℂ) := by rw [hSu, hg1]
+  have hsq₂ : (ρ₂ : ℂ) ^ (2⁻¹ : ℂ) = (s₂ : ℂ) := by
+    rw [hs₂def, Real.sqrt_eq_rpow, ofReal_cpow hρ₂.le]
+    push_cast
+    ring_nf
+  have hΦu : Φ u = mo_ma2_cay ((ε * s₂ : ℝ) : ℂ) := by
+    simp only [hΦdef, hgSu, hsq₂]
+    push_cast
+    ring_nf
+  have hΦc : ContinuousAt Φ u := by
+    have hSc : ContinuousAt S u := (s15m_cay_continuousAt hu_den).pow 2
+    have hgSc : ContinuousAt (fun z => g (S z)) u := hgc.continuousAt.comp hSc
+    have hsqc : ContinuousAt (fun w : ℂ => w ^ (2⁻¹ : ℂ)) (g (S u)) := by
+      rw [hgSu]
+      exact continuousAt_cpow_const (ofReal_mem_slitPlane.2 hρ₂)
+    have hin : ContinuousAt (fun z => (ε : ℂ) * (g (S z)) ^ (2⁻¹ : ℂ)) u :=
+      continuousAt_const.mul (ContinuousAt.comp (g := fun w : ℂ => w ^ (2⁻¹ : ℂ))
+        (f := fun z => g (S z)) hsqc hgSc)
+    have hout : ContinuousAt mo_ma2_cay ((ε : ℂ) * (g (S u)) ^ (2⁻¹ : ℂ)) := by
+      rw [hgSu, hsq₂, ← ofReal_mul]
+      exact s15m_cay_continuousAt (s15m_cay_den_real _)
+    exact ContinuousAt.comp (g := mo_ma2_cay) (f := fun z => (ε : ℂ) * (g (S z)) ^ (2⁻¹ : ℂ)) hout hin
+  have hT1 : Tendsto (fun t : ℝ => (t : ℂ) * u) (𝓝[<] 1) (𝓝 u) := by
+    have hc : Continuous (fun t : ℝ => (t : ℂ) * u) := by fun_prop
+    have h := hc.tendsto 1
+    simp only [ofReal_one, one_mul] at h
+    exact h.mono_left nhdsWithin_le_nhds
+  have hlim : Tendsto (fun t : ℝ => Φ ((t : ℂ) * u)) (𝓝[<] 1) (𝓝 (mo_ma2_cay ((ε * s₂ : ℝ) : ℂ))) := by
+    rw [← hΦu]
+    exact hΦc.tendsto.comp hT1
+  refine hlim.congr' ?_
+  -- eventually `f(tu) = Φ(tu)`
+  have hT3 : Tendsto (fun t : ℝ => ε * (mo_ma2_cay ((t : ℂ) * u)).re) (𝓝[<] 1)
+      (𝓝 (ε * (mo_ma2_cay u).re)) :=
+    ((continuous_re.continuousAt.comp (s15m_cay_continuousAt hu_den)).tendsto.comp hT1).const_mul ε
+  have hval : ε * (mo_ma2_cay u).re = s₁ := by
+    rw [hcu, ofReal_re, ← mul_assoc, hε2, one_mul]
+  rw [hval] at hT3
+  have hev1 : ∀ᶠ t : ℝ in 𝓝[<] 1, 0 < ε * (mo_ma2_cay ((t : ℂ) * u)).re :=
+    hT3.eventually (lt_mem_nhds hs₁)
+  have hev2 : ∀ᶠ t : ℝ in 𝓝[<] 1, 0 < t :=
+    nhdsWithin_le_nhds (Ioi_mem_nhds (by norm_num : (0 : ℝ) < 1))
+  have hev3 : ∀ᶠ t : ℝ in 𝓝[<] 1, t < 1 := self_mem_nhdsWithin
+  filter_upwards [hev1, hev2, hev3] with t ht1 ht2 ht3
+  set z := (t : ℂ) * u with hzdef
+  have hz : z ∈ unitDisc := by
+    rw [unitDisc, mem_ball_zero_iff, hzdef, norm_mul, Complex.norm_real, Real.norm_of_nonneg ht2.le, hu,
+      s15m_cay_norm_real, mul_one]
+    exact ht3
+  have hcz : 0 < (mo_ma2_cay z).im := mo_ma2_cay_im_pos (mem_ball_zero_iff.1 hz)
+  have hSz : 0 < ε * (S z).im := by
+    simp only [hSdef]
+    rw [pow_two, Complex.mul_im]
+    nlinarith
+  have hgSz : 0 < ε * (g (S z)).im := by
+    rcases hε with rfl | rfl
+    · rw [one_mul] at hSz ⊢
+      exact hgH hSz
+    · have hc : conj (S z) ∈ upperHalf := by
+        show 0 < (conj (S z)).im
+        rw [conj_im]
+        linarith
+      have := hgH hc
+      have h' : 0 < (conj (g (S z))).im := by rw [← hsym]; exact this
+      rw [conj_im] at h'
+      linarith
+  have hr := s15m_im_sqrt_sign hgSz
+  set ζ := (ε : ℂ) * (g (S z)) ^ (2⁻¹ : ℂ) with hζdef
+  have hζ : 0 < ζ.im := by
+    rw [hζdef, im_ofReal_mul]
+    exact hr
+  have hζden : (1 : ℂ) - I * ζ ≠ 0 := by
+    apply mo_ma2_cay_den_ne_zero
+    intro h
+    rw [h, neg_im, I_im] at hζ
+    linarith
+  have hx : mo_ma2_cay ζ ∈ unitDisc := mem_ball_zero_iff.2 (mo_ma2_cay_norm_lt_one hζ)
+  have hSx : S (mo_ma2_cay ζ) = g (S z) := by
+    simp only [hSdef]
+    rw [mo_ma2_cay_cay hζden, hζdef, mul_pow, Complex.cpow_ofNat_inv_pow, ← ofReal_pow, sq, hε2,
+      ofReal_one, one_mul]
+  exact (hid _ _ hx hSx).symm
+
+/-- **The numerics, from (14.26) alone**: for `0 < c < 16` there are `0 < ρ₁ ≤ ρ₂` with
+`c · (4√ρ₁/(1 + ρ₁))^{Λ(ρ₁)/Λ(ρ₂)} < 4√ρ₂/(1 + ρ₂)` (`ρ₂` small, then `ρ₁ = 16 e^{-T}` with `T` large). -/
+theorem s15m_numeric {c : ℝ} (hc0 : 0 < c) (hc : c < 16) :
+    ∃ ρ₁ ρ₂ : ℝ, 0 < ρ₁ ∧ ρ₁ ≤ ρ₂ ∧
+      c * (4 * Real.sqrt ρ₁ / (1 + ρ₁)) ^ (quadLambda ρ₁ / quadLambda ρ₂) < 4 * Real.sqrt ρ₂ / (1 + ρ₂) := by
+  set δ := Real.log 16 - Real.log c with hδdef
+  have hδ : 0 < δ := by rw [hδdef]; linarith [Real.log_lt_log hc0 hc]
+  set ρ₂ := δ / 4 with hρ₂def
+  have hρ₂ : 0 < ρ₂ := by positivity
+  have hL16 : 0 < Real.log 16 := Real.log_pos (by norm_num)
+  set L := Real.log 16 + 1 with hLdef
+  have hL : 0 < L := by linarith
+  set M := Real.log (16 * (1 / ρ₂ + 1)) with hMdef
+  have hiρ₂ : 0 < 1 / ρ₂ := by positivity
+  have hM16 : Real.log 16 ≤ M := Real.log_le_log (by norm_num) (by nlinarith)
+  have hMρ : Real.log (16 * (1 / ρ₂)) ≤ M := Real.log_le_log (by positivity) (by nlinarith)
+  have hMpos : 0 < M := by linarith
+  set T := M + 2 * M * L / δ with hTdef
+  have hT2 : 2 * M * L / δ ≤ T := by rw [hTdef]; linarith
+  have hTM : M ≤ T := by
+    have : 0 ≤ 2 * M * L / δ := by positivity
+    linarith
+  have hTpos : 0 < T := by linarith
+  set ρ₁ := 16 * Real.exp (-T) with hρ₁def
+  have hρ₁ : 0 < ρ₁ := by positivity
+  have hlogρ₁ : Real.log ρ₁ = Real.log 16 - T := by
+    rw [hρ₁def, Real.log_mul (by norm_num) (Real.exp_pos _).ne', Real.log_exp]
+    ring
+  have hlog16ρ₂ : Real.log (16 * (1 / ρ₂)) = Real.log 16 - Real.log ρ₂ := by
+    rw [Real.log_mul (by norm_num) hiρ₂.ne', one_div, Real.log_inv]
+    ring
+  -- `ρ₁ ≤ ρ₂` and `ρ₁ ≤ 1`
+  have hρ₁₂ : ρ₁ ≤ ρ₂ := by
+    have h : Real.log ρ₁ ≤ Real.log ρ₂ := by rw [hlogρ₁]; linarith
+    exact (Real.log_le_log_iff hρ₁ hρ₂).1 h
+  have hρ₁1 : ρ₁ ≤ 1 := by
+    have h : Real.log ρ₁ ≤ Real.log 1 := by rw [hlogρ₁, Real.log_one]; linarith
+    exact (Real.log_le_log_iff hρ₁ one_pos).1 h
+  refine ⟨ρ₁, ρ₂, hρ₁, hρ₁₂, ?_⟩
+  -- `P_j = π Λ(1/ρ_j)` and `e = Λ(ρ₁)/Λ(ρ₂) = P₂/P₁`
+  have hiρ₁ : 0 < 1 / ρ₁ := by positivity
+  obtain ⟨hP₁lo, hP₁hi⟩ := eq14_26 hiρ₁
+  obtain ⟨hP₂lo, hP₂hi⟩ := eq14_26 hiρ₂
+  set P₁ := π * quadLambda (1 / ρ₁) with hP₁def
+  set P₂ := π * quadLambda (1 / ρ₂) with hP₂def
+  have hΛ₁ := b4_num_quadLambda_pos hρ₁
+  have hΛ₂ := b4_num_quadLambda_pos hρ₂
+  have hΛ₁' := b4_num_quadLambda_pos hiρ₁
+  have hΛ₂' := b4_num_quadLambda_pos hiρ₂
+  have h20₁ := eq5_20 hρ₁
+  have h20₂ := eq5_20 hρ₂
+  set e := quadLambda ρ₁ / quadLambda ρ₂ with hedef
+  have he0 : 0 ≤ e := by positivity
+  have heP : e * P₁ = P₂ := by
+    rw [hedef, hP₁def, hP₂def]
+    field_simp
+    linear_combination h20₁ - h20₂
+  have hP₁T : T ≤ P₁ := by
+    have h : Real.log (16 * (1 / ρ₁)) = T := by
+      rw [Real.log_mul (by norm_num) hiρ₁.ne', one_div, Real.log_inv, hlogρ₁]
+      ring
+    linarith
+  have hP₁T' : P₁ ≤ T + 1 := by
+    have h : Real.log (16 * (1 / ρ₁ + 1)) = T + Real.log (1 + ρ₁) := by
+      rw [show 16 * (1 / ρ₁ + 1) = (16 * (1 / ρ₁)) * (1 + ρ₁) by field_simp, Real.log_mul (by positivity)
+        (by positivity), Real.log_mul (by norm_num) hiρ₁.ne', one_div, Real.log_inv, hlogρ₁]
+      ring
+    have h' : Real.log (1 + ρ₁) ≤ 1 := by
+      have := Real.log_le_sub_one_of_pos (by linarith : (0 : ℝ) < 1 + ρ₁)
+      linarith
+    linarith
+  have heT : e * T ≤ M := by
+    calc e * T ≤ e * P₁ := mul_le_mul_of_nonneg_left hP₁T he0
+      _ = P₂ := heP
+      _ ≤ M := hP₂hi
+  have heT' : P₂ - e ≤ e * T := by
+    have : e * P₁ ≤ e * (T + 1) := mul_le_mul_of_nonneg_left hP₁T' he0
+    linarith
+  have heL : e * L ≤ δ / 2 := by
+    have h1 : e * (2 * M * L / δ) ≤ M :=
+      le_trans (mul_le_mul_of_nonneg_left hT2 he0) heT
+    have h2 : e * L = e * (2 * M * L / δ) * (δ / (2 * M)) := by
+      field_simp
+    rw [h2]
+    calc e * (2 * M * L / δ) * (δ / (2 * M)) ≤ M * (δ / (2 * M)) :=
+          mul_le_mul_of_nonneg_right h1 (by positivity)
+      _ = δ / 2 := by field_simp
+  -- the two logarithmic estimates
+  set A := 4 * Real.sqrt ρ₁ / (1 + ρ₁) with hAdef
+  set B := 4 * Real.sqrt ρ₂ / (1 + ρ₂) with hBdef
+  have hs₁ : 0 < Real.sqrt ρ₁ := Real.sqrt_pos.2 hρ₁
+  have hs₂ : 0 < Real.sqrt ρ₂ := Real.sqrt_pos.2 hρ₂
+  have hA : 0 < A := by positivity
+  have hB : 0 < B := by positivity
+  have hlog4 : Real.log 16 = 2 * Real.log 4 := by
+    rw [show (16 : ℝ) = 4 ^ 2 by norm_num, Real.log_pow]
+    push_cast
+    ring
+  have hlogA : Real.log A ≤ Real.log 16 - T / 2 := by
+    have h1 : A ≤ 4 * Real.sqrt ρ₁ := div_le_self (by positivity) (by linarith)
+    have h2 : Real.log (4 * Real.sqrt ρ₁) = Real.log 4 + Real.log ρ₁ / 2 := by
+      rw [Real.log_mul (by norm_num) hs₁.ne', Real.log_sqrt hρ₁.le]
+    have h3 := Real.log_le_log hA h1
+    rw [h2, hlogρ₁] at h3
+    linarith
+  have hlogB : Real.log 16 - P₂ / 2 - Real.log (1 + ρ₂) ≤ Real.log B := by
+    have h2 : Real.log B = Real.log 4 + Real.log ρ₂ / 2 - Real.log (1 + ρ₂) := by
+      rw [hBdef, Real.log_div (by positivity) (by linarith), Real.log_mul (by norm_num) hs₂.ne',
+        Real.log_sqrt hρ₂.le]
+    rw [h2]
+    rw [hlog16ρ₂] at hP₂lo
+    linarith
+  have hl1 : Real.log (1 + ρ₂) ≤ δ / 4 := by
+    have := Real.log_le_sub_one_of_pos (by linarith : (0 : ℝ) < 1 + ρ₂)
+    rw [hρ₂def] at this ⊢
+    linarith
+  have hprod : Real.log A * e ≤ (Real.log 16 - T / 2) * e := mul_le_mul_of_nonneg_right hlogA he0
+  have hmain : Real.log c + Real.log A * e < Real.log B := by
+    nlinarith
+  rw [Real.rpow_def_of_pos hA]
+  have hce : c * Real.exp (Real.log A * e) = Real.exp (Real.log c + Real.log A * e) := by
+    rw [Real.exp_add, Real.exp_log hc0]
+  rw [hce, ← Real.exp_log hB]
+  exact Real.exp_lt_exp.2 hmain
+
 /-- Historical note: the constant `16` in Mori's theorem cannot be replaced by any smaller
 absolute constant. -/
 theorem mori_constant_sharp {c : ℝ} (hc : c < 16) :
     ∃ (K : ℝ) (f : ℂ → ℂ) (z₁ z₂ : ℂ), IsKQC f unitDisc K ∧ f '' unitDisc = unitDisc ∧ f 0 = 0 ∧
       z₁ ∈ unitDisc ∧ z₂ ∈ unitDisc ∧ z₁ ≠ z₂ ∧ c * ‖z₁ - z₂‖ ^ (1 / K) < ‖f z₁ - f z₂‖ := by
-  sorry
+  set c' := max c 1 with hc'def
+  have hc'0 : 0 < c' := lt_of_lt_of_le one_pos (le_max_right _ _)
+  have hc'16 : c' < 16 := max_lt hc (by norm_num)
+  obtain ⟨ρ₁, ρ₂, hρ₁, hρ₁₂, hnum⟩ := s15m_numeric hc'0 hc'16
+  have hρ₂ : 0 < ρ₂ := hρ₁.trans_le hρ₁₂
+  obtain ⟨f, hfK, hfimg, hf0, hlim⟩ := s15m_disc_map hρ₁ hρ₁₂
+  set K := quadLambda ρ₂ / quadLambda ρ₁ with hKdef
+  have hKpos : 0 < K := div_pos (b4_num_quadLambda_pos hρ₂) (b4_num_quadLambda_pos hρ₁)
+  have hinvK : 1 / K = quadLambda ρ₁ / quadLambda ρ₂ := by rw [hKdef, one_div_div]
+  set A := 4 * Real.sqrt ρ₁ / (1 + ρ₁) with hAdef
+  set B := 4 * Real.sqrt ρ₂ / (1 + ρ₂) with hBdef
+  set v₁ := mo_ma2_cay ((1 * Real.sqrt ρ₁ : ℝ) : ℂ) with hv₁
+  set v₂ := mo_ma2_cay ((-1 * Real.sqrt ρ₁ : ℝ) : ℂ) with hv₂
+  have hl₁ := hlim 1 (Or.inl rfl)
+  have hl₂ := hlim (-1) (Or.inr rfl)
+  have hd := (hl₁.sub hl₂).norm
+  have hB' : ‖mo_ma2_cay ((1 * Real.sqrt ρ₂ : ℝ) : ℂ) - mo_ma2_cay ((-1 * Real.sqrt ρ₂ : ℝ) : ℂ)‖ = B := by
+    rw [s15m_cay_dist, abs_of_nonneg (Real.sqrt_nonneg _), Real.sq_sqrt hρ₂.le]
+  have hA' : ‖v₁ - v₂‖ = A := by
+    rw [hv₁, hv₂, s15m_cay_dist, abs_of_nonneg (Real.sqrt_nonneg _), Real.sq_sqrt hρ₁.le]
+  rw [hB'] at hd
+  have hev : ∀ᶠ t : ℝ in 𝓝[<] 1, c' * A ^ (1 / K) < ‖f ((t : ℂ) * v₁) - f ((t : ℂ) * v₂)‖ := by
+    rw [hinvK]
+    exact hd.eventually (lt_mem_nhds hnum)
+  have hev2 : ∀ᶠ t : ℝ in 𝓝[<] 1, 0 < t :=
+    nhdsWithin_le_nhds (Ioi_mem_nhds (by norm_num : (0 : ℝ) < 1))
+  have hev3 : ∀ᶠ t : ℝ in 𝓝[<] 1, t < 1 := self_mem_nhdsWithin
+  obtain ⟨t, ht, ht0, ht1⟩ := (hev.and (hev2.and hev3)).exists
+  have hnu : ∀ x : ℝ, ‖(t : ℂ) * mo_ma2_cay (x : ℂ)‖ = t := by
+    intro x
+    rw [norm_mul, Complex.norm_real, Real.norm_of_nonneg ht0.le, s15m_cay_norm_real, mul_one]
+  have hmem : ∀ x : ℝ, (t : ℂ) * mo_ma2_cay (x : ℂ) ∈ unitDisc := fun x => by
+    rw [unitDisc, mem_ball_zero_iff, hnu]
+    exact ht1
+  have hdist : ‖(t : ℂ) * v₁ - (t : ℂ) * v₂‖ = t * A := by
+    rw [← mul_sub, norm_mul, Complex.norm_real, Real.norm_of_nonneg ht0.le, hA']
+  have hApos : 0 < A := by
+    have : 0 < Real.sqrt ρ₁ := Real.sqrt_pos.2 hρ₁
+    positivity
+  refine ⟨K, f, (t : ℂ) * v₁, (t : ℂ) * v₂, hfK, hfimg, hf0, hmem (1 * Real.sqrt ρ₁),
+    hmem (-1 * Real.sqrt ρ₁), ?_, ?_⟩
+  · intro h
+    have h' := congrArg norm (sub_eq_zero.2 h)
+    rw [hdist, norm_zero] at h'
+    have : 0 < t * A := mul_pos ht0 hApos
+    linarith
+  · rw [hdist]
+    have hK0 : 0 ≤ 1 / K := by positivity
+    calc c * (t * A) ^ (1 / K) ≤ c' * (t * A) ^ (1 / K) :=
+          mul_le_mul_of_nonneg_right (le_max_left _ _) (Real.rpow_nonneg (by positivity) _)
+      _ ≤ c' * A ^ (1 / K) := by
+          apply mul_le_mul_of_nonneg_left _ hc'0.le
+          exact Real.rpow_le_rpow (by positivity) (mul_le_of_le_one_left hApos.le ht1.le) hK0
+      _ < _ := ht
 
 /-! ### s15w track (coordinator 553e2d), part W1: Wang Chuanfang's estimate -/
 

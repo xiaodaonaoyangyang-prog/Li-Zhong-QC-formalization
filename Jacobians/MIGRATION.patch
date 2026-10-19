@@ -1,0 +1,863 @@
+--- a/Jacobians/Forms/LocalRep.lean
++++ b/Jacobians/Forms/LocalRep.lean
+@@ -62,7 +62,8 @@
+   have h4 := h1.comp h2 h3
+   refine h4.congr ?_
+   intro y hy
+-  simpa using Trivialization.mk_symm e hy v
++  simpa only [Trivialization.symmL_apply e hy, Function.comp_apply] using
++    Trivialization.mk_symm e hy v
+ 
+ /-- `localRep α x₀` is continuous on the trivialization's base set. -/
+ theorem localRep_continuousOn {X : Type*} [TopologicalSpace X] [ChartedSpace ℂ X]
+--- a/Jacobians/Forms/Compactness.lean
++++ b/Jacobians/Forms/Compactness.lean
+@@ -115,6 +115,7 @@
+     localRepOnInnerShrunk α x₀ y = localRep α x₀ (y : X) := by
+   unfold localRepOnInnerShrunk
+   simp [hx₀]
++  rfl
+ 
+ /-- Component-wise bound for the inner version: same `supNormK` bound
+ as outer, since `innerShrunkChart ⊆ shrunkChart` and the norm bound on
+@@ -227,7 +228,8 @@
+     simp only
+     have hsymmL :
+         (trivializationAt ℂ (TangentSpace 𝓘(ℂ, ℂ) (M := X)) x₀).symmL ℂ y 1 =
+-          (trivializationAt ℂ (TangentSpace 𝓘(ℂ, ℂ) (M := X)) x₀).symm y 1 := rfl
++          (trivializationAt ℂ (TangentSpace 𝓘(ℂ, ℂ) (M := X)) x₀).symm y 1 :=
++      Trivialization.symmL_apply _ hy 1
+     rw [hsymmL]
+     have hmk :
+         (⟨y, (trivializationAt ℂ (TangentSpace 𝓘(ℂ, ℂ) (M := X)) x₀).symm y 1⟩ :
+@@ -266,7 +268,7 @@
+   have heqPt : ∀ x : X,
+       ((trivializationAt ℂ (Bundle.Trivial X ℂ) y) ⟨x, localRep α x₀ x⟩).2 = localRep α x₀ x := by
+     intro x
+-    simp [Bundle.Trivial.trivialization]
++    simp [Bundle.Trivial.trivialization, Bundle.Trivial.homeomorphProd, Bundle.TotalSpace.toProd]
+   exact h.congr (fun x _ => heqPt x) (heqPt y)
+ 
+ /-- **Step B.3 — the holomorphicity bridge.**
+@@ -296,10 +298,12 @@
+   obtain ⟨_, hf_chart⟩ := hfm
+   have hCD := hf_chart x₀ (0 : ℂ)
+   have h1 : (extChartAt 𝓘(ℂ, ℂ) x₀).target = (chartAt ℂ x₀).target := by simp [extChartAt]
+-  have h2 : (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)).source = Set.univ := by simp [extChartAt]
++  have h2 : (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)).source = Set.univ := by
++    simp [extChartAt, chartAt_self_eq]
+   have h3 : ∀ z, (extChartAt 𝓘(ℂ, ℂ) x₀).symm z = (chartAt ℂ x₀).symm z := by
+     intro z; simp [extChartAt]
+-  have h4 : ∀ z, (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)) z = z := by intro z; simp [extChartAt]
++  have h4 : ∀ z, (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)) z = z := by
++    intro z; simp [extChartAt, chartAt_self_eq]
+   rw [h2, Set.preimage_univ, Set.inter_univ] at hCD
+   have hset : (extChartAt 𝓘(ℂ, ℂ) x₀).target ∩
+       (extChartAt 𝓘(ℂ, ℂ) x₀).symm ⁻¹' (chartAt ℂ x₀).source = (chartAt ℂ x₀).target := by
+@@ -313,7 +317,7 @@
+   have hfun : ((extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)) ∘ localRep α x₀ ∘ (extChartAt 𝓘(ℂ, ℂ) x₀).symm) =
+       (fun z : ℂ => localRep α x₀ ((chartAt ℂ x₀).symm z)) := by
+     funext z
+-    simp [Function.comp_def]
++    simp only [Function.comp_apply, h3, h4]
+   rw [hfun] at hCD
+   -- Step 3: ContDiffOn ω ↔ AnalyticOn via UniqueDiffOn on open set.
+   exact (contDiffOn_omega_iff_analyticOn (chartAt ℂ x₀).open_target.uniqueDiffOn).mp hCD
+--- a/Jacobians/Forms/ChartTransition.lean
++++ b/Jacobians/Forms/ChartTransition.lean
+@@ -75,6 +75,7 @@
+   set e' := trivializationAt ℂ (TangentSpace 𝓘(ℂ, ℂ) (M := X)) x₀'
+   -- c(y) = (e ⟨y, e'.symm y 1⟩).2 = (e.linearEquivAt ℂ y hy₀) (e'.symm y 1).
+   -- Apply e.symm on both sides: e.symm y (c(y)) = e'.symm y 1 (by inverse property).
++  rw [Trivialization.symmL_apply _ hy₀, Trivialization.symmL_apply _ hy₀']
+   change e.symm y (chartTransitionFactor (X := X) x₀ x₀' y) = e'.symm y 1
+   -- e.symm y c = (e.linearEquivAt ℂ y hy₀).symm c (by linearEquivAt_symm_apply).
+   have h1 : e.symm y (chartTransitionFactor (X := X) x₀ x₀' y) =
+--- a/Jacobians/Forms/Complete.lean
++++ b/Jacobians/Forms/Complete.lean
+@@ -147,7 +147,7 @@
+     intro x hx
+     rcases List.mem_cons.mp hx with rfl | hxys
+     · refine ⟨a, ?_⟩
+-      simpa [Function.comp, s, hs_def] using hψ_conv
++      simpa [Function.comp_def, s, hs_def] using hψ_conv
+     · obtain ⟨g, hg⟩ := hφ₀_conv x hxys
+       refine ⟨g, ?_⟩
+       exact hg.comp hψ.tendsto_atTop
+@@ -756,7 +756,8 @@
+     rw [this]; exact innerChartOpen_subset_source x₀ hx₀
+   have h2s : Set.MapsTo (fun y : X => L y (e.symmL ℂ y 1))
+       (innerChartOpen (X := X) x₀) (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)).source := by
+-    have h_src : (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)).source = Set.univ := by simp [extChartAt]
++    have h_src : (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)).source = Set.univ := by
++      simp [extChartAt, chartAt_self_eq]
+     rw [h_src]
+     exact fun _ _ => Set.mem_univ _
+   rw [contMDiffOn_iff_of_subset_source' hs h2s]
+@@ -770,7 +771,7 @@
+       (fun y : X => L y (e.symmL ℂ y 1)) ∘ (extChartAt 𝓘(ℂ, ℂ) x₀).symm) =
+       fun z : ℂ => L ((chartAt ℂ x₀).symm z) (e.symmL ℂ ((chartAt ℂ x₀).symm z) 1) := by
+     funext z
+-    simp [extChartAt, Function.comp_def]
++    simp [extChartAt, Function.comp_def, chartAt_self_eq]
+   rw [h_set_eq, h_fun_eq]
+   -- Now: ContDiffOn ℂ ω (chart pullback of L) (chart '' innerChartOpen x₀).
+   -- Use `contDiffOn_omega_iff_analyticOn.mpr` — open set has UniqueDiffOn.
+--- a/Jacobians/Path/LineIntegral.lean
++++ b/Jacobians/Path/LineIntegral.lean
+@@ -1,4 +1,6 @@
+ import Jacobians.Forms.HolomorphicForms
++
++set_option backward.isDefEq.respectTransparency false
+ /-!
+ # Line integral of a holomorphic 1-form along a smooth path
+ 
+@@ -447,7 +449,9 @@
+   have hf_loc_diff_ℂ : DifferentiableAt ℂ f_loc (g_X t) := by
+     have h1 := hf_mdiff.differentiableWithinAt_writtenInExtChartAt
+     rw [ModelWithCorners.range_eq_univ, differentiableWithinAt_univ] at h1
+-    convert h1 using 2
++    convert h1 using 2 <;>
++      simp [hf_loc_def, hg_X_def, hφ_X_def, hφ_Y_def,
++        writtenInExtChartAt, extChartAt, Function.comp_def]
+   -- Step 5: ℝ-differentiability of f_loc, bypassing the ℝ/ℂ diamond.
+   -- `HasFDerivAt.restrictScalars ℝ` would close this, but Lean can't
+   -- synthesize `IsScalarTower ℝ ℂ ℂ` in this context (Complex's module
+--- a/Jacobians/Path/CotangentCoeff.lean
++++ b/Jacobians/Path/CotangentCoeff.lean
+@@ -4,6 +4,8 @@
+ Authors: Rado Kirov
+ -/
+ import Jacobians.Path.LineIntegral
++
++set_option backward.isDefEq.respectTransparency false
+ /-!
+ # Cotangent-bundle coefficient continuity (the *local* coefficient is the right object)
+ 
+@@ -191,7 +193,9 @@
+   have hf_loc_diff_ℂ : DifferentiableAt ℂ f_loc (g_X t) := by
+     have h1 := hf_mdiff.differentiableWithinAt_writtenInExtChartAt
+     rw [ModelWithCorners.range_eq_univ, differentiableWithinAt_univ] at h1
+-    convert h1 using 2
++    convert h1 using 2 <;>
++      simp [hf_loc_def, hg_X_def, hφ_X_def, hφ_Y_def,
++        writtenInExtChartAt, extChartAt, Function.comp_def]
+   have hf_loc_hasFD_ℂ : HasFDerivAt f_loc (fderiv ℂ f_loc (g_X t)) (g_X t) :=
+     hf_loc_diff_ℂ.hasFDerivAt
+   have hf_loc_hasFD_ℝ : HasFDerivAt f_loc
+@@ -689,7 +693,8 @@
+     ContinuousOn (fun s : ℝ =>
+         Bundle.TotalSpace.mk' ℂ (E := TangentSpace 𝓘(ℂ) (M := ℂ)) (β s) (pathSpeed β s))
+       (Set.Icc 0 1) := by
+-  have hps : (fun s : ℝ => pathSpeed β s) = deriv β := by funext s; simp [pathSpeed]
++  have hps : (fun s : ℝ => pathSpeed β s) = deriv β := by
++    funext s; simp [pathSpeed, chartAt_self_eq]
+   intro s₀ hs₀
+   rw [FiberBundle.continuousWithinAt_totalSpace]
+   refine ⟨hβ.continuousWithinAt, ?_⟩
+--- a/Jacobians/Path/SmoothPath.lean
++++ b/Jacobians/Path/SmoothPath.lean
+@@ -36,6 +36,8 @@
+ import Mathlib.Analysis.Calculus.Deriv.Pow
+ import Mathlib.Analysis.Complex.Basic
+ import Mathlib.Geometry.Manifold.ContMDiff.Atlas
++
++set_option backward.isDefEq.respectTransparency false
+ namespace Jacobians
+ 
+ open scoped Manifold ContDiff Topology
+@@ -591,7 +593,7 @@
+       have h_id : HasDerivAt (fun s : ℝ => s) 1 t := hasDerivAt_id t
+       have h_sq' : HasDerivAt (fun s : ℝ => s^2) (2 * t) t := by
+         have := HasDerivAt.pow h_id 2
+-        simpa using this
++        simpa [Pi.pow_def] using this
+       have h_cube' : HasDerivAt (fun s : ℝ => s^3) (3 * t^2) t := by
+         have := HasDerivAt.pow h_id 3
+         convert this using 1; push_cast; ring
+@@ -872,7 +874,7 @@
+   intro e
+   have h := chart_transition_contDiffOn x y
+   -- 𝓘(ℂ) = id, range 𝓘(ℂ) = univ, 𝓘(ℂ).symm = id, so simp simplifies.
+-  simpa using h
++  simpa [e, OpenPartialHomeomorph.coe_trans, OpenPartialHomeomorph.trans_source] using h
+ 
+ /-- Chart transition source membership: `u` is in the trans source iff
+ `u ∈ (chartAt ℂ x).target` and `(chartAt ℂ x).symm u ∈ (chartAt ℂ y).source`. -/
+--- a/Jacobians/Path/SmoothPathCore.lean
++++ b/Jacobians/Path/SmoothPathCore.lean
+@@ -60,8 +60,8 @@
+ /-- `X` is locally path-connected, inherited from `ℂ` via charts. -/
+ instance instLocPathConnectedSpaceOfChartedSpaceC
+     (X : Type*) [TopologicalSpace X] [ChartedSpace ℂ X] :
+-    LocPathConnectedSpace X :=
+-  ChartedSpace.locPathConnectedSpace ℂ X
++    LocallyPathConnectedSpace X :=
++  ChartedSpace.locallyPathConnectedSpace ℂ X
+ 
+ /-- `X` is path-connected (connected + locally path-connected). -/
+ instance instPathConnectedSpaceOfConnectedChartedSpace
+--- a/Jacobians/JacobianConstruction/PeriodLattice.lean
++++ b/Jacobians/JacobianConstruction/PeriodLattice.lean
+@@ -3,6 +3,8 @@
+ import Jacobians.Surface.ManifoldIFT
+ import Mathlib.Analysis.Complex.OpenMapping
+ import Mathlib.Topology.Covering.Basic
++
++set_option backward.isDefEq.respectTransparency false
+ /-!
+ # Period lattice of a compact Riemann surface
+ 
+@@ -1083,7 +1085,8 @@
+     have hf_loc_diff_ℂ : DifferentiableAt ℂ f_loc (g_X t) := by
+       have h1 := hf_mdiff.differentiableWithinAt_writtenInExtChartAt
+       rw [ModelWithCorners.range_eq_univ, differentiableWithinAt_univ] at h1
+-      convert h1 using 2
++      convert h1 using 2 <;>
++        simp [f_loc, g_X, φ_X, φ_Y, writtenInExtChartAt, extChartAt, Function.comp_def]
+     -- Bypass the ℝ/ℂ diamond: construct ℝ-HasFDerivAt manually.
+     have hf_loc_hasFD_ℂ : HasFDerivAt f_loc (fderiv ℂ f_loc (g_X t)) (g_X t) :=
+       hf_loc_diff_ℂ.hasFDerivAt
+--- a/Jacobians/Cech/CechSection.lean
++++ b/Jacobians/Cech/CechSection.lean
+@@ -107,10 +107,10 @@
+   apply Subtype.ext
+   simp only [openIncl_val]
+   have e1 : ((chartAt (H := ℂ) v).symm w).1 = (chartAt (H := ℂ) v.1).symm w := by
+-    simpa [Function.comp] using
++    simpa [Function.comp_def, TopologicalSpace.Opens.chartAt_eq] using
+       OpenPartialHomeomorph.subtypeRestr_symm_apply (e := chartAt (H := ℂ) v.1) ⟨v⟩ hw1
+   have e2 : ((chartAt (H := ℂ) (openIncl h v)).symm w).1 = (chartAt (H := ℂ) v.1).symm w := by
+-    simpa [Function.comp] using
++    simpa [Function.comp_def, TopologicalSpace.Opens.chartAt_eq] using
+       OpenPartialHomeomorph.subtypeRestr_symm_apply (e := chartAt (H := ℂ) (openIncl h v).1)
+         ⟨openIncl h v⟩ hw2
+   rw [e1, e2]
+--- a/Jacobians/Finiteness/CechFinitenessAbstract.lean
++++ b/Jacobians/Finiteness/CechFinitenessAbstract.lean
+@@ -40,7 +40,7 @@
+   rw [hAK] at hfd
+   have hrange : LinearMap.range (δ.comp (fst ℂ C0 Z1U)).toLinearMap
+       = LinearMap.range δ.toLinearMap := by
+-    rw [ContinuousLinearMap.coe_comp, LinearMap.range_comp,
++    rw [ContinuousLinearMap.toLinearMap_comp, LinearMap.range_comp,
+       LinearMap.range_eq_top.2 (Prod.fst_surjective (β := Z1U)), Submodule.map_top]
+   rwa [hrange] at hfd
+ 
+--- a/Jacobians/Finiteness/CechModelBridge.lean
++++ b/Jacobians/Finiteness/CechModelBridge.lean
+@@ -12,6 +12,8 @@
+ -/
+ import Jacobians.Finiteness.BddHol
+ import Mathlib.Analysis.Normed.Operator.Compact.Basic
++
++set_option backward.isDefEq.respectTransparency false
+ 
+ open Metric Topology BoundedContinuousFunction
+ 
+@@ -353,7 +355,7 @@
+         ((bcfCompContinuousCLM (ContinuousMap.inclusion (subset_closure : U' ⊆ closure U'))) ∘
+           (restrictCLM (U := U) (K := closure U') hsub)) :=
+     hρK.clm_comp (bcfCompContinuousCLM (ContinuousMap.inclusion (subset_closure : U' ⊆ closure U')))
+-  simpa [Function.comp, bcfCompContinuousCLM_apply] using hcomp
++  simpa [Function.comp_def, bcfCompContinuousCLM_apply] using hcomp
+ 
+ /-- The `U'`-level bounded-continuous restriction obtained by restricting to `closure U'` and then
+ including `U' ↪ closure U'` is the same as the direct open restriction `BddHol U → BddHol U'`
+@@ -384,11 +386,13 @@
+     convert (isCompactOperator_restrictCLM_toBcf_of_compact (U := U) (U' := U') hU hKcpt hsub)
+         using 1
+     funext f
+-    simpa [r, e, Function.comp] using
++    simpa [r, e, Function.comp_def] using
+       (restrictCLM_toBcf_eq_restrictOpenCLM_toBcf (U := U) (U' := U') hsub f).symm
+   rcases hcomp with ⟨K, hK, hKpre⟩
+   refine ⟨e ⁻¹' K, he.isCompact_preimage hK, ?_⟩
+-  simpa [r, e, Function.comp] using hKpre
++  change (e ∘ r) ⁻¹' K ∈ 𝓝 0 at hKpre
++  rw [Set.preimage_comp] at hKpre
++  exact hKpre
+ 
+ end BddHol
+ 
+--- a/Jacobians/Finiteness/CechModelBase.lean
++++ b/Jacobians/Finiteness/CechModelBase.lean
+@@ -44,6 +44,8 @@
+ import Jacobians.Finiteness.CechModelBridge
+ import Mathlib.Algebra.Lie.OfAssociative
+ import Mathlib.Analysis.CStarAlgebra.ContinuousMap
++
++set_option backward.isDefEq.respectTransparency false
+ open Jacobians.Dolbeault.CechFiniteness ContinuousLinearMap
+ open BoundedContinuousFunction
+ open scoped Manifold ContDiff Topology
+--- a/Jacobians/Finiteness/CechModelArtificial.lean
++++ b/Jacobians/Finiteness/CechModelArtificial.lean
+@@ -30,6 +30,8 @@
+ -- here, so we import `CechModelBase` (not `CechFinitenessWiring`); this is what keeps
+ -- `CechFinitenessWiring → CechFinitenessDtwist → … → CechModelArtificial` acyclic.
+ import Jacobians.Finiteness.CechModelBase
++
++set_option backward.isDefEq.respectTransparency false
+ 
+ open Jacobians.Dolbeault
+ open BoundedContinuousFunction
+--- a/Jacobians/Cech/CechH0.lean
++++ b/Jacobians/Cech/CechH0.lean
+@@ -49,7 +49,7 @@
+   show F (((chartAt (H := ℂ) u).symm w : U) : X) = F ((chartAt (H := ℂ) u.1).symm w)
+   congr 1
+   have e1 : ((chartAt (H := ℂ) u).symm w).1 = (chartAt (H := ℂ) u.1).symm w := by
+-    simpa [Function.comp] using
++    simpa [Function.comp_def, TopologicalSpace.Opens.chartAt_eq] using
+       OpenPartialHomeomorph.subtypeRestr_symm_apply (e := chartAt (H := ℂ) u.1) ⟨u⟩ hw
+   rw [e1]
+ 
+@@ -183,7 +183,7 @@
+   refine Filter.eventuallyEq_of_mem ht1 fun w hw => ?_
+   show g ((chartAt (H := ℂ) u).symm w) = Gext g ((chartAt (H := ℂ) y).symm w)
+   have e1 : ((chartAt (H := ℂ) u).symm w).1 = (chartAt (H := ℂ) y).symm w := by
+-    simpa [Function.comp] using
++    simpa [Function.comp_def, TopologicalSpace.Opens.chartAt_eq] using
+       OpenPartialHomeomorph.subtypeRestr_symm_apply (e := chartAt (H := ℂ) y) ⟨u⟩ hw
+   have hmem : (chartAt (H := ℂ) y).symm w ∈ U := e1 ▸ ((chartAt (H := ℂ) u).symm w).2
+   rw [show Gext g ((chartAt (H := ℂ) y).symm w) = g ⟨(chartAt (H := ℂ) y).symm w, hmem⟩ from by
+--- a/Jacobians/Dbar/DbarDisk.lean
++++ b/Jacobians/Dbar/DbarDisk.lean
+@@ -267,7 +267,7 @@
+     Integrable (fun ζ => dbar g ζ * cauchyKernel (z - ζ)) volume := by
+   have h := (hasCompactSupport_dbar hgsupp).convolutionExists_left (ContinuousLinearMap.mul ℝ ℂ)
+     (continuous_dbar hg) locallyIntegrable_cauchyKernel z
+-  simpa only [ContinuousLinearMap.mul_apply'] using h
++  simpa only [ContinuousLinearMap.mul_apply'] using h.integrable
+ 
+ /-- Evaluate the ℝ-linear map `fderiv ℝ g w` at a complex direction `a + b·I` in the `{1, I}`
+ basis: `(fderiv ℝ g w)(a + b·I) = a·(fderiv … 1) + b·(fderiv … I)` for real `a, b`. -/
+--- a/Jacobians/Surface/RealManifold.lean
++++ b/Jacobians/Surface/RealManifold.lean
+@@ -32,9 +32,9 @@
+     obtain ⟨h1, h2⟩ := he'
+     refine ⟨?_, ?_⟩
+     · have key : ContDiffOn ℝ (⊤ : ℕ∞) _ _ := (h1.of_le le_top).restrict_scalars ℝ
+-      convert key using 2
++      simpa only [modelWithCornersSelf_coe, modelWithCornersSelf_coe_symm] using key
+     · have key : ContDiffOn ℝ (⊤ : ℕ∞) _ _ := (h2.of_le le_top).restrict_scalars ℝ
+-      convert key using 2
++      simpa only [modelWithCornersSelf_coe, modelWithCornersSelf_coe_symm] using key
+   haveI : HasGroupoid X (contDiffGroupoid (⊤ : ℕ∞) (𝓘(ℝ, ℂ))) :=
+     hasGroupoid_of_le ‹IsManifold 𝓘(ℂ) ω X›.toHasGroupoid hle
+   exact IsManifold.mk' _ _ _
+--- a/Jacobians/DolbeaultComparison/DolbeaultComparisonProof.lean
++++ b/Jacobians/DolbeaultComparison/DolbeaultComparisonProof.lean
+@@ -164,6 +164,8 @@
+   have hmf : mfderiv 𝓘(ℝ, ℂ) 𝓘(ℝ, ℂ) (⇑u) x =
+       fderiv ℝ (writtenInExtChartAt 𝓘(ℝ, ℂ) 𝓘(ℝ, ℂ) x ⇑u) (extChartAt 𝓘(ℝ, ℂ) x x) := by
+     rw [hu.mfderiv, ModelWithCorners.Boundaryless.range_eq_univ, fderivWithin_univ]
++    ext v
++    rfl
+   have hpull : writtenInExtChartAt 𝓘(ℝ, ℂ) 𝓘(ℝ, ℂ) x ⇑u =
+       fun z => u ((extChartAt 𝓘(ℝ, ℂ) x).symm z) := by
+     ext z; simp only [writtenInExtChartAt, Function.comp_apply]; rfl
+@@ -197,6 +199,8 @@
+   have hmf : mfderiv 𝓘(ℝ, ℂ) 𝓘(ℝ, ℂ) w x =
+       fderiv ℝ (writtenInExtChartAt 𝓘(ℝ, ℂ) 𝓘(ℝ, ℂ) x w) (extChartAt 𝓘(ℝ, ℂ) x x) := by
+     rw [hw.mfderiv, ModelWithCorners.Boundaryless.range_eq_univ, fderivWithin_univ]
++    ext v
++    rfl
+   have hpull : writtenInExtChartAt 𝓘(ℝ, ℂ) 𝓘(ℝ, ℂ) x w =
+       fun z => w ((extChartAt 𝓘(ℝ, ℂ) x).symm z) := by
+     ext z; simp only [writtenInExtChartAt, Function.comp_apply]; rfl
+@@ -523,7 +527,7 @@
+   rw [ex₀.coordChangeL_apply ey hx,
+     ← ey.continuousLinearMapAt_apply_of_mem (R := ℝ) hx.2 (ex₀.symm x 1),
+     ey.symmL_continuousLinearMapAt hx.2]
+-  rfl
++  exact Bundle.Trivialization.symmL_apply ex₀ hx.1 1
+ 
+ /-- **The frame vector is the inverse transition derivative.** For `x` in the `x₀`-chart source, the
+ constant `x₀`-frame tangent vector `Sₓ 1 = symmL ℝ (trivAt x₀) x 1` equals `(τ_x′(eₓ x))⁻¹`, the
+--- a/Jacobians/DolbeaultComparison/DolbeaultComparisonInverse.lean
++++ b/Jacobians/DolbeaultComparison/DolbeaultComparisonInverse.lean
+@@ -225,7 +225,8 @@
+   show proj01 ((differential u).toFun x) = 0
+   have hmf : (differential u).toFun x = 0 := by
+     show mfderiv 𝓘(ℝ, ℂ) 𝓘(ℝ, ℂ) (⇑u) x = 0
+-    rw [h0.mfderiv_eq]; exact mfderiv_const
++    rw [h0.mfderiv_eq]
++    simp only [Pi.zero_def, mfderiv_const, ContinuousLinearMap.comp_zero]
+   rw [hmf, map_zero]
+ 
+ /-- `∂̄ρ_k x = 0` for `x ∉ tsupport ρ_k` — so `∂̄ρ_k` is supported in `U_k` (`ρ_k` subordinate). -/
+--- a/Jacobians/DolbeaultComparison/DolbeaultComparisonEquiv.lean
++++ b/Jacobians/DolbeaultComparison/DolbeaultComparisonEquiv.lean
+@@ -271,7 +271,7 @@
+             image_eq_zero_of_notMem_tsupport hy]
+           rfl
+         simp only [etaTermFn, hr, zero_mul]
+-      rw [hev.mfderiv_eq, mfderiv_const, map_zero]
++      rw [hev.mfderiv_eq, mfderiv_const, ContinuousLinearMap.comp_zero, map_zero]
+     rw [hz, hd]; module
+ 
+ /-- **`∂̄η_i = ∑_k holoFn(f_ik)·∂̄ρ_k`** on `U_i` (sum the per-term Leibniz). -/
+--- a/Jacobians/Finiteness/CechModelHolomorphic.lean
++++ b/Jacobians/Finiteness/CechModelHolomorphic.lean
+@@ -12,6 +12,8 @@
+ import Jacobians.Cech.CechComplex
+ import Jacobians.Finiteness.CechFinitenessAbstract
+ import Jacobians.Finiteness.CechModelBridge
++
++set_option backward.isDefEq.respectTransparency false
+ open scoped Manifold ContDiff Topology
+ open Metric Topology BoundedContinuousFunction
+ open Jacobians.Montel
+--- a/Jacobians/Finiteness/CechModelManifold.lean
++++ b/Jacobians/Finiteness/CechModelManifold.lean
+@@ -178,7 +178,7 @@
+       AnalyticAt ℂ (g.toFun ∘ ((chartAt (H := ℂ) y) ∘ (chartAt (H := ℂ) x).symm))
+         ((chartAt (H := ℂ) x) x) :=
+     AnalyticAt.comp (hpt ▸ hga) htrans
+-  simpa [Function.comp, Function.comp_assoc] using hcomp
++  simpa [Function.comp_def, Function.comp_assoc] using hcomp
+ 
+ -- The `OmegaD`-valued statements below additionally need the compact-Riemann-surface instances.
+ variable [T2Space X] [CompactSpace X] [ConnectedSpace X]
+--- a/Jacobians/Finiteness/ChartDiskFinitenessComplete.lean
++++ b/Jacobians/Finiteness/ChartDiskFinitenessComplete.lean
+@@ -598,7 +598,8 @@
+   rw [← h2, sum_shrinkRhoC, ContMDiffMap.coe_one, Pi.one_apply]
+ 
+ theorem sum_shrinkDbarRho (𝔇 : ChartDiskCover X) : ∑ a, 𝔇.shrinkDbarRho a = 0 := by
+-  have h : ∑ a, 𝔇.shrinkDbarRho a = dbarL (∑ a, 𝔇.shrinkRhoC a) := (map_sum dbarL _ _).symm
++  have h : ∑ a, 𝔇.shrinkDbarRho a = dbarL (∑ a, 𝔇.shrinkRhoC a) :=
++    (map_sum (dbarL (X := X)) 𝔇.shrinkRhoC Finset.univ).symm
+   rw [h, sum_shrinkRhoC, dbarL_one_eq_zero]
+ 
+ theorem sum_shrinkDbarRho_apply (𝔇 : ChartDiskCover X) (x : X) :
+@@ -761,7 +762,7 @@
+       have hconst : (𝔇.globalPrimTerm s a c) =ᶠ[nhds x] (fun _ => (0 : ℂ)) := by
+         filter_upwards [(isClosed_tsupport (𝔇.shrinkPoU c)).isOpen_compl.mem_nhds hb] with y hy
+         simp only [globalPrimTerm, 𝔇.shrinkRhoC_eq_zero_of_notMem c hy, zero_mul]
+-      rw [hconst.mfderiv_eq, mfderiv_const, map_zero]
++      rw [hconst.mfderiv_eq, mfderiv_const, ContinuousLinearMap.comp_zero, map_zero]
+     rw [hr0, 𝔇.shrinkDbarRho_eq_zero_of_notMem c hb]
+     module
+ 
+@@ -874,7 +875,9 @@
+     have := dbar_apply_one_eq_dbarDisk' hwmd
+     rw [hw0] at this
+     -- `extChartAt 𝓘(ℝ,ℂ) y = chartAt ℂ y = φy` (identity model).
+-    simpa only [hφy, show (extChartAt 𝓘(ℝ, ℂ) y : X → ℂ) = (chartAt (H := ℂ) y : X → ℂ) from rfl,
++    simpa only [hφy, extChartAt_coe_symm, modelWithCornersSelf_coe_symm,
++      Function.comp_apply, id_eq,
++      show (extChartAt 𝓘(ℝ, ℂ) y : X → ℂ) = (chartAt (H := ℂ) y : X → ℂ) from rfl,
+       show ((extChartAt 𝓘(ℝ, ℂ) y) y : ℂ) = (chartAt (H := ℂ) y) y from rfl] using this.symm
+   -- `τ` holomorphic at `φ_a y`, `τ (φ_a y) = φ_y y`.
+   have hτdiff : DifferentiableAt ℂ τ (φa y) := by
+@@ -950,12 +953,12 @@
+     have := hpu.differentiableWithinAt_writtenInExtChartAt
+     rw [writtenInExtChartAt, ModelWithCorners.Boundaryless.range_eq_univ,
+       differentiableWithinAt_univ] at this
+-    simpa only [Function.comp, he, mfld_simps] using this
++    simpa only [Function.comp_def, he, mfld_simps] using this
+   have hℝg : DifferentiableAt ℝ (fun z => 𝔇.globalPrim s a (e.symm z)) (e y) := by
+     have := hpg.differentiableWithinAt_writtenInExtChartAt
+     rw [writtenInExtChartAt, ModelWithCorners.Boundaryless.range_eq_univ,
+       differentiableWithinAt_univ] at this
+-    simpa only [Function.comp, he, mfld_simps] using this
++    simpa only [Function.comp_def, he, mfld_simps] using this
+   rw [hpullEq, dbarFun_sub hℝu hℝg]
+   rw [← dbar_apply_one_eq_dbarDisk' hpu, ← dbar_apply_one_eq_dbarDisk' hpg,
+     𝔇.dbar_primVal s a hyaU, 𝔇.dbar_globalPrim s hs a hya, sub_self]
+@@ -1777,7 +1780,8 @@
+   have hf0 : (𝔇.holomorphicCoboundaries).δ0 f = 𝔇.cechToCshr g := by
+     have hval := congrArg (Subtype.val) hf
+     rw [𝔇.cechToZ1shr_coe g] at hval
+-    simpa only [HolomorphicCoboundaries.δ, ContinuousLinearMap.coe_codRestrict_apply] using hval
++    simpa only [HolomorphicCoboundaries.δ, ContinuousLinearMap.coe_coe,
++      ContinuousLinearMap.coe_codRestrict_apply] using hval
+   -- `refineC1 g` is a `𝔙`-coboundary
+   have hcob : (𝔇.isRefinement_shrinkCover).refineC1 (g : 𝔇.toFiniteCover.Cochain1)
+       ∈ 𝔇.shrinkCover.coboundaries1 (0 : Divisor X) := by
+--- a/Jacobians/Finiteness/SkyscraperLESBase.lean
++++ b/Jacobians/Finiteness/SkyscraperLESBase.lean
+@@ -176,11 +176,13 @@
+   `H⁰(𝒪_D)` finiteness is *derived* (it injects into this one, `h0Incl_injective`). -/
+   [finH0DP : FiniteDimensional ℂ ↥(𝔘.globalSections (D + Finsupp.single P 1))]
+ 
+-attribute [instance] SkyscraperLES.finH1D SkyscraperLES.finH1DP SkyscraperLES.finH0DP
++-- Lean 4.35 rejects global instance registration with an uninferable `self`.
++-- Consumers already install these projections explicitly with `haveI`.
+ 
+ /-- `H⁰(𝒪_D)` is finite-dimensional, *derived* from `H⁰(𝒪_{D+P})` finiteness via the injective
+ inclusion `h0Incl` (`FiniteDimensional.of_injective`). Not assumed. -/
+-instance (priority := 100) SkyscraperLES.finH0D {𝔘 : FiniteCover X} {D : Divisor X} {P : X}
++@[instance_reducible]
++def SkyscraperLES.finH0D {𝔘 : FiniteCover X} {D : Divisor X} {P : X}
+     (S : SkyscraperLES 𝔘 D P) : FiniteDimensional ℂ ↥(𝔘.globalSections D) :=
+   haveI := S.finH0DP
+   FiniteDimensional.of_injective (𝔘.h0Incl D P) (𝔘.h0Incl_injective D P)
+--- a/Jacobians/Finiteness/SkyscraperAssembly.lean
++++ b/Jacobians/Finiteness/SkyscraperAssembly.lean
+@@ -33,6 +33,8 @@
+ -/
+ import Jacobians.Finiteness.SkyscraperSnake
+ import Jacobians.Finiteness.CechFinitenessWiring
++
++set_option backward.isDefEq.respectTransparency false
+ 
+ open scoped Manifold ContDiff Topology
+ open TopologicalSpace (Opens)
+--- a/Jacobians/Finiteness/SkyscraperConeRealization.lean
++++ b/Jacobians/Finiteness/SkyscraperConeRealization.lean
+@@ -34,6 +34,8 @@
+ -/
+ import Jacobians.Finiteness.CohomologicalH0Finiteness
+ import Jacobians.Finiteness.SkyscraperAssembly
++
++set_option backward.isDefEq.respectTransparency false
+ open scoped Manifold ContDiff Topology
+ open TopologicalSpace (Opens)
+ 
+--- a/Jacobians/CanonicalForms/CanonicalFormDifferential.lean
++++ b/Jacobians/CanonicalForms/CanonicalFormDifferential.lean
+@@ -30,6 +30,9 @@
+   `mdifferentiableAt_iff_of_mem_source`.
+ -/
+ import Jacobians.CanonicalForms.SerreOmega0
++set_option backward.isDefEq.respectTransparency false
++set_option backward.isDefEq.respectTransparency.types false
++set_option backward.isDefEq.respectTransparency.instanceSearchTypes false
+ open scoped Manifold ContDiff Topology Bundle
+ open Module
+ 
+@@ -74,9 +77,9 @@
+       mfderiv 𝓘(ℂ) 𝓘(ℂ) (extChartAt 𝓘(ℂ) x).symm (extChartAt 𝓘(ℂ) x y) := by
+     rw [TangentBundle.symmL_trivializationAt hy, ModelWithCorners.range_eq_univ, mfderivWithin_univ]
+   rw [hsymmL]
+-  rw [← fderiv_apply_one_eq_deriv, ← mfderiv_eq_fderiv,
+-     show (f ∘ (chartAt ℂ x).symm) = (f ∘ (extChartAt 𝓘(ℂ) x).symm) from rfl,
+-     show ((chartAt ℂ x) y) = ((extChartAt 𝓘(ℂ) x) y) from rfl]
++  change _ = fderiv ℂ (f ∘ (extChartAt 𝓘(ℂ) x).symm) ((extChartAt 𝓘(ℂ) x) y) 1
++  rw [mfderiv_eq_fderiv] at hcomp_app
++  change fderiv ℂ (f ∘ (extChartAt 𝓘(ℂ) x).symm) ((extChartAt 𝓘(ℂ) x) y) 1 = _ at hcomp_app
+   exact hcomp_app.symm
+ 
+ /-- **Chart-pullback differentiability ⇒ `MDifferentiableAt f`.**  If `f ∘ chart⁻¹` is
+@@ -217,6 +220,7 @@
+     apply MeromorphicAt.mul (MeromorphicAt.const _ _)
+     exact (MeromorphicAt.id z₀ |>.sub (MeromorphicAt.const z₀ z₀)).zpow _
+   have hterm2_mero : MeromorphicAt (fun z => (z - z₀) ^ n • deriv G z) z₀ := by
++    change MeromorphicAt ((fun z => (z - z₀) ^ n) • deriv G) z₀
+     apply MeromorphicAt.smul _ hG_an.meromorphicAt.deriv
+     exact (MeromorphicAt.id z₀ |>.sub (MeromorphicAt.const z₀ z₀)).zpow _
+   -- the first term has order exactly `n − 1`
+@@ -377,9 +381,12 @@
+   -- `g (c) = c • g 1`  via linearity (`c • 1 = c`, the tangent-fibre smul being `ℂ`-mul)
+   have hsmul := (mfderiv 𝓘(ℂ) 𝓘(ℂ) (chartAt ℂ y).symm ((chartAt ℂ y) q)).map_smul
+     (deriv (chartAt ℂ y ∘ (chartAt ℂ x).symm) ((chartAt ℂ x) q)) (1 : ℂ)
+-  convert hsmul using 2
+-  change _ = _ * (1 : ℂ)
+-  ring
++  have hinput :
++      (deriv (chartAt ℂ y ∘ (chartAt ℂ x).symm) ((chartAt ℂ x) q)) • (1 : ℂ) =
++        deriv (chartAt ℂ y ∘ (chartAt ℂ x).symm) ((chartAt ℂ x) q) := by
++    simp only [smul_eq_mul, mul_one]
++  rw [hinput] at hsmul
++  exact hsmul
+ 
+ /-- **The chart-coefficient transformation law.**  Near `chart_z y`, the coefficient of `α` read in
+ the chart at `z` equals `ψ' · (coeff at `y` ∘ ψ)`, where `ψ = chart_y ∘ chart_z⁻¹` is the chart
+--- a/Jacobians/PlanarStokes/AnnulusResidueIntegral.lean
++++ b/Jacobians/PlanarStokes/AnnulusResidueIntegral.lean
+@@ -337,7 +337,8 @@
+       HasDerivAt.comp (h := fun r : ℝ => r ^ 2) x hd hsq
+     have h3 := hcomp.div_const 2
+     convert h3 using 1
+-    ring
++    · rfl
++    · ring
+   have hcont : ContinuousWithinAt (fun r : ℝ => η (r ^ 2) / 2) (Ici 0) 0 :=
+     ((hη.continuous.comp (continuous_pow 2)).div_const 2).continuousWithinAt
+   have hcont' : Continuous fun r : ℝ => r * deriv η (r ^ 2) :=
+--- a/Jacobians/TailDuality/TailResidue.lean
++++ b/Jacobians/TailDuality/TailResidue.lean
+@@ -95,7 +95,6 @@
+     laurentCoeff (fun z => ∑ i ∈ s, g i z) c j = ∑ i ∈ s, laurentCoeff (g i) c j := by
+   have hsum := resAt_finset_sum s (fun i => fun w => g i w * (w - c) ^ (-j - 1))
+     (fun i hi => holoPunctured_mul_monomial (hg i hi) (-j - 1))
+-  simp only [] at hsum
+   have hfun : (fun z => (∑ i ∈ s, g i z) * (z - c) ^ (-j - 1))
+       = fun z => ∑ i ∈ s, g i z * (z - c) ^ (-j - 1) := by
+     funext z
+--- a/Jacobians/Monodromy/HolomorphicPrimitiveLocal.lean
++++ b/Jacobians/Monodromy/HolomorphicPrimitiveLocal.lean
+@@ -199,7 +199,8 @@
+     have hmf0 : mfderiv 𝓘(ℂ) 𝓘(ℂ) (F - F') (e.symm z) = 0 := by
+       have hmfeq : mfderiv 𝓘(ℂ) 𝓘(ℂ) F (e.symm z) = mfderiv 𝓘(ℂ) 𝓘(ℂ) F' (e.symm z) :=
+         ContinuousLinearMap.ext fun v => ((hF _ hzU).2 v).symm.trans ((hF' _ hzU).2 v)
+-      rw [mfderiv_sub hFd hF'd, hmfeq, sub_self]
++      rw [mfderiv_sub hFd hF'd, hmfeq]
++      exact sub_self _
+     have hder := (Dolbeault.mfderiv_apply_symmL_eq_deriv (F - F') hws hsub).symm
+     rw [hmf0] at hder
+     simp only [ContinuousLinearMap.zero_apply] at hder
+--- a/Jacobians/ProjectiveLine.lean
++++ b/Jacobians/ProjectiveLine.lean
+@@ -556,8 +556,9 @@
+ /-- `inftyCoeff s` vanishes on the **punctured** chart target: for `w ≠ 0`,
+ `chartInfty.symm w = (w⁻¹ : RS)` is a finite point, where `s.toFun` is `0`. -/
+ lemma inftyCoeff_eq_zero_of_ne {w : ℂ} (hw : w ≠ 0) : inftyCoeff s w = 0 := by
+-  rw [inftyCoeff, chartInfty_symm_apply, invMap_coe_of_ne hw, Jacobians.Montel.localRep,
+-    show s.toFun ((w⁻¹ : ℂ) : RiemannSphere) = 0 from section_apply_eq_zero_coe s w⁻¹]
++  rw [inftyCoeff, chartInfty_symm_apply, invMap_coe_of_ne hw]
++  change s.toFun ((w⁻¹ : ℂ) : RiemannSphere) _ = 0
++  rw [section_apply_eq_zero_coe s w⁻¹]
+   rfl
+ 
+ /-- `inftyCoeff s 0 = 0`: continuity at `0` plus vanishing on the punctured neighbourhood. -/
+--- a/Jacobians/SphereTopology/VanKampen.lean
++++ b/Jacobians/SphereTopology/VanKampen.lean
+@@ -321,13 +321,14 @@
+   classical
+   set spoke : (j : Fin (n + 1)) → Path o (q j) := fun j =>
+     if hj0 : (j : ℕ) = 0 then (Path.refl o).cast rfl (by
+-      have : j = 0 := Fin.ext hj0; rw [this]; exact h0)
++      have : j = 0 := Fin.ext (by simpa only [Fin.val_zero] using hj0)
++      rw [this]; exact h0)
+     else if hjl : (j : ℕ) = n then (Path.refl o).cast rfl (by
+       have : j = last n := Fin.ext (by rw [hjl, Fin.val_last]); rw [this]; exact hl)
+     else (hspoke_exists j).choose with hspoke
+   -- The two ends are the constant path.
+   have hs0 : spoke 0 = (Path.refl o).cast rfl h0 := by
+-    simp only [hspoke, Fin.val_zero, dif_pos]
++    rfl
+   have hsl : spoke (last n) = (Path.refl o).cast rfl hl := by
+     by_cases hn0 : n = 0
+     · -- Degenerate: `last 0 = 0`, so this is the same as `hs0`.
+--- a/Jacobians/SphereTopology/GenusZeroOfSphere.lean
++++ b/Jacobians/SphereTopology/GenusZeroOfSphere.lean
+@@ -113,7 +113,8 @@
+   have := hprim x v
+   rw [hmf] at this
+   -- `this : η.toFun x v = (0 : _) v`; both sides are `(0 : HolomorphicOneForms X).toFun x v = 0`.
+-  simpa using this
++  change η.toFun x v = 0
++  exact this
+ 
+ /-! ### The route capstones -/
+ 
+--- a/Jacobians/MappingDegree/ChartRestrictionToBall.lean
++++ b/Jacobians/MappingDegree/ChartRestrictionToBall.lean
+@@ -63,54 +63,54 @@
+               (e := φ.toPartialEquiv)
+               (s := (φ.toPartialEquiv : Y → ℂ) ⁻¹' Metric.ball c r)
+               (t := Metric.ball c r) rfl).restr
+-        open_source := ?_
+-        open_target := ?_
+-        continuousOn_toFun := ?_
+-        continuousOn_invFun := ?_ }
+-    -- Source = `φ.source ∩ (φ : Y → ℂ) ⁻¹' Metric.ball c r`, open via
+-    -- `OpenPartialHomeomorph.isOpen_inter_preimage`.
+-    · have h1 : IsOpen (Metric.ball c r) := Metric.isOpen_ball
+-      show IsOpen ((PartialEquiv.IsImage.of_preimage_eq
+-          (e := φ.toPartialEquiv)
+-          (s := (φ.toPartialEquiv : Y → ℂ) ⁻¹' Metric.ball c r)
+-          (t := Metric.ball c r) rfl).restr.source)
+-      rw [PartialEquiv.IsImage.restr_source]
+-      -- `φ.toPartialEquiv.source = φ.source` (field projection).
+-      change IsOpen (φ.source ∩ (φ : Y → ℂ) ⁻¹' Metric.ball c r)
+-      exact φ.isOpen_inter_preimage h1
+-    -- Target = `φ.target ∩ Metric.ball c r = Metric.ball c r` (ball ⊆ target).
+-    · have hball_open : IsOpen (Metric.ball c r) := Metric.isOpen_ball
+-      have htar : φ.target ∩ Metric.ball c r = Metric.ball c r :=
+-        inter_eq_right.mpr hr_sub
+-      -- The restricted target is `φ.target ∩ Metric.ball c r = Metric.ball c r`.
+-      show IsOpen ((PartialEquiv.IsImage.of_preimage_eq
+-          (e := φ.toPartialEquiv)
+-          (s := (φ.toPartialEquiv : Y → ℂ) ⁻¹' Metric.ball c r)
+-          (t := Metric.ball c r) rfl).restr.target)
+-      rw [PartialEquiv.IsImage.restr_target, htar]
+-      exact hball_open
+-    -- Continuity of `φ` on the smaller source: restrict from `φ.continuousOn`.
+-    · -- The restricted source is `φ.source ∩ (φ.toPartialEquiv) ⁻¹' ball`,
+-      -- a subset of `φ.source`. The PartialEquiv toFun = OpenPartialHomeomorph
+-      -- toFun' (defEq), so we can apply `φ.continuousOn.mono`.
+-      have hsub : (PartialEquiv.IsImage.of_preimage_eq
+-          (e := φ.toPartialEquiv)
+-          (s := (φ.toPartialEquiv : Y → ℂ) ⁻¹' Metric.ball c r)
+-          (t := Metric.ball c r) rfl).restr.source ⊆ φ.source := by
+-        intro y hy
+-        rw [PartialEquiv.IsImage.restr_source] at hy
+-        exact hy.1
+-      exact φ.continuousOn.mono hsub
+-    -- Continuity of `φ.symm` on the smaller target = ball: it's a subset of
+-    -- `φ.target`, where `φ.symm` is continuous.
+-    · have hsub : (PartialEquiv.IsImage.of_preimage_eq
+-          (e := φ.toPartialEquiv)
+-          (s := (φ.toPartialEquiv : Y → ℂ) ⁻¹' Metric.ball c r)
+-          (t := Metric.ball c r) rfl).restr.target ⊆ φ.target := by
+-        intro z hz
+-        rw [PartialEquiv.IsImage.restr_target] at hz
+-        exact hz.1
+-      exact φ.continuousOn_symm.mono hsub
++        open_source := by
++          -- Source = `φ.source ∩ (φ : Y → ℂ) ⁻¹' Metric.ball c r`, open via
++          -- `OpenPartialHomeomorph.isOpen_inter_preimage`.
++          have h1 : IsOpen (Metric.ball c r) := Metric.isOpen_ball
++          show IsOpen ((PartialEquiv.IsImage.of_preimage_eq
++              (e := φ.toPartialEquiv)
++              (s := (φ.toPartialEquiv : Y → ℂ) ⁻¹' Metric.ball c r)
++              (t := Metric.ball c r) rfl).restr.source)
++          rw [PartialEquiv.IsImage.restr_source]
++          -- `φ.toPartialEquiv.source = φ.source` (field projection).
++          change IsOpen (φ.source ∩ (φ : Y → ℂ) ⁻¹' Metric.ball c r)
++          exact φ.isOpen_inter_preimage h1
++        open_target := by
++          -- Target = `φ.target ∩ Metric.ball c r = Metric.ball c r` (ball ⊆ target).
++          have hball_open : IsOpen (Metric.ball c r) := Metric.isOpen_ball
++          have htar : φ.target ∩ Metric.ball c r = Metric.ball c r :=
++            inter_eq_right.mpr hr_sub
++          -- The restricted target is `φ.target ∩ Metric.ball c r = Metric.ball c r`.
++          show IsOpen ((PartialEquiv.IsImage.of_preimage_eq
++              (e := φ.toPartialEquiv)
++              (s := (φ.toPartialEquiv : Y → ℂ) ⁻¹' Metric.ball c r)
++              (t := Metric.ball c r) rfl).restr.target)
++          rw [PartialEquiv.IsImage.restr_target, htar]
++          exact hball_open
++        continuousOn_toFun := by
++          -- Continuity of `φ` on the smaller source: restrict from `φ.continuousOn`.
++          -- The restricted source is `φ.source ∩ (φ.toPartialEquiv) ⁻¹' ball`,
++          -- a subset of `φ.source`. The PartialEquiv toFun = OpenPartialHomeomorph
++          -- toFun' (defEq), so we can apply `φ.continuousOn.mono`.
++          have hsub : (PartialEquiv.IsImage.of_preimage_eq
++              (e := φ.toPartialEquiv)
++              (s := (φ.toPartialEquiv : Y → ℂ) ⁻¹' Metric.ball c r)
++              (t := Metric.ball c r) rfl).restr.source ⊆ φ.source := by
++            intro y hy
++            rw [PartialEquiv.IsImage.restr_source] at hy
++            exact hy.1
++          exact φ.continuousOn.mono hsub
++        continuousOn_invFun := by
++          -- Continuity of `φ.symm` on the smaller target = ball: it's a subset of
++          -- `φ.target`, where `φ.symm` is continuous.
++          have hsub : (PartialEquiv.IsImage.of_preimage_eq
++              (e := φ.toPartialEquiv)
++              (s := (φ.toPartialEquiv : Y → ℂ) ⁻¹' Metric.ball c r)
++              (t := Metric.ball c r) rfl).restr.target ⊆ φ.target := by
++            intro z hz
++            rw [PartialEquiv.IsImage.restr_target] at hz
++            exact hz.1
++          exact φ.continuousOn_symm.mono hsub }
+   -- `x ∈ source`: `x ∈ φ.source` and `φ x = c ∈ Metric.ball c r`.
+   · -- The OpenPartialHomeomorph source projects to the underlying
+     -- PartialEquiv source = `φ.source ∩ (φ.toPartialEquiv) ⁻¹' Metric.ball c r`.
+--- a/Jacobians/MappingDegree/ChartedSpaceLocPathConnected.lean
++++ b/Jacobians/MappingDegree/ChartedSpaceLocPathConnected.lean
+@@ -16,13 +16,13 @@
+ namespace Jacobians.Discharge.Manifold
+ 
+ /-- `ℂ`, viewed as an ℝ-normed space, is locally path-connected. -/
+-instance instLocPathConnectedSpace_complex : LocPathConnectedSpace ℂ :=
++instance instLocPathConnectedSpace_complex : LocallyPathConnectedSpace ℂ :=
+   inferInstance
+ 
+ /-- Any topological space charted on `ℂ` is locally path-connected. -/
+ theorem locPathConnectedSpace_of_chartedSpace_complex
+     {Y : Type*} [TopologicalSpace Y] [ChartedSpace ℂ Y] :
+-    LocPathConnectedSpace Y :=
+-  ChartedSpace.locPathConnectedSpace ℂ Y
++    LocallyPathConnectedSpace Y :=
++  ChartedSpace.locallyPathConnectedSpace ℂ Y
+ 
+ end Jacobians.Discharge.Manifold
+--- a/Jacobians/MappingDegree/ConnectedManifoldPathConnected.lean
++++ b/Jacobians/MappingDegree/ConnectedManifoldPathConnected.lean
+@@ -14,7 +14,7 @@
+ path-connected. This is exactly `PathConnectedSpace.of_locPathConnectedSpace`
+ from mathlib, re-exported under a project-local name. -/
+ theorem pathConnectedSpace_of_connectedSpace_locPathConnected
+-    {Y : Type*} [TopologicalSpace Y] [ConnectedSpace Y] [LocPathConnectedSpace Y] :
++    {Y : Type*} [TopologicalSpace Y] [ConnectedSpace Y] [LocallyPathConnectedSpace Y] :
+     PathConnectedSpace Y :=
+   PathConnectedSpace.of_locPathConnectedSpace
+ 
+--- a/Jacobians/MappingDegree/PathConnectedComplFinite.lean
++++ b/Jacobians/MappingDegree/PathConnectedComplFinite.lean
+@@ -224,7 +224,7 @@
+     {C : Set Y} (hC_fin : C.Finite) (hC_compl : (Cᶜ : Set Y).Nonempty) :
+     IsPathConnected (Cᶜ : Set Y) := by
+   -- Path-connectedness of `Y`.
+-  have : LocPathConnectedSpace Y := locPathConnectedSpace_of_chartedSpace_complex
++  have : LocallyPathConnectedSpace Y := locPathConnectedSpace_of_chartedSpace_complex
+   have : PathConnectedSpace Y := pathConnectedSpace_of_connectedSpace_locPathConnected
+   -- Pick a basepoint in `Cᶜ`.
+   obtain ⟨p, hp_nc⟩ := hC_compl
+--- a/Jacobians/ProperDegree/DegreeOneSphere.lean
++++ b/Jacobians/ProperDegree/DegreeOneSphere.lean
+@@ -374,6 +374,9 @@
+ 
+ /-! ### Step 2 — degree one -/
+ 
++set_option backward.isDefEq.respectTransparency false in
++set_option backward.isDefEq.respectTransparency.types false in
++set_option backward.isDefEq.respectTransparency.instanceSearchTypes false in
+ open RiemannSphere in
+ /-- **The pole is a regular point of `F = toSphere f P`** (Step 2's analytic core,
+ and the genuine consumer of *simplicity*).  Reading `F` near `P` in the `∞`-chart,
+@@ -471,8 +474,11 @@
+     have h1 : HasDerivAt (fun w : ℂ => (w - φ P) ^ 1) (1 : ℂ) (φ P) := by
+       simpa using ((hasDerivAt_id (φ P)).sub_const (φ P)).pow 1
+     have h2 : HasDerivAt g (deriv g (φ P)) (φ P) := hg.differentiableAt.hasDerivAt
+-    have := h1.smul h2
+-    simpa using this
++    have this : HasDerivAt (fun w : ℂ => (w - φ P) ^ 1 * g w)
++        ((1 : ℂ) * g (φ P) + (φ P - φ P) ^ 1 * deriv g (φ P)) (φ P) :=
++      h1.mul h2
++    simpa only [Pi.smul_apply, Pi.mul_apply, pow_one, smul_eq_mul, sub_self,
++      mul_zero, zero_mul, mul_one, zero_add, add_zero, one_mul] using this
+   rw [hd.deriv]
+   exact hg0
+ 
+--- a/Jacobians/MappingDegree/LocalKFoldMultiplicityUnconditional.lean
++++ b/Jacobians/MappingDegree/LocalKFoldMultiplicityUnconditional.lean
+@@ -61,7 +61,7 @@
+         deriv (fun z => (z - x₀) * r z) x₀ =
+           deriv (fun ζ : ℂ => ζ - x₀) x₀ * r x₀ +
+           (x₀ - x₀) * deriv r x₀ := by
+-      simpa using deriv_mul hsub_diff hr_diff
++      simpa using deriv_fun_mul hsub_diff hr_diff
+     have hderiv_sub : deriv (fun ζ : ℂ => ζ - x₀) x₀ = 1 := by
+       have hh : deriv (fun ζ : ℂ => ζ - x₀) x₀
+             = deriv (id : ℂ → ℂ) x₀ - deriv (fun _ : ℂ => x₀) x₀ :=
+--- a/Jacobians/ProperDegree/MultiplicityPatching.lean
++++ b/Jacobians/ProperDegree/MultiplicityPatching.lean
+@@ -133,8 +133,7 @@
+     (hv_an z₁ hz₁_closed).differentiableAt.hasDerivAt
+   have hpow_d : HasDerivAt (fun z => (v z) ^ m)
+       ((m : ℂ) * (v z₁) ^ (m-1) * deriv v z₁) z₁ := by
+-    have := (hasDerivAt_pow m (v z₁)).comp z₁ hv_diff
+-    simpa [mul_comm, mul_assoc, mul_left_comm] using this
++    exact hv_diff.fun_pow m
+   have hball_nhds : ball x₀ ε ∈ 𝓝 z₁ := isOpen_ball.mem_nhds hz₁
+   have hg_eq : g =ᶠ[𝓝 z₁] (fun z => (v z) ^ m + w₀) := by
+     filter_upwards [hball_nhds] with z hz
+--- a/Jacobians/CanonicalForms/FormRemovableSingularity.lean
++++ b/Jacobians/CanonicalForms/FormRemovableSingularity.lean
+@@ -76,14 +76,15 @@
+     rw [this]; exact hSsub
+   have h2s : Set.MapsTo (fun y : X => L y (e.symmL ℂ y 1))
+       S (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)).source := by
+-    have h_src : (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)).source = Set.univ := by simp [extChartAt]
++    have h_src : (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ)).source = Set.univ := by
++      simp [extChartAt, chartAt_self_eq]
+     rw [h_src]; exact fun _ _ => Set.mem_univ _
+   rw [contMDiffOn_iff_of_subset_source' hs h2s]
+   have h_set_eq : extChartAt 𝓘(ℂ, ℂ) x₀ '' S = (chartAt ℂ x₀) '' S := by simp [extChartAt]
+   have h_fun_eq : (extChartAt 𝓘(ℂ, ℂ) (0 : ℂ) ∘
+       (fun y : X => L y (e.symmL ℂ y 1)) ∘ (extChartAt 𝓘(ℂ, ℂ) x₀).symm) =
+       fun z : ℂ => L ((chartAt ℂ x₀).symm z) (e.symmL ℂ ((chartAt ℂ x₀).symm z) 1) := by
+-    funext z; simp [extChartAt, Function.comp_def]
++    funext z; simp [extChartAt, chartAt_self_eq, Function.comp_def]
+   rw [h_set_eq, h_fun_eq]
+   have hSimg_open : IsOpen ((chartAt ℂ x₀) '' S) :=
+     (chartAt ℂ x₀).isOpen_image_iff_of_subset_source hSsub |>.mpr hSopen

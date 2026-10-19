@@ -7,11 +7,14 @@ A statement-level ("skeleton") formalization of
 
 Every definition of the book is a genuine Lean definition, and every theorem, lemma,
 corollary and numbered formula is stated.
-- Proofs are being filled in section by section; the statements still open carry a `sorry`.
-- As of 2026-09-26, 130 remain, mostly in the compact-surface chapters §25–§32.
-- Chapters 1–2 are complete apart from one item of §7.
-- Where the book quotes a result it does not prove (uniformization, Riemann–Roch), the dependent statements
-  stay open, and their content is proved as `…_of_uniformization` companions (see *Modelling conventions*).
+- **As of 2026-10-18 every statement of `LiZhongQC` is proved.** After a full clean rebuild, `Audit.lean`
+  reports 10857 theorems, all depending only on the standard axioms (`propext`, `Classical.choice`, `Quot.sound`):
+  0 `sorry`, 0 carriers.
+- A second library, `References`, states the books and papers the project draws on, one work after another (see
+  *References* below).
+- A third library, `DouadyEarle`, is a vendored snapshot (2026-10-06) of the sorry-free, Mathlib-only part (Sections
+  1–4: the conformal barycenter and the Douady–Earle extension) of the sister project
+  `Conformally_natural_extension_of_homeomorphisms_of_the_circle`; see `DouadyEarle/PROVENANCE.md`.
 
 ## Building
 
@@ -32,311 +35,217 @@ The project uses Lean `v4.35.0-rc2` (`lean-toolchain`) and Mathlib at commit
 3. Optionally run `lake exe cache get`, if prebuilt Mathlib files exist for that commit.
 
 ```
-lake build            # builds the whole library (root module `LiZhongQC`)
+lake build            # builds the default libraries (root modules `LiZhongQC`, `References`, `DouadyEarle`)
 ```
 
-The build succeeds with `declaration uses 'sorry'` warnings only.
+The build succeeds (full clean rebuild 2026-10-18: 10212 jobs, 0 errors). `LiZhongQC` has no `sorry` warning. The
+remaining warnings are the `sorry` warnings of the statements of `References` (by design, see below), and some
+deprecation and linter hints.
 
-**Statistics** (2026-09-14, after Theorem 19.3, Lemmas 35.4 and 35.6, and the §14, §25, §26 and §27
-items listed below):
-* 36 section files, `Basic.lean`, `RiemannMapping.lean`, `ClusterSets.lean` and the auxiliary
-  `Lemmas/` folder (57 files).
-  * Registered on 2026-09-13, all without `sorry`: `RiemannMapping.lean` (namespace `RMT`, the
-    Riemann mapping theorem via the extremal problem), `Lemmas/ConnectedComplement.lean` (Cauchy's
-    theorem for polygons, primitives, logarithms and square roots on domains with connected
-    complement) and `Lemmas/CanonicalForm.lean` (Theorem 2.1, cases (i) and (ii)).
-  * Registered on 2026-09-14 by the user's decision, through the new import of
-    `Lemmas/RectangleRigidity.lean` in `Ch01/S01_Quadrilateral.lean`:
-    `Lemmas/RectangleRigidity.lean` (rigidity of conformal maps between rectangles, no `sorry`),
-    `ClusterSets.lean` (Schwarz reflection, the Hahn–Mazurkiewicz theorem, cluster sets; 3 `sorry`)
-    and `Lemmas/Caratheodory.lean` (Carathéodory's theorem and prime ends; 7 `sorry`).  Each of
-    these 10 `sorry`s needs a classical theorem that Mathlib lacks, such as the Jordan curve
-    theorem, the Hahn–Mazurkiewicz theorem, harmonic-measure estimates or prime-end theory.
-  * New on 2026-09-14: `Lemmas/LocalRoots.lean` (local square roots, primitives, the descent
-    through the squaring map and factorization of analytic functions near a point; no `sorry`),
-    a leaf imported by S25 and S32.
-  * New on 2026-09-14: `Lemmas/SchwarzChristoffelRect.lean` (the Schwarz–Christoffel map of the
-    upper half-plane onto a rectangle and its boundary correspondence; no `sorry`), imported by S01.
-  * New on 2026-09-14: `Lemmas/RectangleQuad.lean` (every rectangle is a topological quadrilateral:
-    the elliptic side integrals depend continuously on the modulus `k` and their ratio sweeps
-    `(0, ∞)`, so the intermediate value theorem and the inverse Schwarz–Christoffel map give the
-    conformal map onto `ℍ`; no `sorry`), which entered the root build through S09.
-  * New on 2026-09-14: `Lemmas/KrausNehari.lean` (the Kraus–Nehari coefficient bound
-    `|a₃ - a₂²| ≤ 1` for univalent functions, via an area theorem proved with a two-mode Bessel
-    inequality, the change of variables formula and a pointwise ellipse containment; Mathlib only,
-    with no degree theory and no Jordan curve theorem; no `sorry`), which entered the root build
-    through S19.
-* 466 definitions, structures and instances, none of which contains `sorry`.
-* 1809 top-level theorems and lemmas:
-  * 361 still have a `sorry` proof;
-  * 1448 are proved.
-* These source counts ignore comments and include declarations written with an attribute on the
-  same line, such as `@[simp] theorem`.  Measured that way, the tree of 2026-09-13 had 399
-  definitions and 1127 top-level theorems.  The figures of 402 and 1125 published on 2026-09-13
-  came from a cruder count that matched three declaration-like lines inside comments and missed
-  five one-line attribute declarations.
-* Counting every theorem, including those inside nested namespaces, there are 2025, and they
-  partition exactly: **1646 are axiom-clean**, 361 are the `sorry` statements themselves, and the
-  remaining **18 have complete proofs that nevertheless depend on a statement which is still
-  `sorry`**.  A finished proof is therefore not by itself a guarantee: check with `#print axioms`.
-  (The root `Audit.lean` counts the `LiZhongQC` namespace only and prints 1593 + 361 + 18 = 1972;
-  the other 53 theorems live in namespace `RMT` and are all axiom-clean.)
-* Compared with 2026-09-13, the `sorry` column first grew by 10: `thm1_1_rectangle_unique` left
-  it, and the 11 `sorry`s of `ClusterSets.lean` and `Lemmas/Caratheodory.lean` entered the root
-  build.  Later the same day `eq19_2_ode` (S19) and `iversen_gross` (`ClusterSets.lean`) were
-  proved, which brought the column to 413, and the proofs of `thm19_1_unique` (S19),
-  `eq30_7_annulus_modulus` (S30) and `project_admissibleQD_order` (S32) brought it to 410.
-  Then the §14 Poincaré-distance cluster (`eq14_3`, `poincareDist_upperHalf` and
-  `upperHalf_geodesic`) and the §25 natural-parameter batch ((25.2), (25.3), (25.5), (25.6),
-  (25.8) and (25.9): `eq25_2_natural_parameter`, …, `eq25_9_natural_parameter_double_pole`) brought
-  it to 401.  None of these had carriers depending on it.
-  Finally the proofs of `thm1_1_exists_rectangle` and `thm1_1_elliptic_modulus` (S01), `eq14_8` and
-  `eq14_9` (S14), `eq35_1_radii_finite_length` and `circular_arcs_short` (S35), and four items from
-  the parallel session (`hasGenus_of_homeomorph` in S28, `thm22_1_monodromy` and
-  `mobius_classification_trace` in S22, `pairing_eq_norm_imp_teichmuller` in S36) brought it to 391.
-  Then Lemma 9.2 in both directions (`lemma9_2_isACL_of_genPartials`,
-  `lemma9_2_genPartials_of_isACL`) and Theorems 9.1 and 9.2 (`thm9_1_isACL`, `thm9_2_partials_ae`)
-  brought it to 387.  The carriers that used them still wait on other §9 statements.
-  Then these brought it to 376:
-  * the §11 batch (`eq11_8`, `eq11_11_pompeiu_gen`, `eq11_15`, `eq11_17`);
-  * the §14 modular identities (`eq14_4`, `eq14_5`, `eq14_12`);
-  * `translationLength_eq_inf_dist` (S30);
-  * from the parallel session, Theorem 20.1 (`thm20_1_disc_isSchwarz`, `thm20_1_not_isSchwarz`,
-    `thm20_1`).
-  Then these brought it to 372:
-  * `cocompact_elements_hyperbolic`, `lengthSpectrum_discrete` and `parabolic_horoball_disjoint`
-    (S30);
-  * from the parallel session, Theorem 19.2 (`thm19_2_nehari`, S19), which also retired the
-    carrier `eq19_5`.
-  Then these brought it to 361:
-  * `eq26_5_injective`, `teichStretchZero_localHomeomorph` and
-    `teichmullerBeltrami_isBeltramiDifferential` (S26);
-  * `hyperbolic_normal_form` (S27);
-  * `lemma35_4` and `lemma35_6` (S35);
-  * from the parallel session, Theorem 19.3 and its corollary (`thm19_3`, `thm19_3_cor`, S19),
-    `horizontal_vertical_isPhiStraight` and `local_shortest_regular` (S25), and
-    `modularPhi_gamma2_invariant` (S14).
-* **Corrections** (2026-09-14):
-  * Four statements about `C₀^∞` functions were written with `ContDiff ℝ ⊤`.  In current Mathlib
-    that means real-analytic, so together with compact support they only covered the zero function.
-    They now use `ContDiff ℝ ((⊤ : ℕ∞) : WithTop ℕ∞)`, i.e. `C^∞`: `eq11_15`, `zygmund_calderon`
-    and `eq11_17` in S11, and `thm12_1_smooth_case` in S12.
-  * `parabolic_horoball_disjoint` (S30) was false as stated.  For `Γ = ⟨z ↦ z + 1/2⟩`, the
-    translation `γ₁ : z ↦ z + 1` lies in `Γ`, and `z ↦ z + 1/2` is not a power of `γ₁` but has
-    `c = 0`.  The hypothesis that `γ₁` generates the stabilizer of `∞` in `Γ` (up to sign), implicit
-    in the book, was added, and the statement is now Shimizu's lemma.
-  * `lemma35_5` (S35) was false as stated, and so is the book's Lemma 35.5.  Its hypothesis (35.11),
-    `∬_E |φₙ| |κ|²/(1 - |κ|²) → 0` for `E = {|κ| ≤ k'}`, does not force `∬_E |φₙ| → 0`.  For
-    `κ = ½·1_{Re z > 0}` and `φₙ ≡ 1/π` the integrals over the left half-disc `E` vanish, yet
-    `∬ |φₙ| |κ|²/(1 - |κ|²) = 1/6 ≠ 1/3 = k²/(1 - k²)`.  The hypothesis is now (35.10),
-    `∬_E |φₙ| → 0`, which is what the book's proof uses, and measurability of `κ` is assumed.  The
-    book also misprints the limit as `k/(1 - k²)`.
-* Those 18 carriers are not scattered — each traces back to one of five blocked groups, and
-  clearing a blocker retires its whole group at once (measured 2026-09-14, figures below verified
-  against the environment, not maintained by hand):
-  * **9 via the §9 cluster** (`lemma9_1_menchoff`, `thm9_4_dilatation_ae`,
-    `thm9_6_absolutelyContinuous`, `thm7_2_inv`; `thm9_1_isACL`, `thm9_2_partials_ae` and Lemma 9.2
-    have been proved since the previous count) — `thm9_3_differentiable_ae`,
-    `thm9_5_L2_derivatives`, `thm9_6_cor1_null`/`cor2_jacobian_pos`, and both halves of
-    Theorem 10.2.
-  * **3 via §11** (`thm11_3_isometry`, `hilbertNorm_continuousOn`) — `thm11_3_cor1` (isometry
-    only), `thm11_3_cor2` and `eq12_1_exists_exponent` (both).
-  * **3 via the classical theorems behind Carathéodory's theorem**, new in the root build since
-    2026-09-14: `frontier_locallyConnected_iff_isCurve` and `hahn_mazurkiewicz_subset` via
-    `hahn_mazurkiewicz`, and `locallyConnected_iff_clusterSet_subsingleton` via
-    `caratheodory_continuous_iff`.
-  * **2 via `thm6_1_modulus_quasi_invariance`**: `ellipse_isKQuasicircle` and
-    `isKQC_of_isC1Quasiconformal`.
-  * **1 via `thm2_1_canonical_form_annulus`** (Theorem 2.1, case (iii): the annulus map for two
-    nondegenerate complementary components): `thm2_1_canonical_form` itself, proved by cases from
-    `Lemmas/CanonicalForm.lean`.
-  * Retired on 2026-09-14: `eq19_5` ((19.4)–(19.5), `‖S_f‖_Δ ≤ 3/2` for univalent `f`), now that
-    Theorem 19.2 (`thm19_2_nehari`) is proved.
-  * Retired on 2026-09-14: the 25 carriers of `thm1_1_exists_rectangle`, nearly the whole
-    modulus/Rengel layer of §1, §4 and §5 (`thm4_2_rengel`, `thm4_5_modulus_mono`,
-    `thm4_8_modulus_continuous`, `thm1_3_modulus_conformal_invariant`, `isQCRS_refl`, `modulus_pos`,
-    the `rengel_*` and other `modulus_*` lemmas), now that Theorem 1.1 is proved
-    (`Lemmas/SchwarzChristoffelRect.lean`).
-  * Retired on 2026-09-14: `thm19_1_exists`, now that `eq19_2_ode` is proved.  Its holomorphic
-    solutions come from Picard iteration on the domain itself, estimated along the images of
-    radii under an inverse Riemann map, so no analytic continuation or monodromy is needed.
-  * Retired on 2026-09-14: `thm1_1_rectangle_unique` is now proved.  Reflection in the sides
-    extends the map between the rectangles to an entire function with doubly periodic derivative,
-    and Liouville's theorem makes it a similarity (`Lemmas/RectangleRigidity.lean`).  This retired
-    the 4 carriers that needed uniqueness only: `modulus_eq_of_equivRect`,
-    `TopQuad.IsRectangle.exists_data`, `rengel_right_eq_of_isRectangle` and
-    `subadditive_eq_of_rect`.  The other 25 of the former group of 29 still need existence.
-  * Retired on 2026-09-13: `dcModulus_annulus` and `dcModulus_eq_of_equiv`, via
-    `annulus_conformallyEquivalent_iff`, which is now proved in S04 from the extremal length of the
-    separating curves of an annulus.
-  Note that the biggest remaining group sits behind the hardest blockers: the §9 cluster needs
-  Menchoff's lemma (invariance of domain), Theorem 9.4 (orientation at points of differentiability,
-  i.e. `J ≥ 0`, which needs degree theory) and Theorem 9.6 (the area enclosed by a Jordan curve).
-* To re-measure rather than trust the numbers above, run **`Audit.lean`** in the repository root
-  (`lake env lean Audit.lean`); it prints the three-way partition for the `LiZhongQC` namespace and
-  is not part of the library, so `lake build` ignores it.  It reproduces the 1972-figure above exactly.  The method, for reference:
-  iterate `env.constants` for `.thmInfo` with
-  the `LiZhongQC` prefix, dropping `n.isInternal` and any name with a `_`-prefixed component, and
-  classify with `Lean.collectAxioms`.  A declaration is a *carrier* rather than a `sorry` itself
-  exactly when `collectAxioms` yields `sorryAx` but `ConstantInfo.getUsedConstantsAsSet` does not.
-  Do **not** use `ConstantInfo.value?` for this: imported theorem bodies are loaded lazily, so it
-  returns `none` and every carrier looks unblocked.
+**Statistics** (2026-10-18):
+* The project's modules contain 10857 theorems, auxiliary lemmas included.
+  - All 10857 depend only on the standard axioms.
+  - No statement is `sorry`.
+  - None is a *carrier*, i.e. a complete proof that goes through an open statement.
+* In general a finished proof is not by itself a guarantee: check it with `#print axioms`.
+* To re-measure, run `lake env lean Audit.lean` in the repository root.
+  - It is not part of the library, so `lake build` ignores it.
+  - It walks the dependency graph of every theorem defined in the project's modules, stopping at Mathlib (which contains
+    no `sorry`), and prints the partition above.
+  - A theorem is a carrier when it depends on `sorryAx` but its own body does not mention it.
+  - Bodies must be read with `ConstantInfo.getUsedConstantsAsSet`. `ConstantInfo.value?` returns `none` for imported
+    theorems, whose bodies are loaded lazily, and would make every carrier look clean.
 
-## Proof pass
+## Proof status
 
-Proofs are added in file order, following the book's own arguments.  A proof may use earlier
-theorems that are themselves still `sorry`.  A statement is skipped when its proof needs a
-classical theorem that the book does not prove and Mathlib does not provide, or when the book
-leaves it to the reader; in that case the reason is recorded in the theorem's docstring as
-"Not proved (kept as `sorry`): …".  The recurring blockers are the Riemann mapping theorem
-with boundary correspondence (needed whenever a statement asserts that an image or preimage *is* a
-quadrilateral), invariance of domain and Jordan-curve topology, Arzelà–Ascoli in normal-family
-form, and the Zygmund–Calderón and Riesz–Thorin theorems of §11.
+Proofs follow the book's arguments where they can. Where the book quotes a result, leaves a step to the reader, or
+argues in a way that is hard to formalize, the step is either proved here, often by a different route (see *Notes on
+selected proofs* below), or the statement stays `sorry` and its docstring says why ("Not proved (kept as `sorry`):
+…").
 
-Chapter 1 is complete under that policy: §6 (including Grötzsch's theorem and its equality case)
-is proved except Theorem 6.1, and §§7–10 are proved except the statements listed above.
+Every proof installed in the current workflow is checked with `#print axioms` to depend only on the three standard
+axioms (`propext`, `Classical.choice`, `Quot.sound`); a proof is never installed if it goes through a statement that is
+still `sorry`. Earlier passes allowed that, but no such *carrier* is left: the last two
+(`hahn_mazurkiewicz_subset`, `frontier_locallyConnected_iff_isCurve`) became clean when the Hahn–Mazurkiewicz
+theorem was proved (see *Statistics*).
 
-In §9, Theorem 9.1 (`thm9_1_isACL`), Theorem 9.2 (`thm9_2_partials_ae`) and Lemma 9.2 in both
-directions are proved.  Lemma 9.2 (⇐) passes to the limit segment by segment: by Fatou's lemma the
-`L¹` errors of the approximating derivatives have `liminf = 0` on almost every segment.  Lemma 9.2
-(⇒) uses mollifiers.  Mathlib lacks the fact that mollifiers form an approximate identity in `L_p`,
-so it is proved here from Jensen's inequality and the density of compactly supported continuous
-functions (`tendsto_eLpNorm_convolution_normed_sub`).  Rectangles are quadrilaterals by
-`Lemmas/RectangleQuad.lean`.  Still open in §9:
-* Menchoff's lemma (invariance of domain);
-* Theorem 9.4 (orientation at points of differentiability, i.e. `J ≥ 0`, which needs degree theory);
-* `area_image_square_deriv` (its lower bound needs degree theory as well);
-* Theorem 9.6 (the area enclosed by a Jordan curve).
+**By chapter** (written 2026-10-09, when 81 statements were open; all of them have since been proved, the last one,
+Strebel's sufficiency criterion `strebel_hamilton_sufficient` of §36, on 2026-10-18; see *Statistics*):
 
-Theorem 1.1 is proved in full.  Uniqueness comes from the rigidity of conformal maps between
-rectangles (`Lemmas/RectangleRigidity.lean`).  Existence, together with the elliptic-integral formula
-for the modulus of `ℍ(-1/k, -1, 1, 1/k)`, comes from the Schwarz–Christoffel map
-`F(z) = ∫ dζ/√((1-ζ²)(1-k²ζ²))` in `Lemmas/SchwarzChristoffelRect.lean`.  The book's injectivity
-step, which uses the argument principle, is replaced by a covering-map argument: `F` is a proper
-local homeomorphism from `ℍ` onto the rectangle, hence a covering map, hence a homeomorphism because
-the rectangle is simply connected.  Continuity of `F` at `∞` comes from the inversion `ω ↦ -1/(kω)`,
-which permutes the four prevertices.
+* **Chapter 1 (§1–§10): complete.** The last statement proved is `isKQC_of_dcModulus_bound` (§7), the converse of
+  Theorem 7.4 (the ring characterization), for which the book refers to Lehto–Virtanen. Its proof goes through the
+  analytic definition of §§9–13, so the statement lives in `Lemmas/RingCharacterization.lean` (user decision,
+  2026-09-27). Proved, among others:
+  * Theorem 1.1;
+  * Theorem 2.1 in all three cases;
+  * Theorem 4.9 in its general form, with its corollaries;
+  * the extremal problems of §5, Grötzsch's theorem and Theorem 6.1;
+  * Theorems 7.1–7.4 and the ring characterization of `K`-quasiconformality;
+  * the normal-family theorems 8.1–8.2;
+  * all of §9 (Menchoff's lemma, Lusin's property (N), Theorems 9.1–9.6);
+  * Theorems 10.1–10.2.
+* **Chapter 2 (§11–§13): complete.** This includes:
+  * the `L_p` bound for the Beurling–Ahlfors transform, through the Riesz–Thorin theorem;
+  * the existence theorem of §12;
+  * the measurable Riemann mapping theorem and holomorphic dependence on parameters;
+  * the similarity principle;
+  * Theorems 13.1–13.8.
+* **Chapter 3 (§14–§15): complete.** §15 includes the sharpness of Mori's constant and of Theorem 15.3. In §14 the
+  product expansions (14.23)–(14.24) are proved without the Jacobi triple product (see *Notes on selected proofs*).
+* **Chapter 4 (§16–§18): complete.** It includes the Beurling–Ahlfors extension with `K ≤ ρ²`, Ahlfors' theorem that
+  a Jordan curve is a quasicircle iff it has bounded turning, quasiconformal reflections and welding, and the remark
+  that a quasicircle can have Hausdorff dimension arbitrarily close to 2 (a generalized Koch curve; the statement
+  lives in `Lemmas/KochQuasicircle.lean` because its proof uses Theorem 18.1, user decision 2026-09-27).
+* **Chapter 5 (§19–§21): §19 is complete.** §20 is complete except `thm20_2`, which is false as stated and left
+  unchanged by decision (see *Corrections*). §20 includes:
+  * Ahlfors' Theorem 20.3;
+  * Theorem 20.4;
+  * Gehring's Theorem 20.5;
+  * the equivalence of Schwarz domains and quasidiscs.
 
-In Chapter 2, §11 proves Lemmas 11.1 and 11.2 — Hölder's inequality together with the
-potential-theoretic estimates `∬_{|ζ| ≤ R} |ζ - z|^{-q} ≤ C(q, R)` and
-`∬ dξ dη/(|ζ - z₁|^q |ζ - z₂|^q) ≤ C_q |z₁ - z₂|^{2-2q}` for the conjugate exponent
-`q = p/(p-1) < 2` — and the identity `∬_{r < |ζ - z| < R} (ζ - z)^{-2} = 0` of §11.3, which is
-obtained from rotation invariance instead of the book's Green formula; §12 proves the choice of
-the exponent `p` in §12.1.  Later passes proved:
-* the complex Green formulas (11.9) and (11.10) on a disc, via polar coordinates, since Mathlib's
-  divergence theorem is available for boxes only (`Lemmas/GreenDisc.lean`,
-  `Lemmas/GreenPolar.lean`);
-* Pompeiu's formula (11.11), via a cutoff that smooths the Cauchy kernel (`Lemmas/Pompeiu.lean`);
-* (11.19);
-* (11.8), by differentiation under the integral sign;
-* Pompeiu's formula for `L_p` generalized derivatives, as a limit controlled by Hölder's inequality
-  against the Cauchy kernel;
-* the existence of the principal value (11.15);
-* (11.17), `∂_z̄ T(ω) = ω` and `∂_z T(ω) = H(ω)` for `ω ∈ C₀^∞`.  Here `T(ω)` is a convolution
-  with a locally integrable kernel, and `∂_z` comes from Green's formula for `∂_z` applied twice
-  to one cutoff function.
+  §21 (the universal Teichmüller space and the Bers embedding, Theorems 21.1–21.4, including Gehring's Theorem 21.4) is
+  complete except Gehring's remark that the closure of `T*` is smaller than `𝓕*`, and Thurston's theorem that `𝓕*`
+  has isolated points.
+* **Chapters 6–9 (§22–§32): in progress again (from 2026-10-06; Wolpert's lemma `lemma30_3_wolpert`, Lemma 30.1
+  Theorem 25.1 and the local shortest-neighbourhood lemma of §25 proved 2026-10-08; shortest curves are geodesics, 2026-10-09).** They need the foundations of Riemann-surface theory:
+  uniformization, Riemann–Roch, and fundamental groups of glued surfaces. 74 statements are open there. Much of the
+  machinery is proved, and Teichmüller's uniqueness and existence theorems are proved for surfaces given as `ℍ/Γ` (see
+  *Modelling conventions*).
+* **Chapter 10 (§33–§34):** the Bers embedding theorem for Fuchsian groups (Theorem 33.1) and Earle's lemmas are
+  proved, and so is `teichDistanceGamma_eq` (2026-10-08). Three finite-dimensional statements are open (one in §33, two in §34).
+* **Chapter 11 (§35–§36): §35 is complete** (the Reich–Strebel main inequality, Theorems 35.1–35.8, Lemmas 35.1–35.6).
+  §36 is complete except Strebel's sufficiency criterion `strebel_hamilton_sufficient`.
+* **Supporting files: complete.** Prime-end theory, the Hahn–Mazurkiewicz theorem and Lindelöf's theorem.
+  - Carathéodory's theorem for Jordan domains (`Lemmas/CaratheodoryJordan.lean`) and the Hahn–Mazurkiewicz theorem
+    (`hahn_mazurkiewicz`, `ClusterSets.lean`), by a chain refinement on uniform grids with no Cantor set and no
+    paths.
+  - In `Lemmas/PrimeEnds.lean`: Carathéodory's continuity theorem (`caratheodory_continuous_iff`),
+    `crosscut_separates`, `locallyConnectedSpace_frontier_iff` (the boundary is locally connected iff every
+    null-chain has a one-point impression, by a chain of circle arcs along Wolff radii chosen off a Jensen–Fatou null
+    set), Lindelöf's theorem (`lindelof`, by Lindelöf's reflection argument with a half-disc and a quarter-disc
+    harmonic majorant), and Carathéodory's prime-end theorem (`caratheodory_primeEnd`,
+    `caratheodory_primeEnd_principal`, `principalPoints_isCompact_isConnected`): prime ends are the classes of
+    circular chains along Wolff radii, surjectivity follows Pommerenke's Theorem 2.15 (c) without the length–area
+    lemma, and principal points are radial cluster points (Koebe distortion along the radius).
+  - These statements were moved to `Lemmas/PrimeEnds.lean`, unchanged, because their proofs need tools of §20 (user
+    decision, 2026-09-27).
 
-None of these needs Calderón–Zygmund theory.  The rest of §§11–13 is blocked by the results listed
-above and by the covering-space argument of Lemma 12.1.
+### Notes on selected proofs
 
-Two remarks on Lemma 11.2.  The two-singularity estimate is obtained not by the book's scaling and
-rotation argument but by splitting the plane according to which singularity is the nearer one,
-which needs only translations and the two radial integrals `∬_{|w| < ρ} |w|^{-a}`,
-`∬_{|w| > ρ} |w|^{-a}` (proved by polar coordinates).  And since the statement assumes only
-`ω ∈ L_p(ℂ)`, the individual integrals `∫ ω(ζ)/(ζ - z)` need not converge; the proof therefore
-never subtracts them, but uses that the *difference* kernel is integrable, so that the two
-integrands are integrable together or not at all — and when neither is, both sides vanish.
+**§1, Theorem 1.1** is proved in full.
+- Uniqueness comes from the rigidity of conformal maps between rectangles (`Lemmas/RectangleRigidity.lean`).
+- Existence, together with the elliptic-integral formula for the modulus of `ℍ(-1/k, -1, 1, 1/k)`, comes from the
+  Schwarz–Christoffel map `F(z) = ∫ dζ/√((1-ζ²)(1-k²ζ²))` in `Lemmas/SchwarzChristoffelRect.lean`.
+- The book's injectivity step, which uses the argument principle, is replaced by a covering-map argument: `F` is a
+  proper local homeomorphism from `ℍ` onto the rectangle, hence a covering map, hence a homeomorphism because the
+  rectangle is simply connected.
+- Continuity of `F` at `∞` comes from the inversion `ω ↦ -1/(kω)`, which permutes the four prevertices.
 
-Chapters 3–11 were swept section by section.  Almost everything there rests on the existence and
-representation theory of §§12–13, on the elliptic modular function of §§14.2–14.3, or on classical
-results the book quotes (uniformization, Riemann–Roch, the theorems of Ahlfors and Gehring), and is
-kept as `sorry`.  What is proved: (14.2), the Poincaré length of a segment; (17.13), the bounds
-`1/(1+ρ) ≤ h(1/2) ≤ ρ/(1+ρ)` for a normalized `ρ`-quasisymmetric function; that horizontal and
-vertical segments are the trajectories of `dz²` (§25.1); and that the identity map of a Riemann
-surface is quasiconformal (§27.1).  A further obstacle in the later chapters is that many
-statements bundle several claims into one theorem — for instance `teichDistance_metric` conjoins
-all five metric axioms, of which only the separation axiom is out of reach — so the provable parts
-cannot be discharged without splitting the statement away from the book's own form.
+**§7, the ring characterization** (`isKQC_of_dcModulus_bound`, the converse of Theorem 7.4) is proved through the
+analytic definition rather than by Lehto–Virtanen's geometric argument (I, Theorem 7.2).
+- The hypothesis `M(B) ≤ K M(f(B))` is applied to slit-rectangle rings `β + α Ξ_h`, where `Ξ_h` is the box
+  `(-1, 1) × (-h, h)` minus a central slit; averaging over rectangular loops gives `M(Ξ_h) ≥ πh/(2(1 + 3h))`.
+- Small such rings give the per-rectangle estimate of the §9 ACL argument, so `f` is ACL.
+- At a point of differentiability, sense preservation (local winding `+1`) gives `|∂_{z̄} f| ≤ |∂_z f|`, and a ring
+  with its slit along the direction of maximal stretch gives `|∂_z f| + |∂_{z̄} f| ≤ K (|∂_z f| - |∂_{z̄} f|)`.
+- Theorem 10.1 then gives `K`-quasiconformality.
 
-A second pass added three more results.  An ellipse `x²/a² + y²/b² = 1` with `a ≥ b > 0` is an
-`a/b`-quasicircle (§16.1): it is the image of the unit circle under the affine map
-`z ↦ ((a+b)/2) z + ((a-b)/2) z̄`, whose complex dilatation is the constant `(a-b)/(a+b)`, so that
-`K = a/b`.  The order computation of §32.1 for the lift `4ζ²φ(ζ²)` to the branched double cover
-gives `2N + 2`, using Mathlib's order-under-composition lemma for a meromorphic function composed
-with an analytic one (`MeromorphicAt.meromorphicOrderAt_comp`) together with additivity of the
-order under products.  And the equivalence of marked Riemann surfaces (§27.1) is an equivalence
-relation; for it, `IsBiholomorphic` is shown in §22 to be closed under the identity, under the
-inverse of a homeomorphism and under composition (`isBiholomorphic_id`,
-`IsBiholomorphic.homeomorph_symm`, `IsBiholomorphic.comp`).
+**§9, Lemma 9.2** (⇐) passes to the limit segment by segment: by Fatou's lemma, the `L¹` errors of the approximating
+derivatives have `liminf = 0` on almost every segment. Lemma 9.2 (⇒) uses mollifiers. Mathlib lacks the fact that
+mollifiers form an approximate identity in `L_p`, so it is proved here from Jensen's inequality and the density of
+compactly supported continuous functions (`tendsto_eLpNorm_convolution_normed_sub`).
 
-`hasGenus_of_homeomorph` (§28) is proved as well.  `HasGenus` is defined through
-`FundamentalGroup`, and Mathlib provides only basepoint-change isomorphisms
-(`fundamentalGroupMulEquivOfPath`), so the proof builds the transport of the fundamental group along
-a homeomorphism itself (`fundamentalGroupMulEquivOfHomeomorph`).
+**§11.**
+- The complex Green formulas (11.9) and (11.10) are proved on a disc via polar coordinates, since Mathlib's divergence
+  theorem is available for boxes only (`Lemmas/GreenDisc.lean`, `Lemmas/GreenPolar.lean`).
+- Pompeiu's formula (11.11) uses a cutoff that smooths the Cauchy kernel (`Lemmas/Pompeiu.lean`).
+- (11.17), `∂_z̄ T(ω) = ω` and `∂_z T(ω) = H(ω)` for `ω ∈ C₀^∞`: `T(ω)` is a convolution with a locally integrable
+  kernel, and `∂_z` comes from Green's formula applied twice to one cutoff function.
 
-Later passes in Chapters 3–11 added, among others:
-* §14:
-  * all of §14.1: the invariance of the disc metric, the geodesic property (14.3), the density of
-    a simply connected domain, and the Poincaré distance and geodesics of the upper half-plane;
-  * from §14.3, the lattice identities (14.8) and (14.9) of `℘`, and the modular identities
-    (14.4), (14.5) and (14.12);
-  * from §14.2, the invariance of the elliptic modular function under `Γ(2)`
-    (`modularPhi_gamma2_invariant`).
-  * (14.11) stays `sorry`: it needs `e₂ ≠ e₃`, i.e. that `℘` takes each value only twice in a
-    period parallelogram, which Mathlib does not provide.
-* §19:
-  * Theorem 19.1, existence and uniqueness (`eq19_2_ode`, `thm19_1_exists`, `thm19_1_unique`);
-  * Theorem 19.2 (`thm19_2_nehari`), which the book only cites.  An omitted value, a disc
-    automorphism and an affine normalization reduce it to the Kraus–Nehari coefficient bound of
-    `Lemmas/KrausNehari.lean`.
-  * Theorem 19.3 (Lehto, `thm19_3`: `σ₂(D) = 3/2 + σ₁(D)`) and its corollary `σ₂(D) ≤ 3`
-    (`thm19_3_cor`), via a conformal map onto the disc, the chain rule for the Schwarzian,
-    Theorem 19.2 and the Koebe function.  §19 is now free of `sorry`.
-* §20: Theorem 20.1 (`thm20_1_disc_isSchwarz`, `thm20_1_not_isSchwarz`, `thm20_1`), by Nehari's
-  classical argument with the Hardy inequality instead of the book's route through quasiconformal
-  extension.  Theorem 20.4 stays `sorry`: it needs Koebe's ¼-theorem in the form (20.14) and a
-  Janiszewski-type planar separation step that the book asserts without proof.
-* §22: `thm22_1_monodromy` and `mobius_classification_trace`.
-* §25:
-  * (25.2), (25.3), (25.5), (25.6), (25.8) and (25.9) (`Lemmas/LocalRoots.lean`);
-  * horizontal and vertical trajectory arcs are `φ`-straight (`horizontal_vertical_isPhiStraight`),
-    and near a regular point the `φ`-straight segment is the unique shortest connection
-    (`local_shortest_regular`).
-* §26:
-  * the injectivity (26.5) of the new parameter at a zero (`eq26_5_injective`).  For
-    `p = (ζ/|ζ|)^{m+2}`, comparing the `(m+2)`-th powers and their moduli gives
-    `(1 - k²)(p₁ - p₂) = 0`, so no roots of unity are needed;
-  * that this parameter is a homeomorphism of `ℂ` fixing `0` (`teichStretchZero_localHomeomorph`),
-    without invariance of domain: it is continuous, proper (`|ζ| ≤ |ζ'|`) and hence closed, and
-    surjective by an explicit preimage;
-  * that `k φ̄/|φ|` is a Beltrami differential with `‖μ‖_∞ ≤ k`
-    (`teichmullerBeltrami_isBeltramiDifferential`).
-* §27: the normal form of a hyperbolic element of `SL(2, ℝ)` at its fixed points, and that the
-  fixed points and the multiplier determine it up to sign (`hyperbolic_normal_form`).  (27.12)
-  (`eq27_12_d_ne_one`) is deferred: the relation (27.4) holds in `SL(2, ℝ)` only up to `±I`, and in
-  the `-I` case the book's argument does not exclude `d = 1`.
-* §30:
-  * (30.7);
-  * the translation length as the minimal displacement (`translationLength_eq_inf_dist`).  It
-    rests on the identity `|cτ² + (d - a)τ - b|² = (Im τ)² (tr² - 4) + (c|τ|² + (d - a) Re τ - b)²`,
-    which avoids diagonalizing the matrix;
-  * `cocompact_elements_hyperbolic` and `lengthSpectrum_discrete`;
-  * `parabolic_horoball_disjoint`, which is Shimizu's lemma after the correction above.
-  * The docstrings had named the normal form of parabolic elements as a blocker.  None of these
-    proofs needs it: the displacement formula behind `translationLength_eq_inf_dist` suffices.
-* §32: `project_admissibleQD_order`.
-* §35:
-  * `eq35_1_radii_finite_length` and `circular_arcs_short`;
-  * Lemma 35.4 (`lemma35_4`), with no measurability assumption on `κ`.  `Δ` is split along a
-    measurable version of `{|F| ≤ |φ| g(k')}`, and a non-measurable integrand has the junk integral
-    `0`, for which the estimate is trivial;
-  * Lemma 35.6 (`lemma35_6`: `I[κ] = k/(1 - k²)` iff `H[κ] = k`).  A nonzero integral makes `κ`
-    measurable, and each supremum is approached along phase-rotated admissible functions, to which
-    Lemma 35.4 and the book's comparison estimate apply.
-  * Theorems 35.3–35.5 stay `sorry`: they need the main inequality (35.6) or Hamilton's theorem
-    (§36).  Their statements are sound, since a quasiconformal `f₀` has `‖κ‖_∞ < 1`, but that bound
-    comes from the §9 results that are still `sorry`.
-* §36: `pairing_eq_norm_imp_teichmuller`.
+**Lemma 11.2.**
+- The two-singularity estimate is obtained not by the book's scaling and rotation argument but by splitting the plane
+  according to which singularity is the nearer one. This needs only translations and the two radial integrals
+  `∬_{|w| < ρ} |w|^{-a}` and `∬_{|w| > ρ} |w|^{-a}`.
+- Since the statement assumes only `ω ∈ L_p(ℂ)`, the individual integrals `∫ ω(ζ)/(ζ - z)` need not converge. The
+  proof therefore never subtracts them; it uses that the *difference* kernel is integrable, so the two integrands are
+  integrable together or not at all, and when neither is, both sides vanish.
+
+**§14.**
+- (14.11) is proved, using the value distribution of `℘` from `Lemmas/WeierstrassValues.lean`.
+- (14.23)–(14.24) are proved through the σ-product `F(z) = sin(πz) ∏ (1 - q^{2n} e^{2πiz})(1 - q^{2n} e^{-2πiz})`
+  of the lattice `ℤ + τℤ`, where `q = e^{iπτ}`. Liouville's theorem for elliptic functions gives the addition
+  formula `℘(z) - ℘(u) = -F'(0)² F(z + u) F(z - u) / (F(z)² F(u)²)`. At the half periods, together with (14.21),
+  it gives both products, so the Jacobi triple product is not needed.
+
+**§15.**
+- The sharpness of Theorem 15.3 is proved through an elliptic descent. The affine map between the lattices `⟨1, τ₀⟩` and
+  `⟨1, τ₁⟩`, where `τ₀, τ₁` are lifts at hyperbolic distance `ln K`, descends through the normalized `℘` to a
+  `K`-quasiconformal map of the sphere fixing `0, 1, ∞`.
+- The minimizing lift exists by compactness, and paths are lifted through the modular covering.
+- The sharpness of Mori's constant uses an explicit extremal family.
+
+**§16, Theorem 16.2** (quasicircle ⇔ quasiconformal reflection). The direction (⇐) glues a Riemann map and the
+reflection across the real line, i.e. on the preimage side. This needs only the removability of `ℝ`, not of the curve.
+
+**§16, the remark on dimension** (`quasicircle_hausdorff_dim_near_two`, in `Lemmas/KochQuasicircle.lean`).
+- The quasicircle is a generalized Koch curve: for `c = cos θ ∈ (0, 1/2]` four similarities of ratio
+  `r = 1/(2 + 2c)` map `[0, 1]` onto the sides of the polygon `0, r, r + r e^{iθ}, 1 - r, 1`, and the arc is the
+  fixed point of the Read operator on curves from `0` to `1`.
+- The pieces stay in the triangle `conv {0, 1, (1 + i)/2}` and meet only at common vertices at angles proportional to
+  `c`, so the arc has bounded turning (constant `64/c`) and a co-Hölder parametrization with exponent
+  `log 4 / log (2 + 2c)`, which bounds its Hausdorff dimension from below.
+- Closed by the tent `t ↦ t - i min(t, 1 - t)`, it is a Jordan curve of bounded turning, hence a quasicircle by
+  Ahlfors' Theorem 18.1; the choice `c = min(ε, 1) log 2 / 2` gives dimension above `2 - ε`.
+
+**§17, (17.7).** The Beurling–Ahlfors extension with parameter `r = 2` is `ρ²`-quasiconformal for every
+`ρ`-quasisymmetric `h`; this uniform statement is `s17p_beurlingAhlfors_two`. The dilatation is convex in each
+normalized variable, so it suffices to check the eight corners of a box.
+
+**§18, Theorem 18.1** (Ahlfors). A curve of bounded turning is a quasicircle.
+- The welding of the curve is shown to be quasisymmetric by a modulus-only argument: quadrilaterals of modulus `1` and
+  `Λ(ρ)` are compared through annulus and disc bounds.
+- Then the welding theorem finishes.
+- A separate winding-number argument shows that the welding is *increasing*: the glued plane homeomorphism cannot have
+  local degree `+1` near `i` and `-1` near `-i`.
+
+**§20.**
+- Theorem 20.1 uses Nehari's classical argument with the Hardy inequality instead of the book's route through
+  quasiconformal extension.
+- Theorem 20.4 uses Koebe's ¼-theorem in the form (20.14). The planar separation step, which the book asserts without
+  proof, is replaced by an analytic argument (a Cousin splitting and Cauchy's theorem for polygons) instead of
+  Janiszewski-type topology.
+- The proof of Theorem 20.5 (Gehring) shows that a `k`-locally connected domain (Theorem 20.4) is a Jordan domain,
+  through Carathéodory continuity and injectivity under a qualitative local connectivity and a crossing theorem in
+  the disc. Its boundary has bounded turning with constant `2(2k² + 1)`, so Theorem 18.1 applies.
+
+**§21, Theorem 21.4** (Gehring). An interior point of `𝓕*` gives a Schwarz domain, hence a quasidisc (Theorem 20.5),
+and the conformal map onto a quasidisc extends quasiconformally.
+
+**§25.**
+- (25.2), (25.3), (25.5), (25.6), (25.8) and (25.9) are proved in `Lemmas/LocalRoots.lean`.
+- Horizontal and vertical trajectory arcs are `φ`-straight (`horizontal_vertical_isPhiStraight`).
+- Teichmüller's lemma (`thm25_2_polygon`) is proved through the Umlaufsatz of `Lemmas/Umlaufsatz.lean`.
+
+**§26.**
+- The injectivity (26.5) of the new parameter at a zero needs no roots of unity: for `p = (ζ/|ζ|)^{m+2}`, comparing the
+  `(m+2)`-th powers and their moduli gives `(1 - k²)(p₁ - p₂) = 0`.
+- That this parameter is a homeomorphism of `ℂ` needs no invariance of domain: it is continuous, proper and surjective.
+
+**§28.** `hasGenus_of_homeomorph` transports the fundamental group along a homeomorphism
+(`fundamentalGroupMulEquivOfHomeomorph`); Mathlib provides only basepoint-change isomorphisms.
+
+**§30.** The translation length is the minimal displacement (`translationLength_eq_inf_dist`). This rests on the
+identity `|cτ² + (d - a)τ - b|² = (Im τ)² (tr² - 4) + (c|τ|² + (d - a) Re τ - b)²`, which avoids diagonalizing the
+matrix.
+
+**§35.**
+- The Reich–Strebel main inequality (35.5) and Theorems 35.1–35.8 go through the flux route of `Lemmas/FluxRoute.lean`
+  and Teichmüller's lemma.
+- Lemma 35.1, (35.2) and the endpoints of trajectories replace the book's boundary-uniqueness step by Jensen's formula
+  on Riemann maps of sector pieces (`Lemmas/BoundaryJensen.lean`). A horizontal ray that did not converge would cross a
+  sector in arcs of `φ`-length tending to `0`, which Jensen's formula forbids.
+- Lemma 35.4 needs no measurability assumption on `κ`. `Δ` is split along a measurable version of `{|F| ≤ |φ| g(k')}`,
+  and a non-measurable integrand has the junk integral `0`, for which the estimate is trivial.
 
 ## Layout
 
@@ -379,16 +288,61 @@ Later passes in Chapters 3–11 added, among others:
 | `Ch10/S34_BersFiberSpace` | §34 holomorphic families, Bers fiber space `F(G₀)`, `V(G₀)`, Bers' theorem (Thm 34.1) |
 | `Ch11/S35_DiscTeichmullerMaps` | §35 trajectories of finite-norm differentials (Lemmas 35.1–35.3), Reich–Strebel main inequality (35.3)–(35.5), Thms 35.1–35.8, Lemmas 35.4–35.6, Hamilton sequences, Strebel's frame criterion |
 | `Ch11/S36_Hamilton` | §36 homotopy modulo the boundary (Thm 36.1), Hamilton's theorem (Thm 36.2), Corollary 36.1, Lemmas 36.1–36.3 |
-| `Lemmas/UniformizedTeichmuller` | not a book section: companions `<name>_of_uniformization` of the §23/§26 uniqueness statements (`thm23_1_cor`, `conformal_unique_extremal`, Lemmas 26.1–26.2, Thm 26.2, (26.15)–(26.16), `teichmullerMap_isExtremal`) and of the §27 existence statements (Lemma 27.1, Lemma 27.3's bound, the bijection `Φ`, Thm 27.2 for quasiconformal classes), proved for surfaces given as `ℍ/Γ` (see Modelling conventions) |
+| `Lemmas/UniformizedUniqueness` | not a book section: companions `<name>_of_uniformization` of the §23/§26 uniqueness statements (`thm23_1_cor`, `conformal_unique_extremal`, Lemmas 26.1–26.2, Thm 26.2, (26.15)–(26.16), `teichmullerMap_isExtremal`), proved for surfaces given as `ℍ/Γ` (see Modelling conventions) |
+| `Lemmas/UniformizedTeichmuller` | not a book section: companions `<name>_of_uniformization` of the §27 existence statements (Lemma 27.1, Lemma 27.3's bound, the bijection `Φ`, Thm 27.2 for quasiconformal classes) and of §29/§30 statements (the third metric axiom of `d_T`, finiteness of the automorphism group, proper discontinuity of `Mod(S₀)`, Thm 30.3, Thm 30.4) and of (32.2), proved for surfaces given as `ℍ/Γ` |
+| `Lemmas/RingCharacterization` | §7: the converse of Theorem 7.4 (`isKQC_of_dcModulus_bound`), placed after §13 because its proof uses the analytic definition (Theorem 10.1), with slit-rectangle ring estimates |
+| `Lemmas/KochQuasicircle` | §16: the remark that quasicircles can have Hausdorff dimension close to `2` (`quasicircle_hausdorff_dim_near_two`), placed after §18 because its proof uses Theorem 18.1 |
+| `Lemmas/PrimeEnds` | not a book section: the prime-end theory that needs §20 — Carathéodory's continuity theorem, `crosscut_separates`, `locallyConnectedSpace_frontier_iff`, Lindelöf's theorem and Carathéodory's prime-end theorem (moved from `Lemmas/Caratheodory.lean` and `ClusterSets.lean`); all proved |
 
 Theorem names carry the book's numbering, e.g. `thm4_1_modulus_eq_inv_extremalLength`,
 `eq5_19`, `lemma20_3`, `thm26_2_uniqueness`, `eq27_9_14_last_determined`.
+
+## References
+
+A second library, `References` (root module `References.lean`), formalizes at statement level the books and papers
+the project draws on, one work after another (user order, 2026-09-28).
+- Definitions are genuine Lean definitions. Every labelled result of a work (theorem, lemma, proposition, corollary),
+  and every numbered formula or unlabelled claim that the work cites later, is stated with a `sorry` proof by design:
+  these files state the literature, they do not prove it.
+- An item already in the project or in Mathlib is not restated. The module docstring of each file indexes every item
+  of the work in the work's order and points to the existing declaration (`exists:`).
+- One namespace per work (`Gehring1978`, …) and one file per section of the work (`References/<Key>/…`). The work's
+  root file `References/<Key>.lean` gives the source, coverage, conventions and counts. Notions shared by several works
+  live in `References/Common/`, namespace `References`.
+- The counts of `LiZhongQC` above are unaffected: `Audit.lean` counts only `LiZhongQC.*`. For `References`, run
+  `lake env lean AuditRefs.lean`. It prints, per work, the definitions, the statements, and every definition that
+  depends on `sorry`; that list must be empty.
+
+| Work | Root module | New definitions | New statements | `exists` | Installed |
+|---|---|---|---|---|---|
+| F. W. Gehring, *Spirals and the universal Teichmüller space*, Acta Math. 141 (1978) | `References.Gehring1978` | 19 (+4 helpers) | 16 (3 proved 2026-10-06: §2 (5), Propositions 1, 2) | 8 | 2026-09-28 |
+| O. Lehto, K. I. Virtanen, *Quasiconformal Mappings in the Plane*, 2nd ed. (1973): complete (Chapters I–VI) | `References.LehtoVirtanen1973` | 189 (helpers included) | 391 (93 proved: `eq2_6_5` 2026-09-30; 25 on 2026-10-04 in Ch. I §2.4 and Ch. II §2 (complete), §3, §6, §7; 62 on 2026-10-06, 4 on 2026-10-08 (the reflection principle, §8; existence of canonical maps of quadrilaterals and the Riemann mapping theorem, both now in §5) and 1 on 2026-10-09 (Theorem 7.1: `M(B)/K ≤ M(B′) ≤ K M(B)`, §7) in Ch. I §1.1, §1.2 (invariance of domain), §3 (`kqc_inv`, `kqc_comp`, conformal ⇒ 1-q.c., now in §5), §5, §9 (incl. `thm1_9_1`), Ch. II §3, §6 (incl. the sharp Beurling–Ahlfors extension `thm2_6_3`), §7 (quasisymmetric ⇔ q.c. boundary values) and §9 (incl. Mori's bound), Ch. III §1, §4, §5, §7 (Egorov, Fubini, Lusin, module monotonicity), Ch. IV §1, §2 (analytic definition), §4 and §5 (incl. the uniqueness theorem), Ch. V §1 (existence theorem, mapping theorem), via the LV↔LiZhongQC bridges in both directions) | 126 | 2026-09-28 |
+| O. Lehto, *Univalent Functions and Teichmüller Spaces*, GTM 109 (1987): complete (Chapters I–V) | `References.Lehto1987` | 161 (helpers included) | 376 | 242 | 2026-10-06 |
+| K. Astala, F. W. Gehring, *Crickets, zippers, and the Bers universal Teichmüller space*, Proc. AMS 110 (1990) | `References.AstalaGehring1990` | 19 | 14 (1 proved 2026-10-06: Möbius invariance of T̄) | 3 | 2026-09-28 |
+| Ch. Pommerenke, *Boundary Behaviour of Conformal Maps* (1992): complete (Chapters 1–11) | `References.Pommerenke1992` | 223 (helpers included) | 420 (29 proved: 17 on 2026-10-04/05 in Ch. 1 §1.2, §1.3, §1.5; 12 on 2026-10-06 in Ch. 5 §5.3–§5.6 (quasidisks) and Ch. 9 §9.2–§9.3 (curve families, Fekete points)) | 90 | 2026-09-29 |
+| J. B. Garnett, D. E. Marshall, *Harmonic Measure* (2005): Chapters I–VI and Appendices A–D, F–I (of I–X and Appendices A–M) | `References.GarnettMarshall2005` | 180 (helpers included) | 332 (37 proved: 9 on 2026-10-06, Ch. IV §2 uniqueness of extremal metrics and §3 the four rules incl. the serial and parallel rules; 27 on 2026-10-08, Ch. II §2 (2.7), §3 (3.3)–(3.6), Lipschitz ≤ Zygmund norm and Zygmund's exponential integrability of the conjugate, §4 the C^{k+α} inverse-function lemma, Ch. III §2 the logarithmic potential is superharmonic, §3 a Dirichlet-integral estimate, §4 equilibrium-distribution lemmas, Ch. IV §1 conformal invariance, the rectangle and annulus examples, the extremal distance of a quadrilateral and (1.7) d·d* = 1, §3 the symmetry rule, §4 slit rectangles and slit annuli, Ch. V §4 Teichmüller's Modulsatz and (4.1) mod Ω₁ + mod Ω₂ ≤ mod A; 1 on 2026-10-09, Ch. V Theorem 4.1, the stability form of the Modulsatz) | 74 | 2026-09-30 (Ch. I–VI, App. A–D, F–I) |
+| S. Katok, *Fuchsian Groups* (1992): Chapters 1–2 (of 1–5) | `References.Katok1992` | 49 (helpers included) | 71 (70 proved, 2026-10-04/06; all but Ch. 1 Theorem 1.4.2 (Gauss–Bonnet); Ch. 2 complete) | 54 | 2026-09-30 (Ch. 1–2) |
+| F. P. Gardiner, N. Lakic, *Quasiconformal Teichmüller Theory* (2000): complete (Chapters 1–18) | `References.GardinerLakic2000` | 389 (helpers included) | 368 (126 proved, 242 open; 2026-10-08) | 139 | 2026-09-30 |
+
+Shared layer: `References/Common/ExtendedPlane` (domains and Jordan domains of `ℂ̄`, the finite part of a set of
+`ℂ̄`), `References/Common/Quasidisk` (quasidisks of `ℂ̄`), `References/Common/ExtPlaneBorel` (the Borel
+σ-algebra of `ℂ̄` as a scoped instance: `open scoped References`) and `References/Common/Subharmonic`
+(`EReal`-valued subharmonic and superharmonic functions on open sets of `ℂ`) and `References/Common/RiemannSurface`
+(`IsRiemannSurface`, the propositional form of the project's Riemann-surface convention).
+
+Lehto–Virtanen's Chapter I definitions (homeomorphisms, Jordan arcs, orientation and sense-preserving maps, conformal
+maps and quadrilaterals of `ℂ̄`, the maximal dilatation, `K`-quasiconformal maps) are the reference definitions for
+maps of domains of `ℂ̄`; later works reuse them. Statements that are false as printed are stated in corrected form and
+listed under *Corrections* in the work's root file.
 
 ## Sources and caveats
 
 * All chapters (§1–§36) were formalized from the text of the book; the historical notes at the
   end of Chapter 9 contain no mathematical statements and are not represented.
 * **Corrections.**
+  * §11–§12 (`eq11_15`, `zygmund_calderon`, `eq11_17`, `thm12_1_smooth_case`, 2026-09-14): four statements about
+    `C₀^∞` functions were written with `ContDiff ℝ ⊤`, which in current Mathlib means real-analytic, so together
+    with compact support they only covered the zero function. They now use `C^∞` (see *Modelling conventions*).
   * Theorem 13.8: the book asserts holomorphic dependence on parameters for the normalized
     self-maps of the disc.  That fails in general, because the disc solution also involves the
     reflected, conjugated coefficient.  It is stated instead for the normalized solutions of the
@@ -844,6 +798,74 @@ answer of a total function silently readmits the degenerate case it was meant to
     (finitely many conformal automorphisms), so that this part can be proved for surfaces given as `ℍ/Γ`.
     - `hurwitz` itself is unchanged. The `84(g−1)` bound keeps the finiteness conjunct, because `Set.ncard` of an
       infinite set is `0` in Lean.
+  * §30.4 ((30.1), `eq30_1_generators_determined`, 2026-09-26, user decision): the statement was **false**, for
+    orientation reasons.
+    - The mirror representation `J ρ J` (`J = diag(1, −1)`) has the same traces as `ρ` but is never
+      `SL(2, ℝ)`-conjugate to it (Lean refutation, conditional on one faithful cocompact Fuchsian surface group).
+    - Traces cannot see orientation, and the book works inside `T(S)` of one oriented surface.
+    - Restoring only the (27.5) normalization of the last generator pair (`δ_g(z) = λz`, `λ > 1`; `γ_g(1) = 1`)
+      does **not** repair it: conjugating by `diag(1/q, 1)` gives a mirror that satisfies the normalization.
+    - Fix: the normalization plus the orientation clause that `1` is the **attracting** fixed point of `γ_g`.
+      - A convention check (argument + numerics on the regular octagon group) showed that this holds exactly
+        for correctly oriented systems (`a_g · b_g = +1`), so the hypothesis is not vacuous.
+      - The conclusion is `ρ₂ = ±ρ₁` elementwise.
+    - The statement remains unproved (trace rigidity).
+  * §31.1–§31.2 (`IsClosedDiscIn`, `IsAdmissibleQD`, 2026-09-27, user decisions): the admissible quadratic
+    differentials were defined with three defects, and five statements of §31 were **false** as a result.
+    - Chart images: the conditions used `chartAt x '' A`, which contains the chart's arbitrary values off its source.
+      A stray value on a puncture forbade the pole there (and forced a zero), so the dimension statements failed
+      for `n ≥ 1` (Lean refutations). Fix: `(chartAt x).target ∩ (chartAt x).symm ⁻¹' A`.
+    - Holes: nothing constrained `q` inside the removed discs, so `Q̃(S₀)` was infinite-dimensional (`finrank = 0`)
+      whenever `m ≠ 0` (Lean refutation). Fix: `q = 0` over `interior (D j)`.
+    - Boundary regularity: the hole boundaries were only `C¹`. For a `C¹` curve whose tangent is not
+      Dini-continuous the conformal collar map has unbounded derivative at a point, and continuity in the charts
+      of `X` then cuts one dimension off `Q̃(S₀)` (analytic argument, via the failure of Kellogg–Warschawski).
+      Fix: `C^∞` boundaries (the book's "smooth").
+    - False before the fixes: `thm31_1_admissibleQD_finrank`, `eq31_1_double_finrank`,
+      `admissibleQD_complex_finrank` (dimension conjunct), `admissibleQD_symmetric_extension`,
+      `admissibleQD_double_decomposition`. All five remain unproved (they need Riemann–Roch).
+    - `admissibleQD_boundary_trajectories` is proved, but formalizes only the boundary half of the book's remark,
+      pointwise (user decision: no restatement). The claim that one horizontal trajectory ends at a simple pole is
+      not stated.
+    - Recorded faithfulness gap: `admissibleQD_symmetric_extension` and `admissibleQD_double_decomposition`
+      assert that some injective map, resp. some involution, exists, not that the book's reflection has the
+      property; they should be restated before anyone proves them by counting dimensions.
+  * §32 (2026-09-27, user decisions): one definition and four statements were corrected.
+    - `pullbackQD` read `q` in the chart at `ι x` even where the image point had left that chart, and was not `0`
+      off the chart target. In some legal atlases no nonzero pull-back was a quadratic differential, so no
+      admissible Teichmüller map existed (Lean refutations of `admissibleQDInterior_holomorphic`,
+      `thm32_2_existence_gn`, `thm32_4_existence_gnm`, `markedFiniteType_teichmuller_data`). Fix: the chart at the
+      image point and `0` off the target, as in §29.1. `admissibleQDInterior_holomorphic` is now proved.
+    - `exists_branched_double_cover` was **false** at `(g, n) = (0, 0)`: the genus `2g + n − 1` is `0` in `ℕ`, and
+      the sphere has no connected double cover. Fix: the hypothesis `g ≠ 0 ∨ n ≠ 0`.
+    - `lift_teichmullerMap_double_cover` was **false**: the covers were not tied to the punctures (constant maps
+      passed `ncard ≤ 2`, since an infinite fibre has `ncard = 0`, and the two covering surfaces need not even be
+      homeomorphic). Fix: `pr₀` is the double cover branched exactly at the punctures of `F₀`, and the target cover
+      and the lifting relations are produced in the conclusion.
+    - `symmetric_extension_properties` was **false** for the exceptional types `(0,0,1)`, `(0,0,2)`: an
+      orientation-reversing map is homotopic to the identity on the disc, but not on the doubled sphere. Fix: the
+      hypothesis `¬ IsExceptionalType g n m` (the book's setting in §32.2).
+    - `eq32_3_teichmuller_commutes_reflection` was **false** for `n ≥ 1`: it used the closed Schottky double, which
+      forgets the `2n` punctures (pushing a puncture gives a counterexample). Fix: it is stated, as in the book, on
+      the punctured doubles of type `(2g + m − 1, 2n, 0)`, for an admissible Teichmüller map homotopic to the
+      restriction of `f^d`.
+    - Recorded faithfulness gap: the second conjunct of `teichSpaceFiniteType_ball` is a bare bijection of the ball
+      onto `T_{g,n,m}`, not tied to the Teichmüller data `(k, ω)`.
+  * `dcModulus_mul_dirichletIntegral` (`Lemmas/DirichletModulus`, not a book statement; 2026-09-27, user decision): the
+    identity `mod(B) · D[u] = 2π` was **false** for unbounded `B`.
+    - For `B = ℍ ∖` (a closed disc), adding to the harmonic measure a positive harmonic function that vanishes on the
+      whole finite boundary keeps every hypothesis. Its Dirichlet integral is infinite, Lean's integral of a
+      non-integrable function is `0`, and the identity read `0 = 2π`.
+    - Fix: the hypothesis `Bornology.IsBounded B`. The identity is now proved, through the annulus uniformization
+      `thm2_1_canonical_form_annulus`.
+  * `IsPrincipalPoint` (`Lemmas/Caratheodory`, prime ends; 2026-09-27, user decision): the definition was wrong.
+    - It asked, for each `ε > 0`, only for one crosscut (of any index) of some chain representing the prime end inside
+      `B(w, ε)`. The first crosscuts of a chain can be changed without changing the prime end, so every point of the
+      impression was "principal" (a comb domain gives an explicit example), and `caratheodory_primeEnd_principal` was
+      false.
+    - Fix: the standard definition. `w` is principal if some chain representing the prime end has crosscuts that
+      eventually lie in every ball around `w`.
+    - Both statements that use the definition remain unproved (prime-end theory).
 
 ## Modelling conventions
 
@@ -899,15 +921,24 @@ answer of a total function silently readmits the degenerate case it was meant to
     - Their mathematical content is proved in companion theorems `<name>_of_uniformization`. Each takes the book
       statement's hypotheses plus explicit `IsUniformization` data and has the same conclusion.
     - A book statement then follows from its companion together with the uniformization theorem.
-    - Status (2026-09-26): all seven companions are proved and axiom-clean, in `Lemmas/UniformizedTeichmuller.lean`.
+    - Status (2026-09-26): all seven companions are proved and axiom-clean, in `Lemmas/UniformizedUniqueness.lean`.
       Among them is Teichmüller's uniqueness theorem for surfaces given as `ℍ/Γ`
       (`thm26_2_uniqueness_of_uniformization`).
-    - Also proved (2026-09-26): companions of `lemma27_3_dilatation_bound`, `lemma27_1_injective` and
-      `teichSpace_deformation_bijection`.
+    - Also proved (2026-09-26), in `Lemmas/UniformizedTeichmuller.lean`: companions of
+      `lemma27_3_dilatation_bound`, `lemma27_1_injective` and `teichSpace_deformation_bijection`.
       - Teichmüller's existence theorem is proved in the variant `thm27_2_existence_qc_of_uniformization` (user
         decision), for homotopy classes containing a quasiconformal map.
       - The book's `thm27_2_existence` covers every homotopy class of homeomorphisms, and so needs S24's
         `exists_qc_in_homotopy_class` as well.
+    - Also proved (2026-09-27), in `Lemmas/UniformizedTeichmuller.lean`: companions of
+      - `teichDistance_eq_of_eq_zero` (the third metric axiom of `d_T`);
+      - `hurwitz_finite` (the automorphism group of a closed surface of genus `g > 1` is finite);
+      - `modAction_properly_discontinuous`;
+      - `thm30_3` (the discontinuity of `Mod(S₀)`);
+      - `thm30_4_hausdorff` (`R_g` is Hausdorff).
+    - Also proved (2026-09-27), in `Lemmas/UniformizedTeichmuller.lean`: the companion of (32.2)
+      `eq32_2_symmetric_lift` (the lifted Teichmüller map commutes with the covering transformations of the double
+      covers), for a target surface given as `ℍ/Γ`.
 * **Notation.** `ω` is Mathlib's notation for analytic smoothness (`IsManifold 𝓘(ℂ) ω S`), so the
   quadratic differential `ω` of the book is called `q` in Lean; `π` is `Real.pi`, so projections
   are called `p`, `pr`.

@@ -1,0 +1,72 @@
+--- source_frozen/Jacobians/MeromorphicTrace/TraceForm.lean
++++ migrated/Jacobians/MeromorphicTrace/TraceForm.lean
+@@ -34,6 +34,8 @@
+ -/
+ 
+ namespace Jacobians
++
++set_option backward.isDefEq.respectTransparency false
+ 
+ open scoped Manifold ContDiff Bundle Topology
+ open Filter Set
+@@ -691,7 +693,9 @@
+   rw [tangent_continuousLinearMapAt_center] at h
+   -- `h : ∀ y, symmL(…) (id y) = y`, i.e. `symmL(…) v = v`; conclude the operator equals `id`.
+   refine ContinuousLinearMap.ext (fun v => ?_)
+-  simpa using h v
++  have hv := h v
++  change (trivializationAt ℂ (TangentSpace 𝓘(ℂ) (M := Y)) y₀).symmL ℂ y₀ v = v at hv
++  exact hv
+ 
+ /-- **The fixed-frame coordinate change is the identity AT the center `y₀`.** For the cotangent
+ hom-bundle, `inCoordinates … y₀ y₀ y₀ y₀ φ = φ`: at the center both the source (tangent) and
+@@ -742,7 +746,7 @@
+   simp only [ContinuousLinearMap.inCoordinates, Bundle.Trivial.fiberBundle_trivializationAt',
+     Bundle.Trivial.continuousLinearMapAt_trivialization, ContinuousLinearMap.id_comp,
+     ContinuousLinearMap.comp_apply]
+-  exact ContinuousLinearMap.smul_apply a φ _
++  rfl
+ 
+ /-- **Branch value of the trace, in the fixed `y₀`-frame.** At a branch point `y₀` the operator
+ `traceFun f α y` (read in the *varying* chart at `y`) is genuinely discontinuous as `y → y₀` for a
+@@ -1269,7 +1273,7 @@
+         (((d + 1 : ℕ) : ℂ) * (w - w₀) ^ d) w := by
+       have h1 : HasDerivAt (fun v : ℂ => v - w₀) 1 w := by
+         simpa using (hasDerivAt_id w).sub_const w₀
+-      simpa using h1.pow (d + 1)
++      simpa using! h1.fun_pow (d + 1)
+     have hadd : HasDerivAt (fun v => z₀ + (v - w₀) ^ (d + 1) * g v)
+         (((d + 1 : ℕ) : ℂ) * (w - w₀) ^ d * g w + (w - w₀) ^ (d + 1) * deriv g w) w :=
+       (hpow.mul hgw_diff.hasDerivAt).const_add z₀
+@@ -2233,7 +2237,8 @@
+       (mfderiv 𝓘(ℂ) 𝓘(ℂ) s (g y)) ?_ ?_, rfl⟩
+   · intro v
+     have := ContinuousLinearMap.ext_iff.mp hcomp_sg v
+-    simpa using this
++    change (mfderiv 𝓘(ℂ) 𝓘(ℂ) s (g y)) ((mfderiv 𝓘(ℂ) 𝓘(ℂ) g y) v) = v at this
++    exact this
+   · intro v
+     have := ContinuousLinearMap.ext_iff.mp hcomp_gs v
+     simpa using this
+--- source_frozen/Jacobians/Abel/AbelPairingStokes.lean
++++ migrated/Jacobians/Abel/AbelPairingStokes.lean
+@@ -90,7 +90,7 @@
+     exact Finset.sum_congr rfl fun j _ => rfl
+   have h2 : ∑ j, ((dbarL (coverRhoCF (X := X) j)) x) = 0 := by
+     have hsum : ∑ j, dbarL (coverRhoCF (X := X) j)
+-        = dbarL (∑ j, coverRhoCF (X := X) j) := (map_sum dbarL _ _).symm
++        = dbarL (∑ j, coverRhoCF (X := X) j) := (map_sum (dbarL (X := X)) _ _).symm
+     have hcoe : (⇑(∑ j, dbarL (coverRhoCF (X := X) j)))
+         = ∑ j, ⇑(dbarL (coverRhoCF (X := X) j)) :=
+       map_sum (ContMDiffSection.coeAddHom _ _ _ _) _ _
+--- source_frozen/Jacobians/H1Genus/CechH1CupKill.lean
++++ migrated/Jacobians/H1Genus/CechH1CupKill.lean
+@@ -33,6 +33,8 @@
+ 
+ 
+ namespace Jacobians
++
++set_option backward.isDefEq.respectTransparency false
+ 
+ variable {X : Type*} [TopologicalSpace X] [ChartedSpace ℂ X]
+ 

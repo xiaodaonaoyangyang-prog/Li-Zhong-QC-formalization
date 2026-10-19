@@ -192,7 +192,7 @@ theorem exists_harmonicOnNhd_continuousOn_closedBall_eqOn_sphere {c : ℂ} {R : 
       filter_upwards [isOpen_ball.mem_nhds hw] with w' hw'
       rw [hu_def]
       simp only
-      rw [if_pos]
+      rw [ite_eq_left]
       rwa [mem_ball, Complex.dist_eq] at hw'
     rw [harmonicAt_congr_nhds heq]
     exact (hFwanalytic w hw).harmonicAt_re
@@ -228,7 +228,7 @@ theorem exists_harmonicOnNhd_continuousOn_closedBall_eqOn_sphere {c : ℂ} {R : 
       (hKcont w hwsph).intervalIntegrable 0 (2*Real.pi)
     have hcomm := ContinuousLinearMap.circleAverage_comp_comm Complex.reCLM hCI
     have hueq : u w = (Fw w).re := by
-      rw [hu_def]; simp only; rw [if_pos (by rwa [mem_ball, Complex.dist_eq] at hw)]
+      rw [hu_def]; simp only; rw [ite_eq_left (by rwa [mem_ball, Complex.dist_eq] at hw)]
     rw [hueq, hFw_def]
     show (Complex.reCLM (Real.circleAverage (fun z => herglotzRieszKernel c w z * (g z:ℂ)) c R)) = _
     rw [← hcomm]
@@ -249,7 +249,7 @@ theorem exists_harmonicOnNhd_continuousOn_closedBall_eqOn_sphere {c : ℂ} {R : 
       have heq2 : u =ᶠ[𝓝 ζ₀] fun w => (Fw w).re := by
         filter_upwards [isOpen_ball.mem_nhds hζ₀ball] with w' hw'
         rw [hu_def]; simp only
-        rw [if_pos]; rwa [mem_ball, Complex.dist_eq] at hw'
+        rw [ite_eq_left]; rwa [mem_ball, Complex.dist_eq] at hw'
       rw [continuousAt_congr heq2]
       exact Complex.continuous_re.continuousAt.comp
         ((hFwanalytic ζ₀ hζ₀ball).differentiableAt.continuousAt)
@@ -274,7 +274,7 @@ theorem exists_harmonicOnNhd_continuousOn_closedBall_eqOn_sphere {c : ℂ} {R : 
         rw [show ζ₀ - w = -(w - ζ₀) by ring, norm_neg]; exact hwdist
       have hu_ζ₀ : u ζ₀ = g ζ₀ := by
         rw [hu_def]; simp only
-        rw [if_neg]; rw [hζ₀n]; exact lt_irrefl R
+        rw [ite_eq_right]; rw [hζ₀n]; exact lt_irrefl R
       rw [Real.dist_eq, hu_ζ₀]
       by_cases hwmem : ‖w - c‖ < R
       · -- interior case: Poisson-average estimate
@@ -308,7 +308,7 @@ theorem exists_harmonicOnNhd_continuousOn_closedBall_eqOn_sphere {c : ℂ} {R : 
               mul_le_mul_of_nonneg_left hgdiff.le (hpoisson_nonneg w hw' z hz)
             have hnn : 0 ≤ 16*R*M*δ/δ₁^2 := by positivity
             linarith [h1, hnn]
-          · push_neg at hnear
+          · push Not at hnear
             have h1 : ‖z - ζ₀‖ ≥ δ₁ := by rwa [← Complex.dist_eq]
             have hfar : ‖z - w‖ ≥ δ₁/2 := by
               have h3 : ‖z - w‖ ≥ ‖z-ζ₀‖ - ‖ζ₀-w‖ := by
@@ -413,11 +413,11 @@ theorem exists_harmonicOnNhd_continuousOn_closedBall_eqOn_sphere {c : ℂ} {R : 
           nlinarith [h1', mul_nonneg (mul_nonneg hR.le hM0) hδpos.le, hδpos]
         linarith [hstep1, hstep2, hδbound]
       · -- boundary case: w itself is on the sphere
-        push_neg at hwmem
+        push Not at hwmem
         have hweq : ‖w-c‖ = R := le_antisymm hwcb hwmem
         have hwsph' : w ∈ sphere c R := by rw [mem_sphere, Complex.dist_eq]; exact hweq
         have hu_w : u w = g w := by
-          rw [hu_def]; simp only; rw [if_neg (by linarith [hweq])]
+          rw [hu_def]; simp only; rw [ite_eq_right (by linarith [hweq])]
         rw [hu_w]
         have hcl : dist w ζ₀ < δ₁ := by
           rw [dist_eq_norm]
@@ -430,7 +430,7 @@ theorem exists_harmonicOnNhd_continuousOn_closedBall_eqOn_sphere {c : ℂ} {R : 
   · intro z hz
     rw [hu_def]
     simp only
-    rw [if_neg]
+    rw [ite_eq_right]
     rw [mem_sphere, Complex.dist_eq] at hz
     rw [hz]; exact lt_irrefl R
 

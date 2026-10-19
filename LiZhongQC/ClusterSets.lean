@@ -6,9 +6,12 @@ import LiZhongQC.Lemmas.Caratheodory
 Three tools behind Carathéodory's theorem (`LiZhongQC.Lemmas.Caratheodory`, from `LZ3.txt`):
 * §1 the Schwarz reflection principle (segment, harmonic and circular-arc versions), and the
   consequence used in Step 4 of Theorem C2 (`eqOn_const_of_eqOn_const_on_arc`);
-* §2 the Hahn–Mazurkiewicz theorem and the form used in Theorem C1;
-* §3 cluster sets (full, radial, along a curve, angular, boundary), continuity criteria, Lindelöf's
-  theorem, the Iversen–Gross theorem, and Carathéodory's prime-end theorem in cluster-set form.
+* §2 the Hahn–Mazurkiewicz theorem (proved by chain refinement on uniform grids, the `hm7_` block) and its
+  consequence `frontier_locallyConnected_iff_isCurve` (Theorem C1, in `Lemmas/PrimeEnds.lean`, no longer uses them);
+* §3 cluster sets (full, radial, along a curve, angular, boundary), continuity criteria and the Iversen–Gross
+  theorem.  Lindelöf's theorem, Carathéodory's prime-end theorem in cluster-set form and the Carathéodory–Torhorst
+  criterion are stated in `Lemmas/PrimeEnds.lean` (moved there 2026-09-27), and the lemma
+  `isPreconnected_iInter_of_antitone_isCompact` moved up to `Lemmas/Caratheodory.lean`.
 
 ## Adaptation to this project
 
@@ -32,8 +35,8 @@ Statements corrected because they were false as written (counterexample in brack
 * `clusterSet_subsingleton_iff_continuous_extension` assumes `f` continuous on `Δ` and `ζ ∈ ∂Δ`
   (otherwise `f` can be discontinuous away from `ζ`, and for `ζ` outside the closed disc the
   cluster set is empty while the extension exists).
-* `lindelof` takes a curve `γ` ending at `ζ` with `f ∘ γ → a` (the skeleton allowed any set with
-  `ζ` in its closure: `exp (i log (1 - z))` is `1` at `tₙ` with `log (1 - tₙ) ∈ 2πℤ` but has no
+* `lindelof` (now in `Lemmas/PrimeEnds.lean`) takes a curve `γ` ending at `ζ` with `f ∘ γ → a` (the skeleton allowed
+  any set with `ζ` in its closure: `exp (i log (1 - z))` is `1` at `tₙ` with `log (1 - tₙ) ∈ 2πℤ` but has no
   angular limit at `1`).
 * `iversen_gross` assumes `ζ ∈ ∂Δ` (at an interior point the boundary cluster set is empty).
 -/
@@ -2027,13 +2030,539 @@ structure IsPeanoContinuum (X : Type*) [TopologicalSpace X] : Prop where
   locallyConnected : LocallyConnectedSpace X
   metrizable : TopologicalSpace.MetrizableSpace X
 
+/-! ### Hahn–Mazurkiewicz: the proof (`hm7_`)
+
+(⇒) goes through quotient maps: `[0, 1]` is locally path-connected, so is its quotient `X`, and a closed continuous
+surjection from a compact second-countable space keeps second countability, so Urysohn makes `X` metrizable.
+(⇐) is a direct chain refinement on uniform grids.  Level `n` is a `δₙ`-chain `zₙ 0, …, zₙ Pₙ` whose first `Pₙ`
+points form a `δₙ`-net.  Level `n + 1` refines each link `zₙ j, zₙ (j + 1)` by a `δₙ₊₁`-chain inside one
+preconnected set `E (zₙ j) ⊆ ball (zₙ j) 2⁻ⁿ` (uniform local connectedness in "E-form"), padded to a common length
+`Mₙ`.  The step functions `t ↦ zₙ ⌊t Pₙ⌋₊` converge uniformly to a continuous surjection.  No Cantor set and no
+paths are used. -/
+
+/-- `s` is a `δ`-chain in `S` from `a` to `b` of length `ℓ` (constantly `b` from index `ℓ` on). -/
+def hm7_IsChain {X : Type*} [PseudoMetricSpace X] (S : Set X) (δ : ℝ) (a b : X) (ℓ : ℕ)
+    (s : ℕ → X) : Prop :=
+  s 0 = a ∧ (∀ k, ℓ ≤ k → s k = b) ∧ (∀ k, s k ∈ S) ∧ ∀ k, dist (s k) (s (k + 1)) < δ
+
+/-- Level data of the Hahn–Mazurkiewicz construction: `z 0, …, z P` is a `δ`-chain whose first
+`P` points form a `δ`-net. -/
+def hm7_Level {X : Type*} [PseudoMetricSpace X] (δ : ℝ) (P : ℕ) (z : ℕ → X) : Prop :=
+  0 < P ∧ (∀ i < P, dist (z i) (z (i + 1)) < δ) ∧ ∀ x : X, ∃ j < P, dist x (z j) < δ
+
+/-- Uniform local connectedness in "E-form": for `ε > 0` there are `δ ∈ (0, ε]` and preconnected sets `E x` with
+`ball x δ ⊆ E x ⊆ ball x ε`.
+Truth: a Lebesgue number `δ₀` of the cover by open connected neighbourhoods inside `ball z (ε/2)`; `δ = min δ₀ ε`. -/
+theorem hm7_ulc {X : Type*} [PseudoMetricSpace X] [CompactSpace X] [LocallyConnectedSpace X]
+    {ε : ℝ} (hε : 0 < ε) :
+    ∃ δ > 0, δ ≤ ε ∧ ∃ E : X → Set X,
+      ∀ x, IsPreconnected (E x) ∧ ball x δ ⊆ E x ∧ E x ⊆ ball x ε := by
+  have hV : ∀ z : X, ∃ V : Set X, V ⊆ ball z (ε / 2) ∧ IsOpen V ∧ z ∈ V ∧ IsConnected V := fun z =>
+    (locallyConnectedSpace_iff_subsets_isOpen_isConnected.1 inferInstance) z _
+      (ball_mem_nhds z (by positivity))
+  choose V hVsub hVo hzV hVc using hV
+  obtain ⟨δ₀, hδ₀, hleb⟩ := lebesgue_number_lemma_of_metric (isCompact_univ : IsCompact (univ : Set X)) hVo
+    (fun x _ => mem_iUnion.2 ⟨x, hzV x⟩)
+  choose i hi using fun x : X => hleb x (mem_univ x)
+  refine ⟨min δ₀ ε, lt_min hδ₀ hε, min_le_right _ _, fun x => V (i x), fun x =>
+    ⟨(hVc (i x)).isPreconnected, (ball_subset_ball (min_le_left _ _)).trans (hi x), fun w hw => ?_⟩⟩
+  have h1 := hVsub (i x) (hi x (mem_ball_self hδ₀))
+  have h2 := hVsub (i x) hw
+  rw [mem_ball] at h1 h2 ⊢
+  calc dist w x ≤ dist w (i x) + dist x (i x) := dist_triangle_right _ _ _
+    _ < ε / 2 + ε / 2 := add_lt_add h2 h1
+    _ = ε := by ring
+
+/-- A compact pseudometric space has a finite `δ`-net.
+Truth: total boundedness of a compact space (`finite_cover_balls_of_compact`). -/
+theorem hm7_net {X : Type*} [PseudoMetricSpace X] [CompactSpace X] {δ : ℝ} (hδ : 0 < δ) :
+    ∃ N : Finset X, ∀ x : X, ∃ y ∈ N, dist x y < δ := by
+  obtain ⟨t, -, htf, hcover⟩ := finite_cover_balls_of_compact (isCompact_univ : IsCompact (univ : Set X)) hδ
+  refine ⟨htf.toFinset, fun x => ?_⟩
+  obtain ⟨y, hy, hxy⟩ := mem_iUnion₂.1 (hcover (mem_univ x))
+  exact ⟨y, htf.mem_toFinset.2 hy, hxy⟩
+
+/-- Appending a `δ`-chain `a ⇝ m` and a `δ`-chain `m ⇝ b` gives a `δ`-chain `a ⇝ b` of the summed length, equal
+to the first chain up to `ℓ₁` and to the shifted second chain after it.
+Truth: `s k := if k ≤ ℓ₁ then s₁ k else s₂ (k - ℓ₁)`; at the junction `s₁ ℓ₁ = m = s₂ 0`. -/
+theorem hm7_chain_append {X : Type*} [PseudoMetricSpace X] {S : Set X} {δ : ℝ} {a m b : X}
+    {ℓ₁ ℓ₂ : ℕ} {s₁ s₂ : ℕ → X} (h₁ : hm7_IsChain S δ a m ℓ₁ s₁)
+    (h₂ : hm7_IsChain S δ m b ℓ₂ s₂) :
+    ∃ s : ℕ → X, hm7_IsChain S δ a b (ℓ₁ + ℓ₂) s ∧ (∀ k ≤ ℓ₁, s k = s₁ k) ∧
+      ∀ r, s (ℓ₁ + r) = s₂ r := by
+  obtain ⟨h10, h1pad, h1S, h1d⟩ := h₁
+  obtain ⟨h20, h2pad, h2S, h2d⟩ := h₂
+  have hm : s₁ ℓ₁ = s₂ 0 := by rw [h1pad ℓ₁ le_rfl, h20]
+  refine ⟨fun k => if k ≤ ℓ₁ then s₁ k else s₂ (k - ℓ₁), ⟨?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  · simp only [Nat.zero_le, ↓reduceIte, h10]
+  · intro k hk
+    by_cases hkℓ : k ≤ ℓ₁
+    · have hkeq : k = ℓ₁ := by omega
+      simp only [hkℓ, ↓reduceIte]
+      rw [hkeq, hm, h2pad 0 (by omega)]
+    · simp only [hkℓ, ↓reduceIte]
+      exact h2pad _ (by omega)
+  · intro k
+    by_cases hkℓ : k ≤ ℓ₁
+    · simp only [hkℓ, ↓reduceIte]
+      exact h1S k
+    · simp only [hkℓ, ↓reduceIte]
+      exact h2S _
+  · intro k
+    by_cases hk1 : k + 1 ≤ ℓ₁
+    · have hk : k ≤ ℓ₁ := by omega
+      simp only [hk, hk1, ↓reduceIte]
+      exact h1d k
+    · by_cases hk : k ≤ ℓ₁
+      · have hkeq : k = ℓ₁ := by omega
+        simp only [hk, hk1, ↓reduceIte]
+        rw [hkeq, hm, show ℓ₁ + 1 - ℓ₁ = 0 + 1 by omega]
+        exact h2d 0
+      · simp only [hk, hk1, ↓reduceIte]
+        rw [show k + 1 - ℓ₁ = k - ℓ₁ + 1 by omega]
+        exact h2d _
+  · intro k hk
+    simp only [hk, ↓reduceIte]
+  · intro r
+    by_cases hr : ℓ₁ + r ≤ ℓ₁
+    · obtain rfl : r = 0 := by omega
+      simp only [Nat.add_zero, le_refl, ↓reduceIte]
+      exact hm
+    · simp only [hr, ↓reduceIte]
+      rw [show ℓ₁ + r - ℓ₁ = r by omega]
+
+/-- Two points of `S` at distance `< δ` form a `δ`-chain of length `1` (for `δ > 0`).
+Truth: `s 0 = x`, `s k = y` for `k ≥ 1`; the only non-trivial link is `dist x y < δ`. -/
+theorem hm7_chain_pair {X : Type*} [PseudoMetricSpace X] {S : Set X} {δ : ℝ} (hδ : 0 < δ) {x y : X}
+    (hx : x ∈ S) (hy : y ∈ S) (hxy : dist x y < δ) :
+    hm7_IsChain S δ x y 1 (fun k => if k = 0 then x else y) := by
+  refine ⟨by simp, fun k hk => by simp [show k ≠ 0 by omega], fun k => ?_, fun k => ?_⟩
+  · by_cases hk : k = 0 <;> simp [hk, hx, hy]
+  · by_cases hk : k = 0
+    · simp [hk, hxy]
+    · simp [hk, hδ]
+
+/-- In a preconnected set any two points are joined by a `δ`-chain, for `δ > 0`.
+Truth: `IsPreconnected.induction₂'` for "joined by a chain" (locally a two-point chain; transitive by append). -/
+theorem hm7_chain_of_isPreconnected {X : Type*} [PseudoMetricSpace X] {S : Set X}
+    (hS : IsPreconnected S) {δ : ℝ} (hδ : 0 < δ) {a b : X} (ha : a ∈ S) (hb : b ∈ S) :
+    ∃ (ℓ : ℕ) (s : ℕ → X), hm7_IsChain S δ a b ℓ s := by
+  refine hS.induction₂' (fun x y => ∃ (ℓ : ℕ) (s : ℕ → X), hm7_IsChain S δ x y ℓ s) ?_ ?_ ha hb
+  · intro x hx
+    filter_upwards [self_mem_nhdsWithin, mem_nhdsWithin_of_mem_nhds (ball_mem_nhds x hδ)] with y hyS hyx
+    have hyx' : dist y x < δ := hyx
+    exact ⟨⟨1, _, hm7_chain_pair hδ hx hyS (by rwa [dist_comm])⟩, ⟨1, _, hm7_chain_pair hδ hyS hx hyx'⟩⟩
+  · rintro x y z - - - ⟨ℓ₁, s₁, h₁⟩ ⟨ℓ₂, s₂, h₂⟩
+    obtain ⟨s, hs, -, -⟩ := hm7_chain_append h₁ h₂
+    exact ⟨ℓ₁ + ℓ₂, s, hs⟩
+
+/-- In a preconnected set a `δ`-chain `a ⇝ b` can be chosen to visit every point of a finite subset.
+Truth: `Finset` induction, generalizing `a`: append a chain `a ⇝ y₀` to the chain `y₀ ⇝ b` visiting the rest. -/
+theorem hm7_chain_visit {X : Type*} [PseudoMetricSpace X] {S : Set X}
+    (hS : IsPreconnected S) {δ : ℝ} (hδ : 0 < δ) {a b : X} (ha : a ∈ S) (hb : b ∈ S)
+    (F : Finset X) (hF : ∀ y ∈ F, y ∈ S) :
+    ∃ (ℓ : ℕ) (s : ℕ → X), hm7_IsChain S δ a b ℓ s ∧ ∀ y ∈ F, ∃ r ≤ ℓ, s r = y := by
+  classical
+  suffices H : ∀ G : Finset X, (∀ y ∈ G, y ∈ S) → ∀ a ∈ S,
+      ∃ (ℓ : ℕ) (s : ℕ → X), hm7_IsChain S δ a b ℓ s ∧ ∀ y ∈ G, ∃ r ≤ ℓ, s r = y from H F hF a ha
+  intro G
+  induction G using Finset.induction_on with
+  | empty =>
+    intro _ a ha
+    obtain ⟨ℓ, s, hs⟩ := hm7_chain_of_isPreconnected hS hδ ha hb
+    exact ⟨ℓ, s, hs, by simp⟩
+  | insert y₀ G hy₀ ih =>
+    intro hG a ha
+    have hy₀S : y₀ ∈ S := hG y₀ (Finset.mem_insert_self _ _)
+    obtain ⟨ℓ₁, s₁, hs₁⟩ := hm7_chain_of_isPreconnected hS hδ ha hy₀S
+    obtain ⟨ℓ₂, s₂, hs₂, hvis⟩ := ih (fun y hy => hG y (Finset.mem_insert_of_mem hy)) y₀ hy₀S
+    obtain ⟨s, hs, hpre, hpost⟩ := hm7_chain_append hs₁ hs₂
+    refine ⟨ℓ₁ + ℓ₂, s, hs, fun y hy => ?_⟩
+    rcases Finset.mem_insert.1 hy with rfl | hyG
+    · exact ⟨ℓ₁, by omega, by rw [hpre ℓ₁ le_rfl]; exact hs₁.2.1 ℓ₁ le_rfl⟩
+    · obtain ⟨r, hr, hsr⟩ := hvis y hyG
+      exact ⟨ℓ₁ + r, by omega, by rw [hpost r, hsr]⟩
+
+/-- A continuous closed surjection from a compact second-countable space onto a T1 space keeps second
+countability.
+Truth: the sets `(q '' (⋃₀ F)ᶜ)ᶜ`, `F` a finite family of basic open sets, form a countable basis (fibres are
+compact). -/
+theorem hm7_secondCountableTopology_of_isClosedMap {K Y : Type*} [TopologicalSpace K]
+    [TopologicalSpace Y] [CompactSpace K] [SecondCountableTopology K] [T1Space Y] {q : K → Y}
+    (hq : Continuous q) (hsurj : Function.Surjective q) (hcl : IsClosedMap q) :
+    SecondCountableTopology Y := by
+  classical
+  obtain ⟨𝓑, h𝓑⟩ : ∃ 𝓑 : Set (Set Y), 𝓑 = (fun F : Set (Set K) => (q '' (⋃₀ F)ᶜ)ᶜ) ''
+      {F | F.Finite ∧ F ⊆ TopologicalSpace.countableBasis K} := ⟨_, rfl⟩
+  have hcount : 𝓑.Countable := by
+    rw [h𝓑]
+    exact (Set.countable_ofPred_finite_subset (TopologicalSpace.countable_countableBasis K)).image _
+  have hopen : ∀ W ∈ 𝓑, IsOpen W := by
+    rw [h𝓑]
+    rintro _ ⟨F, ⟨-, hFB⟩, rfl⟩
+    have hU : IsOpen (⋃₀ F) :=
+      isOpen_sUnion fun U hU => TopologicalSpace.isOpen_of_mem_countableBasis (hFB hU)
+    exact (hcl _ hU.isClosed_compl).isOpen_compl
+  refine (TopologicalSpace.isTopologicalBasis_of_isOpen_of_nhds hopen fun y V hyV hVo => ?_).secondCountableTopology
+    hcount
+  -- the fibre over `y` is compact and covered by basic sets inside `q ⁻¹' V`
+  have hfib : IsCompact (q ⁻¹' {y}) := (isClosed_singleton.preimage hq).isCompact
+  obtain ⟨F, hFsub, hFfin, hFcov⟩ := hfib.elim_finite_subcover_image
+    (b := {U ∈ TopologicalSpace.countableBasis K | U ⊆ q ⁻¹' V}) (c := id)
+    (fun U hU => TopologicalSpace.isOpen_of_mem_countableBasis hU.1) (by
+      intro k hk
+      have hkV : k ∈ q ⁻¹' V := by
+        simp only [mem_preimage, mem_singleton_iff] at hk ⊢
+        rw [hk]
+        exact hyV
+      obtain ⟨U, hUB, hkU, hUV⟩ :=
+        (TopologicalSpace.isBasis_countableBasis K).exists_subset_of_mem_open hkV (hVo.preimage hq)
+      exact mem_iUnion₂.2 ⟨U, ⟨hUB, hUV⟩, hkU⟩)
+  refine ⟨(q '' (⋃₀ F)ᶜ)ᶜ, ?_, ?_, ?_⟩
+  · rw [h𝓑]
+    exact ⟨F, ⟨hFfin, fun U hU => (hFsub hU).1⟩, rfl⟩
+  · rintro ⟨k, hk, hky⟩
+    apply hk
+    have hkF := hFcov (show k ∈ q ⁻¹' {y} from hky)
+    simp only [mem_iUnion₂, id] at hkF
+    obtain ⟨U, hUF, hkU⟩ := hkF
+    exact ⟨U, hUF, hkU⟩
+  · intro w hw
+    by_contra hwV
+    apply hw
+    obtain ⟨k, rfl⟩ := hsurj w
+    refine ⟨k, fun hk => ?_, rfl⟩
+    obtain ⟨U, hUF, hkU⟩ := hk
+    exact hwV ((hFsub hUF).2 hkU)
+
+/-- (⇒) of Hahn–Mazurkiewicz: a Hausdorff continuous image of `[0, 1]` is a Peano continuum.
+Truth: compact and connected as an image; locally path-connected as a quotient of `[0, 1]` (closed map, T2);
+second countable by the previous lemma, hence metrizable (compact T2 is T3; Urysohn). -/
+theorem hm7_isPeanoContinuum_of_image {X : Type*} [TopologicalSpace X] [T2Space X] {γ : ℝ → X}
+    (hγ : ContinuousOn γ (Icc 0 1)) (himg : γ '' Icc 0 1 = univ) : IsPeanoContinuum X := by
+  have hcomp : CompactSpace X :=
+    isCompact_univ_iff.mp (himg ▸ isCompact_Icc.image_of_continuousOn hγ)
+  have hconn : ConnectedSpace X :=
+    connectedSpace_iff_univ.mpr (himg ▸ (isConnected_Icc zero_le_one).image γ hγ)
+  obtain ⟨q, hq⟩ : ∃ q : Icc (0 : ℝ) 1 → X, q = fun t : Icc (0 : ℝ) 1 => γ t := ⟨_, rfl⟩
+  have hqc : Continuous q := by
+    rw [hq]
+    exact hγ.comp_continuous continuous_subtype_val fun t => t.2
+  have hqs : Function.Surjective q := by
+    intro x
+    obtain ⟨t, ht, rfl⟩ : x ∈ γ '' Icc 0 1 := himg ▸ mem_univ x
+    exact ⟨⟨t, ht⟩, by rw [hq]⟩
+  have hquot : Topology.IsQuotientMap q := Topology.IsQuotientMap.of_surjective_continuous hqs hqc
+  have := (convex_Icc (0 : ℝ) 1).locallyPathConnectedSpace
+  have hlpc : LocallyPathConnectedSpace X := hquot.locallyPathConnectedSpace
+  have hsc : SecondCountableTopology X := hm7_secondCountableTopology_of_isClosedMap hqc hqs hqc.isClosedMap
+  exact ⟨⟨γ 0⟩, hcomp, hconn, inferInstance, inferInstance⟩
+
+/-- Grid indices stay in range: `⌊t P⌋₊ ≤ P` for `t ∈ [0, 1]`.
+Truth: `t P ≤ P`, `Nat.floor_le_floor` and `Nat.floor_natCast`. -/
+theorem hm7_floor_le {t : ℝ} (ht : t ∈ Icc (0 : ℝ) 1) (P : ℕ) : ⌊t * P⌋₊ ≤ P := by
+  exact Nat.floor_le_of_le (mul_le_of_le_one_left (Nat.cast_nonneg P) ht.2)
+
+/-- Nested grids: `⌊t (P M)⌋₊ / M = ⌊t P⌋₊` for `M > 0` and every real `t`.
+Truth: `Nat.floor_div_natCast` applied to `t P M / M = t P`. -/
+theorem hm7_floor_mul_div (t : ℝ) (P : ℕ) {M : ℕ} (hM : 0 < M) :
+    ⌊t * ((P * M : ℕ) : ℝ)⌋₊ / M = ⌊t * P⌋₊ := by
+  have hM' : (M : ℝ) ≠ 0 := by exact_mod_cast hM.ne'
+  rw [← Nat.floor_div_natCast, Nat.cast_mul, ← mul_assoc, mul_div_cancel_right₀ _ hM']
+
+/-- Close points have adjacent grid indices: `⌊s P⌋₊ ≤ ⌊t P⌋₊ + 1` for `s, t ≥ 0` with `|s - t| P < 1`.
+Truth: `⌊s P⌋₊ ≤ s P < t P + 1 < ⌊t P⌋₊ + 2`. -/
+theorem hm7_floor_close {s t : ℝ} (hs : 0 ≤ s) (ht : 0 ≤ t) {P : ℕ} (h : |s - t| * P < 1) :
+    ⌊s * P⌋₊ ≤ ⌊t * P⌋₊ + 1 := by
+  have hP : (0 : ℝ) ≤ P := Nat.cast_nonneg P
+  have h1 : (⌊s * P⌋₊ : ℝ) ≤ s * P := Nat.floor_le (mul_nonneg hs hP)
+  have h3 : (s - t) * P ≤ |s - t| * P := mul_le_mul_of_nonneg_right (le_abs_self _) hP
+  rw [← Nat.floor_add_one (mul_nonneg ht hP)]
+  exact Nat.le_floor (by linarith)
+
+/-- Grid points: `⌊(j / P) P⌋₊ = j` for `P > 0`.
+Truth: `(j / P) P = j` (`div_mul_cancel₀`) and `Nat.floor_natCast`. -/
+theorem hm7_floor_grid {j P : ℕ} (hP : 0 < P) : ⌊((j : ℝ) / P) * P⌋₊ = j := by
+  have hP' : (P : ℝ) ≠ 0 := by exact_mod_cast hP.ne'
+  rw [div_mul_cancel₀ _ hP', Nat.floor_natCast]
+
+/-- Adjacent level indices are `δ`-close: `dist (z a) (z b) ≤ δ` for `a, b ≤ P` differing by at most `1`.
+Truth: for `a = b` the distance is `0 < δ` (chain at `0 < P`); otherwise the smaller index is `< P`. -/
+theorem hm7_level_dist_le {X : Type*} [PseudoMetricSpace X] {δ : ℝ} {P : ℕ} {z : ℕ → X}
+    (h : hm7_Level δ P z) {a b : ℕ} (ha : a ≤ P) (hb : b ≤ P) (hab : a ≤ b + 1)
+    (hba : b ≤ a + 1) : dist (z a) (z b) ≤ δ := by
+  obtain ⟨hP, hchain, -⟩ := h
+  have hδ : 0 < δ := dist_nonneg.trans_lt (hchain 0 hP)
+  rcases Nat.lt_trichotomy a b with hlt | heq | hgt
+  · obtain rfl : b = a + 1 := by omega
+    exact (hchain a (by omega)).le
+  · rw [heq, dist_self]
+    exact hδ.le
+  · obtain rfl : a = b + 1 := by omega
+    rw [dist_comm]
+    exact (hchain b (by omega)).le
+
+/-- The limit: levels with `δₙ ≤ 2⁻ⁿ`, nested grids `Pₙ₊₁ = Pₙ Mₙ` and refinement bound `2⁻ⁿ` give a continuous
+surjection `[0, 1] → X`.
+Truth: `fₙ t = zₙ ⌊t Pₙ⌋₊` moves `< 2⁻ⁿ` per level, so it converges uniformly; the limit is continuous (adjacent
+indices for `|a - b| < 1/Pₙ`) and its compact image is dense (level nets), hence everything. -/
+theorem hm7_limit {X : Type*} [MetricSpace X] [CompactSpace X] [Nonempty X]
+    {δ : ℕ → ℝ} (hδ : ∀ n, δ n ≤ 1 / 2 ^ n) {P M : ℕ → ℕ} {z : ℕ → ℕ → X}
+    (hlev : ∀ n, hm7_Level (δ n) (P n) (z n)) (hM : ∀ n, 0 < M n)
+    (hP : ∀ n, P (n + 1) = P n * M n)
+    (href : ∀ n, ∀ i ≤ P (n + 1), dist (z (n + 1) i) (z n (i / M n)) < 1 / 2 ^ n) :
+    ∃ γ : ℝ → X, ContinuousOn γ (Icc 0 1) ∧ γ '' Icc 0 1 = univ := by
+  obtain ⟨f, hf⟩ : ∃ f : ℕ → ℝ → X, f = fun n (t : ℝ) => z n ⌊t * P n⌋₊ := ⟨_, rfl⟩
+  have hhalf : ∀ n : ℕ, (1 : ℝ) / 2 ^ n = (1 / 2) ^ n := fun n => by rw [div_pow, one_pow]
+  -- one level moves a point by less than `2⁻ⁿ`
+  have hstep : ∀ t ∈ Icc (0 : ℝ) 1, ∀ n, dist (f n t) (f (n + 1) t) ≤ 2 / 2 / 2 ^ n := by
+    intro t ht n
+    have hi : ⌊t * P (n + 1)⌋₊ ≤ P (n + 1) := hm7_floor_le ht _
+    have hdiv : ⌊t * P (n + 1)⌋₊ / M n = ⌊t * P n⌋₊ := by
+      have h := hm7_floor_mul_div t (P n) (hM n)
+      rwa [← hP n] at h
+    have h := href n _ hi
+    rw [hdiv] at h
+    simp only [hf]
+    rw [dist_comm]
+    calc dist (z (n + 1) ⌊t * P (n + 1)⌋₊) (z n ⌊t * P n⌋₊) ≤ 1 / 2 ^ n := h.le
+      _ = 2 / 2 / 2 ^ n := by ring
+  -- the limit and the uniform bound
+  obtain ⟨γ, hγ⟩ : ∃ γ : ℝ → X, γ = fun t => limUnder atTop fun n => f n t := ⟨_, rfl⟩
+  have hlim : ∀ t ∈ Icc (0 : ℝ) 1, Tendsto (fun n => f n t) atTop (𝓝 (γ t)) := fun t ht => by
+    rw [hγ]
+    exact tendsto_nhds_limUnder (cauchySeq_tendsto_of_complete (cauchySeq_of_le_geometric_two (hstep t ht)))
+  have hunif : ∀ t ∈ Icc (0 : ℝ) 1, ∀ n, dist (f n t) (γ t) ≤ 2 / 2 ^ n := fun t ht n =>
+    dist_le_of_le_geometric_two_of_tendsto (hstep t ht) (hlim t ht) n
+  -- continuity: close parameters have adjacent grid indices at a fine level
+  have hcont : ContinuousOn γ (Icc 0 1) := by
+    rw [Metric.continuousOn_iff]
+    intro b hb ε hε
+    obtain ⟨n, hn⟩ : ∃ n : ℕ, (1 / 2 : ℝ) ^ n < ε / 5 :=
+      exists_pow_lt_of_lt_one (by positivity) (by norm_num)
+    have hPn : (0 : ℝ) < P n := by exact_mod_cast (hlev n).1
+    refine ⟨1 / P n, by positivity, fun a ha hab => ?_⟩
+    have hab' : |a - b| * P n < 1 := by
+      rw [Real.dist_eq, lt_div_iff₀ hPn] at hab
+      exact hab
+    have hba' : |b - a| * P n < 1 := by rwa [abs_sub_comm]
+    have hd : dist (f n a) (f n b) ≤ 1 / 2 ^ n := by
+      simp only [hf]
+      exact (hm7_level_dist_le (hlev n) (hm7_floor_le ha _) (hm7_floor_le hb _)
+        (hm7_floor_close ha.1 hb.1 hab') (hm7_floor_close hb.1 ha.1 hba')).trans (hδ n)
+    have ha' := hunif a ha n
+    have hb' := hunif b hb n
+    rw [dist_comm] at ha'
+    have h5 : dist (γ a) (γ b) ≤ 5 * (1 / 2 ^ n) := by
+      calc dist (γ a) (γ b) ≤ dist (γ a) (f n a) + dist (f n a) (f n b) + dist (f n b) (γ b) :=
+            dist_triangle4 _ _ _ _
+        _ ≤ 2 / 2 ^ n + 1 / 2 ^ n + 2 / 2 ^ n := by gcongr
+        _ = 5 * (1 / 2 ^ n) := by ring
+    rw [hhalf] at h5
+    linarith
+  refine ⟨γ, hcont, ?_⟩
+  -- surjectivity: the compact image is closed and dense (the level nets)
+  have hclosed : IsClosed (γ '' Icc 0 1) := (isCompact_Icc.image_of_continuousOn hcont).isClosed
+  refine Set.eq_univ_of_forall fun x => ?_
+  rw [← hclosed.closure_eq, Metric.mem_closure_iff]
+  intro ε hε
+  obtain ⟨n, hn⟩ : ∃ n : ℕ, (1 / 2 : ℝ) ^ n < ε / 3 :=
+    exists_pow_lt_of_lt_one (by positivity) (by norm_num)
+  obtain ⟨hPn, -, hnet⟩ := hlev n
+  obtain ⟨j, hj, hxj⟩ := hnet x
+  have hPn' : (0 : ℝ) < P n := by exact_mod_cast hPn
+  have ht : (j : ℝ) / P n ∈ Icc (0 : ℝ) 1 :=
+    ⟨by positivity, (div_le_one hPn').2 (by exact_mod_cast hj.le)⟩
+  refine ⟨γ ((j : ℝ) / P n), ⟨_, ht, rfl⟩, ?_⟩
+  have hfj : f n ((j : ℝ) / P n) = z n j := by
+    simp only [hf]
+    rw [hm7_floor_grid hPn]
+  have h1 : dist x (f n ((j : ℝ) / P n)) < 1 / 2 ^ n := by
+    rw [hfj]
+    exact hxj.trans_le (hδ n)
+  have h2 := hunif _ ht n
+  have h3 : dist x (γ ((j : ℝ) / P n)) < 3 * (1 / 2 ^ n) := by
+    calc dist x (γ ((j : ℝ) / P n))
+        ≤ dist x (f n ((j : ℝ) / P n)) + dist (f n ((j : ℝ) / P n)) (γ ((j : ℝ) / P n)) :=
+          dist_triangle _ _ _
+      _ < 1 / 2 ^ n + 2 / 2 ^ n := add_lt_add_of_lt_of_le h1 h2
+      _ = 3 * (1 / 2 ^ n) := by ring
+  rw [hhalf] at h3
+  linarith
+
+/-- One refinement step: a level with parameter `δ` refines to a level with parameter `δ'` on the grid `P M`,
+every new point `ε`-close to its parent `z (i / M)`.
+Truth: for `j < P` a `δ'`-chain `z j ⇝ z (j + 1)` in `E (z j)` visiting the `δ'`-net points near `z j`, padded to
+`M = max ℓⱼ + 1`; then `z' (j M + r) = sⱼ r`. -/
+theorem hm7_step {X : Type*} [PseudoMetricSpace X] [CompactSpace X] {δ δ' ε : ℝ}
+    (hδ : 0 < δ) (hδ' : 0 < δ') {E : X → Set X}
+    (hE : ∀ x, IsPreconnected (E x) ∧ ball x δ ⊆ E x ∧ E x ⊆ ball x ε)
+    {P : ℕ} {z : ℕ → X} (hz : hm7_Level δ P z) :
+    ∃ M : ℕ, 0 < M ∧ ∃ z' : ℕ → X, hm7_Level δ' (P * M) z' ∧
+      ∀ i ≤ P * M, dist (z' i) (z (i / M)) < ε := by
+  classical
+  obtain ⟨hP, hchain, hnet⟩ := hz
+  obtain ⟨N, hN⟩ := hm7_net (X := X) hδ'
+  -- for each link `z j, z (j + 1)`: a `δ'`-chain in `E (z j)` visiting the net points near `z j`
+  have hsub : ∀ j : ℕ, ∃ (ℓ : ℕ) (s : ℕ → X), j < P →
+      hm7_IsChain (E (z j)) δ' (z j) (z (j + 1)) ℓ s ∧
+        ∀ y ∈ N.filter (fun y => dist y (z j) < δ), ∃ r ≤ ℓ, s r = y := by
+    intro j
+    by_cases hj : j < P
+    · have hzj : z j ∈ E (z j) := (hE (z j)).2.1 (mem_ball_self hδ)
+      have hzj1 : z (j + 1) ∈ E (z j) := (hE (z j)).2.1 (by
+        rw [mem_ball, dist_comm]
+        exact hchain j hj)
+      obtain ⟨ℓ, s, hs, hvis⟩ := hm7_chain_visit (hE (z j)).1 hδ' hzj hzj1
+        (N.filter fun y => dist y (z j) < δ) (fun y hy => (hE (z j)).2.1 (Finset.mem_filter.1 hy).2)
+      exact ⟨ℓ, s, fun _ => ⟨hs, hvis⟩⟩
+    · exact ⟨0, fun _ => z j, fun h => absurd h hj⟩
+  choose ℓ s hs using hsub
+  obtain ⟨M, hMdef⟩ : ∃ M : ℕ, M = (Finset.range P).sup ℓ + 1 := ⟨_, rfl⟩
+  have hM : 0 < M := by
+    rw [hMdef]
+    exact Nat.succ_pos _
+  have hℓM : ∀ j < P, ℓ j < M := fun j hj => by
+    rw [hMdef]
+    exact Nat.lt_succ_of_le (Finset.le_sup (Finset.mem_range.2 hj))
+  obtain ⟨z', hz'⟩ : ∃ z' : ℕ → X, z' = fun i => if i / M < P then s (i / M) (i % M) else z P :=
+    ⟨_, rfl⟩
+  -- (K): on the `j`-th block the new points are the `j`-th sub-chain (padding covers `r = M`)
+  have hK : ∀ j < P, ∀ r ≤ M, z' (j * M + r) = s j r := by
+    intro j hj r hr
+    rcases Nat.lt_or_ge r M with hrM | hrM
+    · have hdiv : (j * M + r) / M = j := by
+        rw [show j * M + r = r + j * M by ring, Nat.add_mul_div_right _ _ hM, Nat.div_eq_of_lt hrM, zero_add]
+      have hmod : (j * M + r) % M = r := by
+        rw [show j * M + r = r + j * M by ring, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hrM]
+      simp only [hz', hdiv, hmod, hj, ↓reduceIte]
+    · have hrM' : r = M := le_antisymm hr hrM
+      rw [hrM']
+      have hdiv : (j * M + M) / M = j + 1 := by
+        rw [show j * M + M = (j + 1) * M by ring, Nat.mul_div_cancel _ hM]
+      have hmod : (j * M + M) % M = 0 := by
+        rw [show j * M + M = (j + 1) * M by ring, Nat.mul_mod_left]
+      rw [(hs j hj).1.2.1 M (hℓM j hj).le]
+      by_cases hj1 : j + 1 < P
+      · simp only [hz', hdiv, hmod, hj1, ↓reduceIte]
+        exact (hs (j + 1) hj1).1.1
+      · have hjP : j + 1 = P := by omega
+        simp only [hz', hdiv, hj1, ↓reduceIte]
+        rw [hjP]
+  refine ⟨M, hM, z', ⟨Nat.mul_pos hP hM, fun i hi => ?_, fun x => ?_⟩, fun i hi => ?_⟩
+  · -- chain property: both ends of a link lie on one block
+    obtain ⟨j, r, hj, hr, rfl⟩ : ∃ j r, j < P ∧ r < M ∧ i = j * M + r :=
+      ⟨i / M, i % M, (Nat.div_lt_iff_lt_mul hM).2 hi, Nat.mod_lt _ hM, (Nat.div_add_mod' i M).symm⟩
+    rw [hK j hj r hr.le, show j * M + r + 1 = j * M + (r + 1) by ring, hK j hj (r + 1) hr]
+    exact (hs j hj).1.2.2.2 r
+  · -- density: every point is `δ'`-close to a visited net point
+    obtain ⟨y, hyN, hxy⟩ := hN x
+    obtain ⟨j, hj, hyj⟩ := hnet y
+    obtain ⟨r, hr, hsr⟩ := (hs j hj).2 y (Finset.mem_filter.2 ⟨hyN, hyj⟩)
+    have hrM : r < M := lt_of_le_of_lt hr (hℓM j hj)
+    refine ⟨j * M + r, ?_, ?_⟩
+    · calc j * M + r < j * M + M := Nat.add_lt_add_left hrM _
+        _ = (j + 1) * M := by ring
+        _ ≤ P * M := Nat.mul_le_mul_right _ hj
+    · rw [hK j hj r hrM.le, hsr]
+      exact hxy
+  · -- refinement: a new point stays in `E` of its parent, or is the parent `z P` itself
+    by_cases hj : i / M < P
+    · have hmem : z' i ∈ E (z (i / M)) := by
+        simp only [hz', hj, ↓reduceIte]
+        exact (hs (i / M) hj).1.2.2.1 (i % M)
+      exact (hE (z (i / M))).2.2 hmem
+    · have hiP : i / M = P :=
+        le_antisymm (Nat.div_le_of_le_mul (by rw [Nat.mul_comm]; exact hi)) (not_lt.1 hj)
+      have hε : 0 < ε := by
+        have h := (hE (z P)).2.2 ((hE (z P)).2.1 (mem_ball_self hδ))
+        rw [mem_ball, dist_self] at h
+        exact h
+      simp only [hz', hj, ↓reduceIte]
+      rw [hiP, dist_self]
+      exact hε
+
+/-- Level `0`: a `δ`-chain from a point back to itself that visits a finite `δ`-net.
+Truth: `hm7_net` and `hm7_chain_visit` in the preconnected set `univ`; `P = ℓ + 1`. -/
+theorem hm7_init {X : Type*} [PseudoMetricSpace X] [CompactSpace X] [PreconnectedSpace X]
+    [Nonempty X] {δ : ℝ} (hδ : 0 < δ) : ∃ (P : ℕ) (z : ℕ → X), hm7_Level δ P z := by
+  obtain ⟨N, hN⟩ := hm7_net (X := X) hδ
+  obtain ⟨x₀⟩ := ‹Nonempty X›
+  obtain ⟨ℓ, s, hs, hvis⟩ := hm7_chain_visit isPreconnected_univ hδ (mem_univ x₀) (mem_univ x₀) N
+    (fun y _ => mem_univ y)
+  refine ⟨ℓ + 1, s, Nat.succ_pos _, fun i _ => hs.2.2.2 i, fun x => ?_⟩
+  obtain ⟨y, hyN, hxy⟩ := hN x
+  obtain ⟨r, hr, hsr⟩ := hvis y hyN
+  exact ⟨r, Nat.lt_succ_of_le hr, by rw [hsr]; exact hxy⟩
+
+/-- All levels: `hm7_init` and then `hm7_step` at every scale.
+Truth: `choose!` on `hm7_step` and `Nat.rec` on the pair `(Pₙ, zₙ)`; `Pₙ₊₁ = Pₙ Mₙ` holds by `rfl`. -/
+theorem hm7_levels {X : Type*} [PseudoMetricSpace X] [CompactSpace X] [PreconnectedSpace X]
+    [Nonempty X] {δ ε : ℕ → ℝ} (hδ : ∀ n, 0 < δ n) {E : ℕ → X → Set X}
+    (hE : ∀ n x, IsPreconnected (E n x) ∧ ball x (δ n) ⊆ E n x ∧ E n x ⊆ ball x (ε n)) :
+    ∃ (P M : ℕ → ℕ) (z : ℕ → ℕ → X), ∀ n, hm7_Level (δ n) (P n) (z n) ∧ 0 < M n ∧
+      P (n + 1) = P n * M n ∧ ∀ i ≤ P (n + 1), dist (z (n + 1) i) (z n (i / M n)) < ε n := by
+  obtain ⟨P₀, z₀, h₀⟩ := hm7_init (X := X) (hδ 0)
+  have hstep : ∀ (n P : ℕ) (z : ℕ → X), ∃ (M : ℕ) (z' : ℕ → X), hm7_Level (δ n) P z →
+      0 < M ∧ hm7_Level (δ (n + 1)) (P * M) z' ∧ ∀ i ≤ P * M, dist (z' i) (z (i / M)) < ε n := by
+    intro n P z
+    by_cases hz : hm7_Level (δ n) P z
+    · obtain ⟨M, hM, z', hz', href⟩ := hm7_step (hδ n) (hδ (n + 1)) (hE n) hz
+      exact ⟨M, z', fun _ => ⟨hM, hz', href⟩⟩
+    · exact ⟨1, z, fun h => absurd h hz⟩
+  choose Mf zf hf using hstep
+  obtain ⟨st, hst⟩ : ∃ st : ℕ → ℕ × (ℕ → X), st = fun n => Nat.rec (motive := fun _ => ℕ × (ℕ → X))
+      (P₀, z₀) (fun n p => (p.1 * Mf n p.1 p.2, zf n p.1 p.2)) n := ⟨_, rfl⟩
+  have hst0 : st 0 = (P₀, z₀) := by
+    rw [hst]
+    rfl
+  have hstS : ∀ n, st (n + 1) = ((st n).1 * Mf n (st n).1 (st n).2, zf n (st n).1 (st n).2) := by
+    intro n
+    rw [hst]
+  have hlev : ∀ n, hm7_Level (δ n) (st n).1 (st n).2 := by
+    intro n
+    induction n with
+    | zero =>
+      rw [hst0]
+      exact h₀
+    | succ n ih =>
+      rw [hstS]
+      exact (hf n _ _ ih).2.1
+  refine ⟨fun n => (st n).1, fun n => Mf n (st n).1 (st n).2, fun n => (st n).2, fun n =>
+    ⟨hlev n, (hf n _ _ (hlev n)).1, congrArg Prod.fst (hstS n), ?_⟩⟩
+  show ∀ i ≤ (st (n + 1)).1, dist ((st (n + 1)).2 i) ((st n).2 (i / Mf n (st n).1 (st n).2)) < ε n
+  rw [hstS]
+  exact (hf n _ _ (hlev n)).2.2
+
+/-- (⇐) of Hahn–Mazurkiewicz for metric spaces: a compact, connected, locally connected metric space is a
+continuous image of `[0, 1]`.
+Truth: `hm7_ulc` at `εₙ = 2⁻ⁿ`, then `hm7_levels` and `hm7_limit`. -/
+theorem hm7_exists_surj {X : Type*} [MetricSpace X] [CompactSpace X] [ConnectedSpace X]
+    [LocallyConnectedSpace X] : ∃ γ : ℝ → X, ContinuousOn γ (Icc 0 1) ∧ γ '' Icc 0 1 = univ := by
+  choose δ hδpos hδle E hE using fun n : ℕ => hm7_ulc (X := X) (ε := 1 / 2 ^ n) (by positivity)
+  obtain ⟨P, M, z, h⟩ := hm7_levels (X := X) hδpos hE
+  exact hm7_limit hδle (fun n => (h n).1) (fun n => (h n).2.1) (fun n => (h n).2.2.1) fun n => (h n).2.2.2
+
 /-- **Hahn–Mazurkiewicz.**  A Hausdorff space is a continuous image of `[0, 1]` iff it is a Peano
 continuum.
 
-Not proved (kept as `sorry`): not in Mathlib (Cantor-set surjection and a decomposition argument). -/
+Proved by a direct chain refinement on uniform grids, with no Cantor set and no paths.  (⇐) is
+`hm7_exists_surj`, applied to the metric `TopologicalSpace.metrizableSpaceMetric X`: `δₙ`-chains through
+`δₙ`-nets, refined inside the sets of uniform local connectedness and padded to a common length, converge to a
+continuous surjection.  (⇒) is `hm7_isPeanoContinuum_of_image`: local path-connectedness passes to the quotient
+of `[0, 1]`, and a closed map from a compact second-countable space keeps second countability. -/
 theorem hahn_mazurkiewicz (X : Type*) [TopologicalSpace X] [T2Space X] :
     (∃ γ : ℝ → X, ContinuousOn γ (Icc 0 1) ∧ γ '' Icc 0 1 = univ) ↔ IsPeanoContinuum X := by
-  sorry
+  constructor
+  · rintro ⟨γ, hγ, himg⟩
+    exact hm7_isPeanoContinuum_of_image hγ himg
+  · intro hP
+    have := hP.compactSpace
+    have := hP.connectedSpace
+    have := hP.locallyConnected
+    have := hP.metrizable
+    let := TopologicalSpace.metrizableSpaceMetric X
+    exact hm7_exists_surj
 
 /-- Hahn–Mazurkiewicz for a nonempty subset of `ℂ`. -/
 theorem hahn_mazurkiewicz_subset {K : Set ℂ} (hne : K.Nonempty) :
@@ -2156,60 +2685,7 @@ theorem locallyConnectedSpace_of_isQuotientMap {X Y : Type*} [TopologicalSpace X
   intro x' hx'
   exact himg ⟨x', hx', rfl⟩
 
-/-! ### Basic facts: nested continua and the boundary of a conformal disc image -/
-
-/-- The intersection of a decreasing sequence of compact preconnected subsets of a Hausdorff space
-is preconnected. -/
-theorem isPreconnected_iInter_of_antitone_isCompact {X : Type*} [TopologicalSpace X] [T2Space X]
-    {K : ℕ → Set X} (hd : ∀ n, K (n + 1) ⊆ K n) (hc : ∀ n, IsCompact (K n))
-    (hp : ∀ n, IsPreconnected (K n)) : IsPreconnected (⋂ n, K n) := by
-  rw [isPreconnected_iff_subset_of_disjoint_closed]
-  intro u v hu hv hsuv hdisj
-  set S : Set X := ⋂ n, K n with hS
-  have hSc : IsCompact S :=
-    (hc 0).of_isClosed_subset (isClosed_iInter fun n => (hc n).isClosed) (Set.iInter_subset _ 0)
-  have hAc : IsCompact (S ∩ u) := hSc.inter_right hu
-  have hBc : IsCompact (S ∩ v) := hSc.inter_right hv
-  have hAB : Disjoint (S ∩ u) (S ∩ v) := by
-    rw [Set.disjoint_left]
-    intro x hxu hxv
-    have h : x ∈ S ∩ (u ∩ v) := ⟨hxu.1, hxu.2, hxv.2⟩
-    rw [hdisj] at h
-    exact h
-  by_cases hA : (S ∩ u).Nonempty
-  · by_cases hB : (S ∩ v).Nonempty
-    · exfalso
-      obtain ⟨U, V, hU, hV, hAU, hBV, hUV⟩ := SeparatedNhds.of_isCompact_isCompact hAc hBc hAB
-      -- no `Kₙ` lies in `U ∪ V`, so the sets `Kₙ \ (U ∪ V)` form a decreasing sequence of
-      -- nonempty compact sets
-      have hT : ∀ n, (K n \ (U ∪ V)).Nonempty := by
-        intro n
-        by_contra hcon
-        rw [Set.not_nonempty_iff_eq_empty, Set.diff_eq_empty] at hcon
-        rcases (hp n).subset_or_subset hU hV hUV hcon with h | h
-        · obtain ⟨x, hx⟩ := hB
-          exact Set.disjoint_left.mp hUV (h (Set.iInter_subset _ n hx.1)) (hBV hx)
-        · obtain ⟨x, hx⟩ := hA
-          exact Set.disjoint_left.mp hUV (hAU hx) (h (Set.iInter_subset _ n hx.1))
-      obtain ⟨x, hx⟩ := IsCompact.nonempty_iInter_of_sequence_nonempty_isCompact_isClosed
-        (fun n => K n \ (U ∪ V)) (fun n => Set.diff_subset_diff_left (hd n)) hT
-        ((hc 0).diff (hU.union hV)) (fun n => (hc n).isClosed.sdiff (hU.union hV))
-      rw [Set.mem_iInter] at hx
-      have hxS : x ∈ S := Set.mem_iInter.mpr fun n => (hx n).1
-      have hxUV : x ∉ U ∪ V := (hx 0).2
-      rcases hsuv hxS with hxu | hxv
-      · exact hxUV (Or.inl (hAU ⟨hxS, hxu⟩))
-      · exact hxUV (Or.inr (hBV ⟨hxS, hxv⟩))
-    · left
-      intro x hx
-      rcases hsuv hx with h | h
-      · exact h
-      · exact absurd ⟨x, hx, h⟩ hB
-  · right
-    intro x hx
-    rcases hsuv hx with h | h
-    · exact absurd ⟨x, hx, h⟩ hA
-    · exact h
+/-! ### Basic facts: the boundary of a conformal disc image (the nested-continua lemma is in `Lemmas/Caratheodory`) -/
 
 /-- An open annulus `{r₁ < |z| < r₂}` (with `0 ≤ r₁`) is preconnected: it is the image of
 `Ioo r₁ r₂ × ℝ` under polar coordinates. -/
@@ -2343,8 +2819,9 @@ theorem isPreconnected_frontier_of_isConformalOnto {Ω : Set ℂ} (hbdd : Bornol
   rw [hfr]
   exact isPreconnected_iInter_of_antitone_isCompact hKd hKc hKp
 
-/-- The form used in Theorem C1: the boundary of a bounded simply connected domain (a conformal
-image of the disc) is locally connected iff it is a curve. -/
+/-- The Hahn–Mazurkiewicz form of (b) ⇔ (c) in Theorem C1: the boundary of a bounded simply connected domain (a
+conformal image of the disc) is locally connected iff it is a curve.  Not used by Theorem C1
+(`caratheodory_continuous_iff`, `Lemmas/PrimeEnds.lean`), which is proved without Hahn–Mazurkiewicz. -/
 theorem frontier_locallyConnected_iff_isCurve {Ω : Set ℂ} (hbdd : Bornology.IsBounded Ω)
     {f : ℂ → ℂ} (hf : IsConformalOnto f unitDisc Ω) :
     LocallyConnectedSpace ↥(frontier Ω) ↔
@@ -2656,17 +3133,6 @@ theorem continuous_extension_iff_forall_clusterSet_subsingleton {f : ℂ → ℂ
     refine ⟨extendFrom unitDisc f, continuousOn_extendFrom subset_rfl hlim, fun z hz => ?_⟩
     exact extendFrom_eq (subset_closure hz) (hf.continuousOn z hz)
 
-/-- **Lindelöf's theorem.**  A bounded holomorphic `f` on `Δ` with limit `a` along a curve ending at
-`ζ ∈ ∂Δ` has angular limit `a` at `ζ`.
-
-Not proved (kept as `sorry`): needs the two-constants theorem / harmonic measure estimates. -/
-theorem lindelof {f : ℂ → ℂ} {ζ : ℂ} (hζ : ζ ∈ sphere (0 : ℂ) 1)
-    (hf : DifferentiableOn ℂ f unitDisc) (hbdd : ∃ M, ∀ z ∈ unitDisc, ‖f z‖ ≤ M)
-    {γ : ℝ → ℂ} (hγc : ContinuousOn γ (Ico 0 1)) (hγ : MapsTo γ (Ico 0 1) unitDisc)
-    (hγζ : Tendsto γ (𝓝[<] 1) (𝓝 ζ)) {a : ℂ} (hlim : Tendsto (f ∘ γ) (𝓝[<] 1) (𝓝 a)) :
-    ∀ M : ℝ, 1 < M → angularClusterSet f ζ M = {a} := by
-  sorry
-
 /-! ### Lindelöf's maximum principle with one exceptional boundary point -/
 
 /-- Membership in the slit plane is stable under division by a positive real number. -/
@@ -2891,7 +3357,9 @@ theorem re_conj_mul_sub_lt_of_norm_lt_one {ζ z : ℂ} (hζ : ‖ζ‖ = 1) (hz 
 
 /-- **Iversen–Gross.**  For `f` holomorphic on `Δ` and `ζ ∈ ∂Δ`, `∂C(f, ζ) ⊆ C_B(f, ζ)`.
 
-Not proved (kept as `sorry`): a cluster-set argument with the maximum principle. -/
+Proved by a cluster-set argument (the affine barrier `(2/δ²)(1 - conj ζ · z)`, estimated by
+`re_conj_mul_sub_lt_of_norm_lt_one` above) with Lindelöf's maximum principle with one exceptional boundary point
+(`norm_le_of_frontier_limsup_le_of_bounded`). -/
 theorem iversen_gross {f : ℂ → ℂ} {ζ : ℂ} (hζ : ζ ∈ sphere (0 : ℂ) 1)
     (hf : DifferentiableOn ℂ f unitDisc) :
     frontier (clusterSet f unitDisc ζ) ⊆ boundaryClusterSet f ζ := by
@@ -3136,50 +3604,6 @@ theorem iversen_gross {f : ℂ → ℂ} {ζ : ℂ} (hζ : ζ ∈ sphere (0 : ℂ
   have h2 := (one_div_le_one_div hpos hMden).1 hfinal
   have h3 : ‖w - w'‖ = ‖w' - w‖ := norm_sub_rev _ _
   linarith
-
-/-- **Carathéodory's prime-end theorem, cluster-set form.**  The prime end at `ζ` has impression
-equal to the cluster set and principal points equal to the radial cluster set of `f` at `ζ`.
-
-Not proved (kept as `sorry`): the full prime-end theory (see `caratheodory_primeEnd`). -/
-theorem caratheodory_primeEnd_principal {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω) {f : ℂ → ℂ}
-    (hf : IsConformalOnto f unitDisc Ω) :
-    ∃ P : Circle → PrimeEnd Ω, Function.Bijective P ∧ ∀ ζ : Circle,
-      (∀ c : {C : ℕ → Set ℂ // IsNullChain Ω C}, Quot.mk _ c = P ζ →
-        chainImpression Ω c.1 = clusterSet f unitDisc ζ) ∧
-      {w | IsPrincipalPoint Ω (P ζ) w} = radialClusterSet f ζ := by
-  sorry
-
-/-- **Carathéodory–Torhorst, cluster-set form.**  For a conformal map `f` of the disc onto a bounded
-domain, `∂Ω` is locally connected iff every cluster set at a boundary point is a single point.
-
-Not proved (kept as `sorry`): Carathéodory–Torhorst. -/
-theorem locallyConnected_iff_clusterSet_subsingleton {Ω : Set ℂ} (hΩ : Bornology.IsBounded Ω)
-    {f : ℂ → ℂ} (hf : IsConformalOnto f unitDisc Ω) :
-    LocallyConnectedSpace ↥(frontier Ω) ↔
-      ∀ ξ ∈ sphere (0 : ℂ) 1, ∃ w, clusterSet f unitDisc ξ = {w} := by
-  have h01 := (caratheodory_continuous_iff hΩ hf).out 1 2
-  rw [← h01, ← continuous_extension_iff_forall_clusterSet_subsingleton hf.1]
-  have hcl : closure unitDisc = closedBall (0 : ℂ) 1 := closure_ball 0 one_ne_zero
-  constructor
-  · rintro ⟨F, hFf, hFc, -⟩
-    refine ⟨F, ?_, fun z hz => hFf z hz⟩
-    rw [hcl]
-    exact hFc
-  · rintro ⟨g, hgc, hgf⟩
-    have hgc' : ContinuousOn g (closedBall 0 1) := by
-      rw [← hcl]
-      exact hgc
-    refine ⟨g, fun z hz => hgf hz, hgc', ?_⟩
-    have himg : g '' unitDisc = Ω := by
-      rw [hgf.image_eq]
-      exact hf.2.2
-    apply Subset.antisymm
-    · have h1 : g '' closure unitDisc ⊆ closure (g '' unitDisc) := hgc.image_closure
-      rw [hcl, himg] at h1
-      exact h1
-    · refine closure_minimal ?_ ((isCompact_closedBall (0 : ℂ) 1).image_of_continuousOn hgc').isClosed
-      rw [← himg]
-      exact Set.image_mono ball_subset_closedBall
 
 end ClusterSets
 

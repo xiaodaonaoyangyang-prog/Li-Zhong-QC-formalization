@@ -642,62 +642,29 @@ def ModuliSpace (g : ℕ) : Type (u + 1) :=
 
 variable {S₀ : Type u} [TopologicalSpace S₀] [ChartedSpace ℂ S₀]
 
-/-- A homeomorphism `f : X ≃ₜ Y` with `f x = y` induces an isomorphism of fundamental groups
-`π₁(X, x) ≃* π₁(Y, y)`: Mathlib's `FundamentalGroup.mapOfEq` for `f` and for `f⁻¹`, which are
-mutually inverse because `f⁻¹ ∘ f = id` and `f ∘ f⁻¹ = id` pointwise (`Path.ext`). -/
-def fundamentalGroupMulEquivOfHomeomorph {X Y : Type*} [TopologicalSpace X] [TopologicalSpace Y]
-    (f : X ≃ₜ Y) {x : X} {y : Y} (h : f x = y) : FundamentalGroup X x ≃* FundamentalGroup Y y where
-  toFun := FundamentalGroup.mapOfEq (f : C(X, Y)) h
-  invFun := FundamentalGroup.mapOfEq (f.symm : C(Y, X)) (by rw [← h]; exact f.symm_apply_apply x)
-  left_inv := by
-    rintro ⟨γ⟩
-    show FundamentalGroup.mapOfEq (f.symm : C(Y, X)) _
-      (FundamentalGroup.mapOfEq (f : C(X, Y)) h
-        (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ))) =
-      FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)
-    rw [FundamentalGroup.mapOfEq_apply, FundamentalGroup.mapOfEq_apply]
-    refine congrArg (fun p : Path x x => FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk p)) ?_
-    refine Path.ext (funext fun t => ?_)
-    simp [Path.cast_coe, Path.map_coe]
-  right_inv := by
-    rintro ⟨γ⟩
-    show FundamentalGroup.mapOfEq (f : C(X, Y)) h
-      (FundamentalGroup.mapOfEq (f.symm : C(Y, X)) _
-        (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ))) =
-      FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)
-    rw [FundamentalGroup.mapOfEq_apply, FundamentalGroup.mapOfEq_apply]
-    refine congrArg (fun p : Path y y => FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk p)) ?_
-    refine Path.ext (funext fun t => ?_)
-    simp [Path.cast_coe, Path.map_coe]
-  map_mul' a b := map_mul (FundamentalGroup.mapOfEq (f : C(X, Y)) h) a b
-
-/-- A homeomorphic image of a surface of genus `g` has genus `g`: compactness is part of
-`ClosedRS`, and `π₁(X, x) ≅ π₁(S₀, f⁻¹(x)) ≅ surfaceGroup g` by transport of the fundamental
-group along the homeomorphism (`fundamentalGroupMulEquivOfHomeomorph`). -/
-theorem hasGenus_of_homeomorph {g : ℕ} (hS : HasGenus S₀ g) {X : ClosedRS.{u}} (f : S₀ ≃ₜ X.carrier) :
-    HasGenus X.carrier g := by
-  -- the complex structure of `S₀` plays no role (the instance is kept for uniformity of the
-  -- statements in this file); compactness is part of `ClosedRS`, and the fundamental groups are
-  -- transported along `f`
-  have _inst : ChartedSpace ℂ S₀ := inferInstance
-  refine ⟨inferInstance, fun x => ?_⟩
-  obtain ⟨e⟩ := hS.2 (f.symm x)
-  exact ⟨(fundamentalGroupMulEquivOfHomeomorph f (f.apply_symm_apply x)).symm.trans e⟩
-
 /-- §28.1: the map `T(S₀) → R_g`, `[S, f] ↦ [S]`, as a relation: `p` lies over `r`. -/
 def LiesOver {g : ℕ} (p : TeichSpace S₀) (r : ModuliSpace.{u} g) : Prop :=
   ∃ (m : MarkedRS S₀) (h : HasGenus m.X.carrier g), p = Quot.mk _ m ∧ r = Quot.mk _ ⟨m.X, h⟩
 
-/-- §28.1: the map `T(S₀) → R_g` is well defined and surjective; every `[S] ∈ R_g` corresponds to
-infinitely (countably) many points `[S, f] ∈ T(S₀)`, `f` running through the homotopy classes of
-homeomorphisms `S₀ → S`. -/
-theorem liesOver_wellDefined_surjective [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] {g : ℕ}
-    (hg : 1 < g) (hS : HasGenus S₀ g) :
-    (∀ (p : TeichSpace S₀) (r r' : ModuliSpace.{u} g), LiesOver p r → LiesOver p r' → r = r') ∧
-      (∀ r : ModuliSpace.{u} g, ∃ p : TeichSpace S₀, LiesOver p r) ∧
-      ∀ r : ModuliSpace.{u} g, (Set.Infinite {p : TeichSpace S₀ | LiesOver p r} ∧
-        Set.Countable {p : TeichSpace S₀ | LiesOver p r}) := by
-  sorry
+/-- A `Quot.mk` equality in `T(S₀)` is an equivalence of marked surfaces (`~` is an equivalence relation,
+`markedRS_equiv_equivalence`). -/
+theorem s28q_equiv_of_mk_eq {m m' : MarkedRS S₀} (h : (Quot.mk _ m : TeichSpace S₀) = Quot.mk _ m') :
+    MarkedRS.Equiv m m' := by
+  exact markedRS_equiv_equivalence.eqvGen_iff.1 (Quot.eqvGen_exact h)
+
+/-- The first conjunct of `liesOver_wellDefined_surjective`: the map `T(S₀) → R_g`, `[S, f] ↦ [S]`, is well
+defined (equivalent marked surfaces `(S, f) ~ (S', f')` have conformally equivalent `S ≅ S'`). -/
+theorem s28q_liesOver_wellDefined {g : ℕ} {p : TeichSpace S₀} {r r' : ModuliSpace.{u} g} (hr : LiesOver p r)
+    (hr' : LiesOver p r') : r = r' := by
+  obtain ⟨m, h, rfl, rfl⟩ := hr
+  obtain ⟨m', h', hmm, rfl⟩ := hr'
+  obtain ⟨c, hc, _⟩ := s28q_equiv_of_mk_eq hmm
+  exact Quot.sound ⟨c, hc⟩
+
+/- The §28.1 book theorem `liesOver_wellDefined_surjective` is stated in
+`LiZhongQC.Lemmas.ModuliFibre` (relocated by leader decision with its docstring
+and statement byte-identical): its proof uses Dehn twists and the uniformized
+KL/Hurwitz theorems, which are downstream of this chapter. -/
 
 /-! ## §28.2 The modular group -/
 
@@ -712,6 +679,81 @@ def ModAction (h : ModTransform S₀) (p q : TeichSpace S₀) : Prop :=
   ∃ (m : MarkedRS S₀) (hqc : IsQCRS (h.1.trans m.marking)),
     p = Quot.mk _ m ∧ q = Quot.mk _ ⟨m.X, h.1.trans m.marking, hqc⟩
 
+/-- Quasiconformal maps of Riemann surfaces with holomorphic atlases compose (`eq23_4`). -/
+theorem s28q_isQCRS_trans {A B C : Type*} [TopologicalSpace A] [ChartedSpace ℂ A] [IsManifold 𝓘(ℂ) ω A]
+    [TopologicalSpace B] [ChartedSpace ℂ B] [IsManifold 𝓘(ℂ) ω B] [TopologicalSpace C] [ChartedSpace ℂ C]
+    [IsManifold 𝓘(ℂ) ω C] {e : A ≃ₜ B} {f : B ≃ₜ C} (he : IsQCRS e) (hf : IsQCRS f) :
+    IsQCRS (e.trans f) := by
+  obtain ⟨K₁, hK₁⟩ := he
+  obtain ⟨K₂, hK₂⟩ := hf
+  exact ⟨K₁ * K₂, (eq23_4 hK₁ hK₂).1⟩
+
+/-- The inverse of a quasiconformal map of Riemann surfaces is quasiconformal (`s29_m_isKQCRS_symm`). -/
+theorem s28q_isQCRS_symm {A B : Type*} [TopologicalSpace A] [ChartedSpace ℂ A] [TopologicalSpace B]
+    [ChartedSpace ℂ B] {e : A ≃ₜ B} (he : IsQCRS e) : IsQCRS e.symm := by
+  obtain ⟨K, hK⟩ := he
+  exact ⟨K, s29_m_isKQCRS_symm hK⟩
+
+/-- `σ*` is defined at every marked surface `(X, f)`: `f ∘ σ` is quasiconformal. -/
+theorem s28q_isQCRS_modAction [IsManifold 𝓘(ℂ) ω S₀] (h : ModTransform S₀) (m : MarkedRS S₀) :
+    IsQCRS (h.1.trans m.marking) := by
+  exact s28q_isQCRS_trans h.2.2 m.qc
+
+/-- `σ*` is single valued: if it sends `p` to `q` and to `q'`, then `q = q'` (an equivalence `c ∘ f ≃ f'` of two
+representatives of `p` gives `c ∘ f ∘ σ ≃ f' ∘ σ`). -/
+theorem s28q_modAction_right_unique {h : ModTransform S₀} {p q q' : TeichSpace S₀} (hq : ModAction h p q)
+    (hq' : ModAction h p q') : q = q' := by
+  obtain ⟨m, hqc, rfl, rfl⟩ := hq
+  obtain ⟨m', hqc', hmm, rfl⟩ := hq'
+  obtain ⟨c, hc, hH⟩ := s28q_equiv_of_mk_eq hmm
+  exact Quot.sound ⟨c, hc, hH.comp (ContinuousMap.Homotopic.refl (h.1 : C(S₀, S₀)))⟩
+
+/-- `σ*` is injective: if it sends `p` and `p'` to the same `q`, then `p = p'` (precompose the homotopy
+`c ∘ f ∘ σ ≃ f' ∘ σ` with `σ⁻¹`). -/
+theorem s28q_modAction_left_unique {h : ModTransform S₀} {p p' q : TeichSpace S₀} (hp : ModAction h p q)
+    (hp' : ModAction h p' q) : p = p' := by
+  obtain ⟨m, hqc, rfl, rfl⟩ := hp
+  obtain ⟨m', hqc', rfl, hmm⟩ := hp'
+  obtain ⟨c, hc, hH⟩ := s28q_equiv_of_mk_eq hmm
+  refine Quot.sound ⟨c, hc, ?_⟩
+  have h1 := hH.comp (ContinuousMap.Homotopic.refl (h.1.symm : C(S₀, S₀)))
+  have e1 : ((((h.1.trans m.marking).trans c : S₀ ≃ₜ m'.X.carrier) : C(S₀, m'.X.carrier)).comp
+      (h.1.symm : C(S₀, S₀))) = ((m.marking.trans c : S₀ ≃ₜ m'.X.carrier) : C(S₀, m'.X.carrier)) := by
+    ext x
+    simp
+  have e2 : (((h.1.trans m'.marking : S₀ ≃ₜ m'.X.carrier) : C(S₀, m'.X.carrier)).comp
+      (h.1.symm : C(S₀, S₀))) = (m'.marking : C(S₀, m'.X.carrier)) := by
+    ext x
+    simp
+  rwa [e1, e2] at h1
+
+/-- `σ*` is surjective: `q = [X, f]` is the image of `[X, f ∘ σ⁻¹]`. -/
+theorem s28q_modAction_exists_left [IsManifold 𝓘(ℂ) ω S₀] (h : ModTransform S₀) (q : TeichSpace S₀) :
+    ∃ p, ModAction h p q := by
+  obtain ⟨m, rfl⟩ := Quot.exists_rep q
+  let m₀ : MarkedRS S₀ := ⟨m.X, h.1.symm.trans m.marking, s28q_isQCRS_trans (s28q_isQCRS_symm h.2.2) m.qc⟩
+  refine ⟨Quot.mk _ m₀, m₀, s28q_isQCRS_modAction h m₀, rfl, Quot.sound ⟨Homeomorph.refl _, isBiholomorphic_id, ?_⟩⟩
+  have e : ((m.marking.trans (Homeomorph.refl m.X.carrier) : S₀ ≃ₜ m.X.carrier) : C(S₀, m.X.carrier))
+      = ((h.1.trans m₀.marking : S₀ ≃ₜ m.X.carrier) : C(S₀, m.X.carrier)) := by
+    ext x
+    simp [m₀]
+  exact e ▸ ContinuousMap.Homotopic.refl _
+
+/-- Homotopic `σ ≃ σ'` induce the same transformation: `f ∘ σ ≃ f ∘ σ'`, so `[X, f ∘ σ] = [X, f ∘ σ']`. -/
+theorem s28q_modAction_of_homotopic [IsManifold 𝓘(ℂ) ω S₀] {h h' : ModTransform S₀}
+    (hH : ContinuousMap.Homotopic (h.1 : C(S₀, S₀)) (h'.1 : C(S₀, S₀))) {p q : TeichSpace S₀}
+    (hpq : ModAction h p q) : ModAction h' p q := by
+  obtain ⟨m, hqc, rfl, rfl⟩ := hpq
+  refine ⟨m, s28q_isQCRS_modAction h' m, rfl, Quot.sound ⟨Homeomorph.refl _, isBiholomorphic_id, ?_⟩⟩
+  exact (ContinuousMap.Homotopic.refl (m.marking : C(S₀, m.X.carrier))).comp hH
+
+/-- The third conjunct of `modAction_bijective`: homotopic
+`σ ≃ σ'` induce the same modular transformation, `(σ')* = σ*`. -/
+theorem s28q_modAction_iff_of_homotopic [IsManifold 𝓘(ℂ) ω S₀] {h h' : ModTransform S₀}
+    (hH : ContinuousMap.Homotopic (h.1 : C(S₀, S₀)) (h'.1 : C(S₀, S₀))) (p q : TeichSpace S₀) :
+    ModAction h p q ↔ ModAction h' p q := by
+  exact ⟨s28q_modAction_of_homotopic hH, s28q_modAction_of_homotopic hH.symm⟩
+
 /-- §28.2: `σ*` is a well defined bijection of `T(S₀)`; homotopic `σ, σ'` induce the same
 transformation, `(σ')* = σ*`. -/
 theorem modAction_bijective [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
@@ -719,17 +761,33 @@ theorem modAction_bijective [T2Space S₀] [ConnectedSpace S₀] [IsManifold �
     (∀ p, ∃! q, ModAction h p q) ∧ (∀ q, ∃! p, ModAction h p q) ∧
       ∀ h' : ModTransform S₀, ContinuousMap.Homotopic (h.1 : C(S₀, S₀)) (h'.1 : C(S₀, S₀)) →
         ∀ p q, ModAction h p q ↔ ModAction h' p q := by
-  sorry
+  have _ := hg
+  have _ := hS
+  refine ⟨fun p => ?_, fun q => ?_, fun _ hH => s28q_modAction_iff_of_homotopic hH⟩
+  · obtain ⟨m, rfl⟩ := Quot.exists_rep p
+    have hm : ModAction h (Quot.mk _ m) (Quot.mk _ ⟨m.X, h.1.trans m.marking, s28q_isQCRS_modAction h m⟩) :=
+      ⟨m, s28q_isQCRS_modAction h m, rfl, rfl⟩
+    exact ⟨_, hm, fun q' hq' => s28q_modAction_right_unique hq' hm⟩
+  · obtain ⟨p, hp⟩ := s28q_modAction_exists_left h q
+    exact ⟨p, hp, fun p' hp' => s28q_modAction_left_unique hp' hp⟩
 
-/-- §28.2: conversely, if `σ* = (σ')*` then `f ∘ σ' ∘ σ⁻¹ ∘ f⁻¹` is homotopic to a conformal map for
-every `f : S₀ → S`; for `g > 2` this implies `σ ≃ σ'` (not proved in the book), so that for `g > 2`
-the modular transformations `σ*` correspond bijectively to the homotopy classes `[σ]` and `Mod_g`
-is isomorphic to the mapping class group. -/
-theorem modAction_eq_iff_homotopic [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
-    {g : ℕ} (hg : 2 < g) (hS : HasGenus S₀ g) (h h' : ModTransform S₀) :
-    (∀ p q, ModAction h p q ↔ ModAction h' p q) ↔
-      ContinuousMap.Homotopic (h.1 : C(S₀, S₀)) (h'.1 : C(S₀, S₀)) := by
-  sorry
+-- `modAction_eq_iff_homotopic` (§28.2, the converse `σ* = (σ')* ⇒ σ ≃ σ'` for `g > 2`, which the book does
+-- not prove) was deleted by user decision, 2026-10-17; nothing used it.
+
+/-- A quasiconformal map of Riemann surfaces is orientation preserving: its local expressions are `K`-q.c., hence
+sense preserving (`IsKQC.isSensePreserving`). -/
+theorem s28q_isOrientationPreservingRS_of_isQCRS {A B : Type*} [TopologicalSpace A] [ChartedSpace ℂ A]
+    [TopologicalSpace B] [ChartedSpace ℂ B] {e : A ≃ₜ B} (he : IsQCRS e) : IsOrientationPreservingRS e := by
+  obtain ⟨K, _, hK⟩ := he
+  exact fun x => (hK x).isSensePreserving
+
+/-- A biholomorphic map of Riemann surfaces is the underlying map of a biholomorphic homeomorphism (its
+holomorphic inverse is continuous). -/
+theorem s28q_exists_homeomorph_of_isBiholomorphic {X Y : Type*} [TopologicalSpace X] [ChartedSpace ℂ X]
+    [TopologicalSpace Y] [ChartedSpace ℂ Y] {f : X → Y} (hf : IsBiholomorphic f) :
+    ∃ c : X ≃ₜ Y, IsBiholomorphic c ∧ ⇑c = f := by
+  obtain ⟨hfd, g, hgd, hl, hr⟩ := hf
+  exact ⟨⟨⟨f, g, hl, hr⟩, hfd.continuous, hgd.continuous⟩, ⟨hfd, g, hgd, hl, hr⟩, rfl⟩
 
 /-- **(28.1)** `R_g = T(S₀)/Mod(S₀)`: two closed surfaces `S₁`, `S₂` of genus `g` are conformally
 equivalent iff for all quasiconformal `fⱼ : S₀ → Sⱼ` the points `[S₁, f₁]`, `[S₂, f₂]` are
@@ -740,13 +798,55 @@ theorem eq28_1_moduli_eq_quotient [T2Space S₀] [ConnectedSpace S₀] [IsManifo
     (hg : 1 < g) (hS : HasGenus S₀ g) (m₁ m₂ : MarkedRS S₀) :
     RSConformallyEquivalent m₁.X.carrier m₂.X.carrier ↔
       ∃ h : ModTransform S₀, ModAction h (Quot.mk _ m₂) (Quot.mk _ m₁) := by
-  sorry
+  have _ := hg
+  have _ := hS
+  constructor
+  · rintro ⟨f, hf⟩
+    obtain ⟨c, hc, _⟩ := s28q_exists_homeomorph_of_isBiholomorphic hf
+    have hcq : IsQCRS c := ⟨1, (isKQCRS_one_iff c).2 hc⟩
+    have hσ : IsQCRS (m₁.marking.trans (c.trans m₂.marking.symm)) :=
+      s28q_isQCRS_trans m₁.qc (s28q_isQCRS_trans hcq (s28q_isQCRS_symm m₂.qc))
+    let σ : ModTransform S₀ :=
+      ⟨m₁.marking.trans (c.trans m₂.marking.symm), s28q_isOrientationPreservingRS_of_isQCRS hσ, hσ⟩
+    refine ⟨σ, m₂, s28q_isQCRS_modAction σ m₂, rfl, Quot.sound ⟨c, hc, ?_⟩⟩
+    have e : ((m₁.marking.trans c : S₀ ≃ₜ m₂.X.carrier) : C(S₀, m₂.X.carrier))
+        = ((σ.1.trans m₂.marking : S₀ ≃ₜ m₂.X.carrier) : C(S₀, m₂.X.carrier)) := by
+      ext x
+      simp [σ]
+    exact e ▸ ContinuousMap.Homotopic.refl _
+  · rintro ⟨σ, m, hqc, h2, h1⟩
+    obtain ⟨c₂, hc₂, _⟩ := s28q_equiv_of_mk_eq h2
+    obtain ⟨c₁, hc₁, _⟩ := s28q_equiv_of_mk_eq h1
+    exact ⟨_, hc₂.homeomorph_symm.comp hc₁⟩
+
+/-- Conformal equivalence of Riemann surfaces is symmetric (the holomorphic inverse is biholomorphic). -/
+theorem s28q_rsConformallyEquivalent_symm {X Y : Type*} [TopologicalSpace X] [ChartedSpace ℂ X]
+    [TopologicalSpace Y] [ChartedSpace ℂ Y] (h : RSConformallyEquivalent X Y) : RSConformallyEquivalent Y X := by
+  obtain ⟨f, hfd, g, hgd, hl, hr⟩ := h
+  exact ⟨g, hgd, f, hfd, hr, hl⟩
+
+/-- A `Quot.mk` equality in `R_g` is a conformal equivalence (conformal equivalence is an equivalence
+relation). -/
+theorem s28q_rsConformallyEquivalent_of_mk_eq {g : ℕ} {X Y : {X : ClosedRS.{u} // HasGenus X.carrier g}}
+    (h : (Quot.mk _ X : ModuliSpace.{u} g) = Quot.mk _ Y) : RSConformallyEquivalent X.1.carrier Y.1.carrier := by
+  have heq : Equivalence (fun X Y : {X : ClosedRS.{u} // HasGenus X.carrier g} =>
+      RSConformallyEquivalent X.1.carrier Y.1.carrier) :=
+    ⟨fun _ => ⟨id, isBiholomorphic_id⟩, fun h => s28q_rsConformallyEquivalent_symm h,
+      fun ⟨f, hf⟩ ⟨f', hf'⟩ => ⟨f' ∘ f, hf'.comp hf⟩⟩
+  exact heq.eqvGen_iff.1 (Quot.eqvGen_exact h)
 
 /-- (28.1) in terms of `LiesOver`: `p` and `q` lie over the same point of `R_g` iff `q = σ*(p)` for
 some modular transformation. -/
 theorem liesOver_same_iff [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] {g : ℕ} (hg : 1 < g)
     (hS : HasGenus S₀ g) {p q : TeichSpace S₀} {r : ModuliSpace.{u} g} (hp : LiesOver p r) :
     LiesOver q r ↔ ∃ h : ModTransform S₀, ModAction h p q := by
-  sorry
+  obtain ⟨m, hm, rfl, rfl⟩ := hp
+  constructor
+  · rintro ⟨m', hm', rfl, hr⟩
+    exact (eq28_1_moduli_eq_quotient hg hS m' m).1
+      (s28q_rsConformallyEquivalent_symm (s28q_rsConformallyEquivalent_of_mk_eq hr))
+  · rintro ⟨σ, hσ⟩
+    refine ⟨⟨m.X, σ.1.trans m.marking, s28q_isQCRS_modAction σ m⟩, hm, ?_, rfl⟩
+    exact s28q_modAction_right_unique hσ ⟨m, s28q_isQCRS_modAction σ m, rfl, rfl⟩
 
 end LiZhongQC

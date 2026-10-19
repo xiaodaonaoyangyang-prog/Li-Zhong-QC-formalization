@@ -722,9 +722,6 @@ theorem isKQCRS_one_iff [IsManifold 𝓘(ℂ) ω S₀] [IsManifold 𝓘(ℂ) ω 
 
 /-! ## §23.2 Lifting -/
 
-/-- The map `ℍ → ℍ` viewed as a map `ℂ → ℂ` (junk value `0` off `ℍ`). -/
-def liftToC (F : UpperHalfPlane → UpperHalfPlane) (z : ℂ) : ℂ :=
-  if hz : 0 < z.im then (F ⟨z, hz⟩ : ℂ) else 0
 
 /-- `F` is a lift of `f : S₀ → S₁` to the universal coverings `p₀ : ℍ → S₀`, `p₁ : ℍ → S₁`. -/
 def IsLift (p₀ : UpperHalfPlane → S₀) (p₁ : UpperHalfPlane → S₁) (f : S₀ → S₁)
@@ -739,13 +736,6 @@ theorem h23l_liftToC_coe (F : UpperHalfPlane → UpperHalfPlane) (τ : UpperHalf
   unfold liftToC
   simp only [τ.coe_im_pos, ↓reduceDIte]
 
-/-- On `ℍ`, `liftToC F` is `F ∘ ofComplex`. -/
-theorem h23l_liftToC_eq (F : UpperHalfPlane → UpperHalfPlane) {z : ℂ} (hz : z ∈ upperHalf) :
-    liftToC F z = F (UpperHalfPlane.ofComplex z) := by
-  have hz' : 0 < z.im := hz
-  rw [UpperHalfPlane.ofComplex_apply_of_im_pos hz']
-  unfold liftToC
-  simp only [hz', ↓reduceDIte]
 
 /-- `liftToC F` is continuous on `ℍ` for a continuous `F`. -/
 theorem h23l_liftToC_continuousOn {F : UpperHalfPlane → UpperHalfPlane} (hF : Continuous F) :
@@ -802,20 +792,21 @@ theorem h23l_lift_homeomorph {X Y : Type*} [TopologicalSpace X] [TopologicalSpac
     · simp only [hG0, id]
   exact ⟨⟨⟨F, G, congrFun hGF, congrFun hFG⟩, hFc, hGc⟩, rfl⟩
 
-/-- **Q1a** [P2, stub] In a holomorphic atlas, a holomorphic covering map `p₀ : ℍ → S₀` is conformal in the chart at
-`p₀ τ` near `τ`: on some open `U ∋ τ` inside `ℍ`, `p₀` maps into the source of that chart and `z ↦ φ_{p₀ τ}(p₀ z)` is
-`1`-q.c. (it is holomorphic, by `MDifferentiable` and the holomorphic compatibility of the charts, and injective near
-`τ` because a covering map is a local homeomorphism).  False without `[IsManifold 𝓘(ℂ) ω S₀]` (scout A's radial
-atlas). -/
+/-- **Q1a** [P2] In a holomorphic atlas, a holomorphic covering map `p₀ : ℍ → S₀` is conformal in the chart at `x`,
+for any `x` whose chart contains `p₀ τ`, near `τ`: on some open `U ∋ τ` inside `ℍ`, `p₀` maps into the source of that
+chart and `z ↦ φ_x(p₀ z)` is `1`-q.c. (it is holomorphic, by `MDifferentiable` and the holomorphic compatibility of
+the charts, and injective near `τ` because a covering map is a local homeomorphism).  The chart at `p₀ τ` itself is
+`x := p₀ τ`, `hτ := mem_chart_source ℂ _` (generalized 2026-09-27 from that case, absorbing S27's copy).  False without
+`[IsManifold 𝓘(ℂ) ω S₀]` (scout A's radial atlas). -/
 theorem h23l_chart_proj [IsManifold 𝓘(ℂ) ω S₀] {p₀ : UpperHalfPlane → S₀} (hcov : IsCoveringMap p₀)
-    (hhol : MDifferentiable 𝓘(ℂ) 𝓘(ℂ) p₀) (τ : UpperHalfPlane) :
+    (hhol : MDifferentiable 𝓘(ℂ) 𝓘(ℂ) p₀) (x : S₀) {τ : UpperHalfPlane} (hτ : p₀ τ ∈ (chartAt ℂ x).source) :
     ∃ U : Set ℂ, IsOpen U ∧ (τ : ℂ) ∈ U ∧ U ⊆ upperHalf ∧
-      (∀ z ∈ U, p₀ (UpperHalfPlane.ofComplex z) ∈ (chartAt ℂ (p₀ τ)).source) ∧
-      IsKQC (fun z => chartAt ℂ (p₀ τ) (p₀ (UpperHalfPlane.ofComplex z))) U 1 := by
+      (∀ z ∈ U, p₀ (UpperHalfPlane.ofComplex z) ∈ (chartAt ℂ x).source) ∧
+      IsKQC (fun z => chartAt ℂ x (p₀ (UpperHalfPlane.ofComplex z))) U 1 := by
   obtain ⟨e, hτe, hpe⟩ := hcov.isLocalHomeomorph τ
-  set W : Set UpperHalfPlane := e.source ∩ p₀ ⁻¹' (chartAt ℂ (p₀ τ)).source
+  set W : Set UpperHalfPlane := e.source ∩ p₀ ⁻¹' (chartAt ℂ x).source
   have hWo : IsOpen W := e.open_source.inter
-    (hcov.continuous.isOpen_preimage _ (chartAt ℂ (p₀ τ)).open_source)
+    (hcov.continuous.isOpen_preimage _ (chartAt ℂ x).open_source)
   set U : Set ℂ := upperHalf ∩ UpperHalfPlane.ofComplex ⁻¹' W
   have hsrc : UpperHalfPlane.ofComplex.source = upperHalf := by
     ext z
@@ -827,15 +818,15 @@ theorem h23l_chart_proj [IsManifold 𝓘(ℂ) ω S₀] {p₀ : UpperHalfPlane �
     refine ⟨τ.coe_im_pos, ?_⟩
     show UpperHalfPlane.ofComplex (τ : ℂ) ∈ W
     rw [UpperHalfPlane.ofComplex_apply]
-    exact ⟨hτe, mem_chart_source ℂ (p₀ τ)⟩
+    exact ⟨hτe, hτ⟩
   refine ⟨U, hUo, hτU, fun z hz => hz.1, fun z hz => hz.2.2, ?_⟩
   refine isKQC_one_of_conformal hUo ⟨fun z hz => ?_, fun z hz w hw hzw => ?_, rfl⟩
-  · have h1 : MDifferentiableAt 𝓘(ℂ) 𝓘(ℂ) (fun z => chartAt ℂ (p₀ τ) (p₀ (UpperHalfPlane.ofComplex z))) z :=
-      (mdifferentiableAt_atlas (chart_mem_atlas ℂ (p₀ τ)) hz.2.2).comp z
+  · have h1 : MDifferentiableAt 𝓘(ℂ) 𝓘(ℂ) (fun z => chartAt ℂ x (p₀ (UpperHalfPlane.ofComplex z))) z :=
+      (mdifferentiableAt_atlas (chart_mem_atlas ℂ x) hz.2.2).comp z
         ((hhol _).comp z (UpperHalfPlane.mdifferentiableAt_ofComplex hz.1))
     exact (mdifferentiableAt_iff_differentiableAt.1 h1).differentiableWithinAt
   · have h1 : p₀ (UpperHalfPlane.ofComplex z) = p₀ (UpperHalfPlane.ofComplex w) :=
-      (chartAt ℂ (p₀ τ)).injOn hz.2.2 hw.2.2 hzw
+      (chartAt ℂ x).injOn hz.2.2 hw.2.2 hzw
     rw [hpe] at h1
     have h2 := e.injOn hz.2.1 hw.2.1 h1
     rw [UpperHalfPlane.ofComplex_apply_of_im_pos hz.1, UpperHalfPlane.ofComplex_apply_of_im_pos hw.1] at h2
@@ -984,8 +975,10 @@ theorem h23l_lift_isKQC [IsManifold 𝓘(ℂ) ω S₀] [IsManifold 𝓘(ℂ) ω 
     {F : UpperHalfPlane ≃ₜ UpperHalfPlane} (hF : IsLift p₀ p₁ f F) : IsKQC (liftToC F) upperHalf K := by
   refine s23_lg isOpen_upperHalf hf.1 (h23l_liftToC_injOn F) fun z₀ hz₀ => ?_
   have hz₀' : 0 < z₀.im := hz₀
-  obtain ⟨U₀, hU₀o, hτU₀, hU₀H, hU₀s, hψ₀⟩ := h23l_chart_proj hp₀.1 hp₀.2.1 ⟨z₀, hz₀'⟩
-  obtain ⟨U₁, hU₁o, hτU₁, -, -, hψ₁⟩ := h23l_chart_proj hp₁.1 hp₁.2.1 (F ⟨z₀, hz₀'⟩)
+  obtain ⟨U₀, hU₀o, hτU₀, hU₀H, hU₀s, hψ₀⟩ :=
+    h23l_chart_proj (τ := ⟨z₀, hz₀'⟩) hp₀.1 hp₀.2.1 _ (mem_chart_source ℂ _)
+  obtain ⟨U₁, hU₁o, hτU₁, -, -, hψ₁⟩ :=
+    h23l_chart_proj (τ := (F ⟨z₀, hz₀'⟩)) hp₁.1 hp₁.2.1 _ (mem_chart_source ℂ _)
   have hFx : p₁ (F ⟨z₀, hz₀'⟩) = f (p₀ ⟨z₀, hz₀'⟩) := hF _
   -- the local identity `ψ₁ ∘ liftToC F = L ∘ ψ₀` on `U₀`
   have hkey : ∀ z ∈ U₀, chartAt ℂ (p₁ (F ⟨z₀, hz₀'⟩)) (p₁ (UpperHalfPlane.ofComplex (liftToC F z))) =
@@ -1055,20 +1048,7 @@ theorem lift_isKQC_automorphic [IsManifold 𝓘(ℂ) ω S₀] [IsManifold 𝓘(�
 
 /-! ### s36h Stage 2 batch D (coordinator 553e2d): helpers moved upstream from S24 (`k24_`), S36 (`c36_d_`, `h36t_`) -/
 
-/-- A real Möbius transformation of determinant `1` has its pole on the real axis: `c z + d ≠ 0` for `Im z ≠ 0`. -/
-theorem k24_d_den_ne_zero {a b c d : ℝ} (h : a * d - b * c = 1) {z : ℂ} (hz : z.im ≠ 0) :
-    (c : ℂ) * z + d ≠ 0 := by
-  intro h0
-  have him : c * z.im = 0 := by simpa using congrArg Complex.im h0
-  have hc : c = 0 := (mul_eq_zero.1 him).resolve_right hz
-  have hd : d = 0 := by simpa [hc] using congrArg Complex.re h0
-  rw [hc, hd, mul_zero, mul_zero, sub_zero] at h
-  exact zero_ne_one h
 
-/-- The determinant of `γ ∈ SL(2, ℝ)` in coordinates. -/
-theorem k24_det_realR (γ : Matrix.SpecialLinearGroup (Fin 2) ℝ) : γ 0 0 * γ 1 1 - γ 0 1 * γ 1 0 = 1 := by
-  have h := Matrix.SpecialLinearGroup.det_coe γ
-  rwa [Matrix.det_fin_two] at h
 
 /-! ### s36c track (coordinator 553e2d), part D: the geodesic homotopy (Cayley coordinates) -/
 
@@ -1340,16 +1320,7 @@ theorem c36_d_dist_right (p q : UpperHalfPlane) {t : ℝ} (ht1 : t ≤ 1) :
 
 /-! ### Moved from S36 (§36.1, `h36t_` block): `SL(2, ℝ)`-equivariance of the Cayley coordinates and the geodesic -/
 
-/-- `(g • τ : ℂ) = (a τ + b) / (c τ + d)` for `g ∈ SL(2, ℝ)`. -/
-theorem h36t_coe_smul (g : Matrix.SpecialLinearGroup (Fin 2) ℝ) (τ : UpperHalfPlane) :
-    ((g • τ : UpperHalfPlane) : ℂ) = ((g 0 0 : ℂ) * τ + g 0 1) / ((g 1 0 : ℂ) * τ + g 1 1) := by
-  rw [UpperHalfPlane.coe_specialLinearGroup_apply]
-  simp
 
-/-- The denominator `c τ + d` of `g ∈ SL(2, ℝ)` does not vanish on `ℍ`. -/
-theorem h36t_den_ne (g : Matrix.SpecialLinearGroup (Fin 2) ℝ) (τ : UpperHalfPlane) :
-    (g 1 0 : ℂ) * τ + g 1 1 ≠ 0 :=
-  k24_d_den_ne_zero (k24_det_realR g) τ.coe_im_pos.ne'
 
 /-- The unimodular factor `(c p̄ + d) / (c p + d)` relating the disc coordinates at `p` and `g p`. -/
 def h36t_omega (g : Matrix.SpecialLinearGroup (Fin 2) ℝ) (p : UpperHalfPlane) : ℂ :=
@@ -1587,30 +1558,140 @@ identity. -/
 theorem thm23_1_cor [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] {g : ℕ} (hg : 1 < g)
     (hS : HasGenus S₀ g) (φ : S₀ ≃ₜ S₀) (hφ : IsBiholomorphic φ)
     (hhom : ContinuousMap.Homotopic (φ : C(S₀, S₀)) (ContinuousMap.id S₀)) : ⇑φ = id := by
-  sorry
+  classical
+  letI : CompactSpace S₀ := hS.1
+  -- The verified S22 bridge uses the original genus and HasGenus hypotheses.
+  obtain ⟨Γ, p, _, _, hp⟩ :=
+    s22hg_exists_fuchsian_uniformization hg hS
+  have hsurj : Function.Surjective p :=
+    hp.2.2.1
+  obtain ⟨τ₁, hτ₁⟩ := hsurj (φ (p UpperHalfPlane.I))
+  obtain ⟨F, hF, _⟩ :=
+    exists_lift hp hp φ UpperHalfPlane.I τ₁ hτ₁
+  have hφQC : IsKQCRS φ 1 := (isKQCRS_one_iff φ).2 hφ
+  have hFQC : IsKQC (liftToC F) upperHalf 1 :=
+    h23l_lift_isKQC hp hp hφQC hF
+  obtain ⟨m, hFm⟩ :
+      ∃ m : Matrix.SpecialLinearGroup (Fin 2) ℝ,
+        ∀ τ : UpperHalfPlane, F τ = m • τ :=
+    utm_eq_smul_of_isKQC_one F hFQC
+  -- Use the identity homeomorphism and its identity lift in Theorem 23.1.
+  have hG :
+      IsLift p p (Homeomorph.refl S₀)
+        (Homeomorph.refl UpperHalfPlane) := by
+    intro τ
+    rfl
+  have hhom' :
+      ContinuousMap.Homotopic (φ : C(S₀, S₀))
+        ((Homeomorph.refl S₀ : S₀ ≃ₜ S₀) : C(S₀, S₀)) := hhom
+  obtain ⟨γ₁, hγ₁, hrel⟩ :=
+    (thm23_1_homotopy_iff hp hp φ (Homeomorph.refl S₀) hF hG).1 hhom'
+  have hrel' :
+      ∀ γ ∈ Γ, ∀ τ : UpperHalfPlane,
+        F (γ • F.symm τ) = γ₁ • (γ • (γ₁⁻¹ • τ)) := by
+    intro γ hγ τ
+    exact hrel γ hγ τ
+  -- Local normalization from UniformizedUniqueness.utm_cor_uniformized.
+  have hFs : ∀ τ : UpperHalfPlane, F.symm τ = m⁻¹ • τ := by
+    intro τ
+    apply F.injective
+    rw [F.apply_symm_apply, hFm, smul_inv_smul]
+  set M := γ₁⁻¹ * m with hMdef
+  have hM :
+      ∀ γ ∈ Γ, ∀ z : UpperHalfPlane,
+        M • γ • z = γ • M • z := by
+    intro γ hγ z
+    have h := hrel' γ hγ (m • z)
+    rw [hFs, inv_smul_smul, hFm] at h
+    rw [hMdef, mul_smul, mul_smul, h,
+      ← mul_smul γ₁⁻¹ γ₁, inv_mul_cancel, one_smul]
+  -- Reuse the later utm_exists_compact_translate proof locally, at Γ and p.
+  -- The covering is open; finitely many compact neighborhoods cover its quotient.
+  have hcompact :
+      ∃ K : Set UpperHalfPlane, IsCompact K ∧
+        ∀ z : UpperHalfPlane, ∃ γ ∈ Γ, γ • z ∈ K := by
+    obtain ⟨hcov, _, hpSurj, hfib⟩ := hp
+    have hopen : IsOpenMap p := hcov.isLocalHomeomorph.isOpenMap
+    choose N hNc hNn using
+      fun τ : UpperHalfPlane => exists_compact_mem_nhds τ
+    have hcover :
+        (univ : Set S₀) ⊆ ⋃ τ : UpperHalfPlane, p '' interior (N τ) := by
+      intro s _
+      obtain ⟨τ, rfl⟩ := hpSurj s
+      exact mem_iUnion.2
+        ⟨τ, τ, mem_interior_iff_mem_nhds.2 (hNn τ), rfl⟩
+    obtain ⟨t, ht⟩ :=
+      isCompact_univ.elim_finite_subcover
+        (fun τ => p '' interior (N τ))
+        (fun τ => hopen _ isOpen_interior) hcover
+    refine ⟨⋃ τ ∈ t, N τ,
+      t.isCompact_biUnion (fun τ _ => hNc τ), fun z => ?_⟩
+    obtain ⟨τ, hτ, k, hk, hkz⟩ :
+        ∃ τ ∈ t, ∃ k ∈ interior (N τ), p k = p z := by
+      have hs := ht (mem_univ (p z))
+      simp only [mem_iUnion] at hs
+      obtain ⟨τ, hτ, k, hk, hkz⟩ := hs
+      exact ⟨τ, hτ, k, hk, hkz⟩
+    obtain ⟨γ, hγ, hγz⟩ := (hfib z k).1 hkz.symm
+    exact ⟨γ, hγ,
+      mem_biUnion hτ (interior_subset (hγz ▸ hk))⟩
+  -- Reuse the later utm_commute_eq_one displacement argument locally.
+  -- The global bounded-displacement matrix theorem is already imported from S22.
+  have hcentral : M = 1 ∨ M = -1 := by
+    obtain ⟨K, hK, hKz⟩ := hcompact
+    have hcont :
+        Continuous (fun z : UpperHalfPlane => dist (M • z) z) :=
+      (continuous_const_smul M).dist continuous_id
+    obtain ⟨C, hC⟩ := (hK.image hcont).isBounded.bddAbove
+    refine utm_sl2_eq_of_bounded_displacement M (C := C) ?_
+    intro z
+    obtain ⟨γ, hγ, hγz⟩ := hKz z
+    have hinv :
+        dist (M • γ • z) (γ • z) = dist (M • z) z := by
+      rw [hM γ hγ z, dist_smul]
+    rw [← hinv]
+    exact hC ⟨γ • z, hγz, rfl⟩
+  -- Local real-SL2 sign action, from UniformizedUniqueness.utm_neg_one_smul.
+  -- No imported lemma for the integer modular group is substituted here.
+  have hneg :
+      ∀ z : UpperHalfPlane,
+        (-1 : Matrix.SpecialLinearGroup (Fin 2) ℝ) • z = z := by
+    intro z
+    ext1
+    rw [h36t_coe_smul]
+    simp only [Matrix.SpecialLinearGroup.coe_neg,
+      Matrix.SpecialLinearGroup.coe_one, Matrix.neg_apply,
+      Matrix.one_apply_eq,
+      Matrix.one_apply_ne (by decide : (0 : Fin 2) ≠ 1),
+      Matrix.one_apply_ne (by decide : (1 : Fin 2) ≠ 0), neg_zero]
+    push_cast
+    have hz :
+        ((-1 : ℂ) * z + 0) / (0 * z + -1) = (z : ℂ) := by
+      rw [zero_mul, zero_add, add_zero, div_neg, div_one,
+        neg_mul, one_mul, neg_neg]
+    exact hz
+  -- A normalized matrix ±1 acts as identity, so F is the deck action γ₁.
+  have hFγ : ∀ τ : UpperHalfPlane, F τ = γ₁ • τ := by
+    intro τ
+    have hm : m = γ₁ * M := by
+      rw [hMdef, ← mul_assoc, mul_inv_cancel, one_mul]
+    rw [hFm, hm, mul_smul]
+    rcases hcentral with h | h
+    · rw [h, one_smul]
+    · rw [h, hneg]
+  -- Descend the identity through the same actual surjective projection p.
+  funext s
+  obtain ⟨τ, rfl⟩ := hsurj s
+  calc
+    φ (p τ) = p (F τ) := (hF τ).symm
+    _ = p (γ₁ • τ) := congrArg p (hFγ τ)
+    _ = p τ :=
+      ((hp.2.2.2 τ (γ₁ • τ)).2 ⟨γ₁, hγ₁, rfl⟩).symm
+    _ = id (p τ) := rfl
 
 /-! ### Helpers moved up from `Lemmas/UniformizedTeichmuller` and S35 (s27t stage T, leader decision): the lift of a
 biholomorphic map is Möbius, bounded displacement, the Cayley rotation lemmas -/
 
-/-- The inverse Cayley transform `w ↦ i(1 + w)/(1 - w)` maps the unit disc conformally onto the upper half-plane. -/
-theorem s35a_x_isConformalOnto_cayleyInv : IsConformalOnto cayleyInv unitDisc upperHalf := by
-  refine ⟨?_, fun w₁ h₁ w₂ h₂ heq => ?_, ?_⟩
-  · intro w hw
-    have hden := cayleyInv_den_ne_zero (mem_ball_zero_iff.mp hw)
-    refine DifferentiableAt.differentiableWithinAt ?_
-    have hfun : cayleyInv = fun v : ℂ => I * (1 + v) / (1 - v) := rfl
-    rw [hfun]
-    exact (by fun_prop : DifferentiableAt ℂ (fun v : ℂ => I * (1 + v)) w).div
-      (by fun_prop : DifferentiableAt ℂ (fun v : ℂ => 1 - v) w) hden
-  · calc w₁ = cayley (cayleyInv w₁) := (cayley_cayleyInv (mem_ball_zero_iff.mp h₁)).symm
-      _ = cayley (cayleyInv w₂) := by rw [heq]
-      _ = w₂ := cayley_cayleyInv (mem_ball_zero_iff.mp h₂)
-  · ext z
-    constructor
-    · rintro ⟨w, hw, rfl⟩
-      exact cayleyInv_mem_upperHalf (mem_ball_zero_iff.mp hw)
-    · intro hz
-      exact ⟨cayley z, cayley_mem_unitDisc hz, cayleyInv_cayley hz⟩
 
 section UTMMoved
 
@@ -1618,172 +1699,7 @@ open scoped UpperHalfPlane
 
 open UpperHalfPlane
 
-/-- `Im((a z + b)/(c z + d)) = Im z / |c z + d|²` for real `a, b, c, d` with `a d - b c = 1`. -/
-theorem utm_im_mobius {a b c d : ℝ} (hdet : a * d - b * c = 1) (z : ℂ) :
-    (((a : ℂ) * z + b) / ((c : ℂ) * z + d)).im = z.im / Complex.normSq ((c : ℂ) * z + d) := by
-  rw [Complex.div_im]
-  simp only [Complex.add_re, Complex.add_im, Complex.re_ofReal_mul, Complex.im_ofReal_mul,
-    Complex.ofReal_re, Complex.ofReal_im, add_zero]
-  rw [div_sub_div_same]
-  congr 1
-  linear_combination z.im * hdet
 
-/-- **A non-`±1` element of `SL(2, ℝ)` has unbounded displacement on `ℍ`.**  (From `cosh_dist'`:
-`(Re w - Re z)² + (Im z)² + (Im w)² ≤ 2 cosh C · Im z · Im w` for `w = m z`; `c ≠ 0` fails for `z = iy`, `y` large;
-`c = 0`, `a² ≠ 1` fails for `Im z = 1`, `Re z` large; `c = 0`, `a² = 1`, `b ≠ 0` fails for `Im z` small.) -/
-theorem utm_sl2_eq_of_bounded_displacement (m : Matrix.SpecialLinearGroup (Fin 2) ℝ) {C : ℝ}
-    (hC : ∀ z : ℍ, dist (m • z) z ≤ C) : m = 1 ∨ m = -1 := by
-  have e1 : (m : Matrix (Fin 2) (Fin 2) ℝ) = !![m 0 0, m 0 1; m 1 0, m 1 1] := Matrix.eta_fin_two _
-  obtain ⟨a, ha⟩ : ∃ a, m 0 0 = a := ⟨_, rfl⟩
-  obtain ⟨b, hb⟩ : ∃ b, m 0 1 = b := ⟨_, rfl⟩
-  obtain ⟨c, hc⟩ : ∃ c, m 1 0 = c := ⟨_, rfl⟩
-  obtain ⟨d, hd⟩ : ∃ d, m 1 1 = d := ⟨_, rfl⟩
-  rw [ha, hb, hc, hd] at e1
-  have hdet : a * d - b * c = 1 := by
-    have h := m.det_coe
-    rw [e1, Matrix.det_fin_two_of] at h
-    exact h
-  set B := Real.cosh C with hB
-  have hB1 : 1 ≤ B := Real.one_le_cosh C
-  -- the key inequality at every point
-  have key : ∀ z : ℍ, ((m • z).re - z.re) ^ 2 + (m • z).im ^ 2 + z.im ^ 2 ≤ 2 * B * (m • z).im * z.im := by
-    intro z
-    have h1 : Real.cosh (dist (m • z) z) ≤ B := by
-      rw [hB, Real.cosh_le_cosh, abs_of_nonneg dist_nonneg]
-      exact (hC z).trans (le_abs_self C)
-    rw [cosh_dist'] at h1
-    have hpos : 0 < 2 * (m • z).im * z.im := by have := (m • z).im_pos; have := z.im_pos; positivity
-    rw [div_le_iff₀ hpos] at h1
-    linarith
-  -- the action in coordinates
-  have hcoe : ∀ z : ℍ, ((m • z : ℍ) : ℂ) = ((a : ℂ) * z + b) / ((c : ℂ) * z + d) := fun z => by
-    rw [h36t_coe_smul, ha, hb, hc, hd]
-  have him : ∀ z : ℍ, (m • z).im = z.im / Complex.normSq ((c : ℂ) * z + d) := fun z => by
-    rw [show (m • z).im = ((m • z : ℍ) : ℂ).im from rfl, hcoe z, utm_im_mobius hdet]
-    rfl
-  by_cases hc0 : c = 0
-  · -- `c = 0`: `m z = a² z + a b`
-    have had : a * d = 1 := by rw [hc0, mul_zero, sub_zero] at hdet; exact hdet
-    have hd0 : d ≠ 0 := right_ne_zero_of_mul_eq_one had
-    have ha0 : a ≠ 0 := left_ne_zero_of_mul_eq_one had
-    have hda : d⁻¹ = a := by
-      field_simp
-      linarith
-    have hw : ∀ z : ℍ, ((m • z : ℍ) : ℂ) = ((a ^ 2 : ℝ) : ℂ) * z + ((a * b : ℝ) : ℂ) := by
-      intro z
-      rw [hcoe z, hc0]
-      push_cast
-      rw [zero_mul, zero_add, div_eq_mul_inv, ← Complex.ofReal_inv, hda]
-      ring
-    have hre : ∀ z : ℍ, (m • z).re = a ^ 2 * z.re + a * b := by
-      intro z
-      have h := congrArg Complex.re (hw z)
-      rw [Complex.add_re, Complex.re_ofReal_mul, Complex.ofReal_re] at h
-      exact h
-    have him' : ∀ z : ℍ, (m • z).im = a ^ 2 * z.im := by
-      intro z
-      have h := congrArg Complex.im (hw z)
-      rw [Complex.add_im, Complex.im_ofReal_mul, Complex.ofReal_im, add_zero] at h
-      exact h
-    -- `((a² - 1) x + a b)² ≤ 2 B a² y²`
-    have hineq : ∀ z : ℍ, ((a ^ 2 - 1) * z.re + a * b) ^ 2 ≤ 2 * B * a ^ 2 * z.im ^ 2 := by
-      intro z
-      have h := key z
-      rw [hre z, him' z] at h
-      nlinarith [sq_nonneg (a ^ 2 * z.im), sq_nonneg z.im]
-    have ha2 : a ^ 2 = 1 := by
-      by_contra hne
-      have hne' : a ^ 2 - 1 ≠ 0 := sub_ne_zero.2 hne
-      set N : ℝ := 2 * B * a ^ 2 + 1 with hN
-      set x : ℝ := (N - a * b) / (a ^ 2 - 1) with hx
-      have h := hineq (UpperHalfPlane.mk ((x : ℂ) + Complex.I) (by simp))
-      have hre' : (UpperHalfPlane.mk ((x : ℂ) + Complex.I) (by simp)).re = x := by
-        show ((x : ℂ) + Complex.I).re = x
-        simp
-      have him'' : (UpperHalfPlane.mk ((x : ℂ) + Complex.I) (by simp)).im = 1 := by
-        show ((x : ℂ) + Complex.I).im = 1
-        simp
-      rw [hre', him''] at h
-      have hxe : (a ^ 2 - 1) * x + a * b = N := by
-        rw [hx]
-        field_simp
-        ring
-      rw [hxe] at h
-      have hN1 : 1 ≤ N := by
-        have : 0 ≤ 2 * B * a ^ 2 := by positivity
-        linarith
-      nlinarith
-    have hab : a * b = 0 := by
-      by_contra hne
-      set y : ℝ := |a * b| / (2 * B + 1) with hy
-      have hy0 : 0 < y := div_pos (abs_pos.2 hne) (by linarith)
-      have h := hineq (UpperHalfPlane.mk ((y : ℂ) * Complex.I) (by simpa using hy0))
-      have hre' : (UpperHalfPlane.mk ((y : ℂ) * Complex.I) (by simpa using hy0)).re = 0 := by
-        show ((y : ℂ) * Complex.I).re = 0
-        simp
-      have him'' : (UpperHalfPlane.mk ((y : ℂ) * Complex.I) (by simpa using hy0)).im = y := by
-        show ((y : ℂ) * Complex.I).im = y
-        simp
-      rw [hre', him'', ha2] at h
-      simp only [mul_zero, zero_add, mul_one] at h
-      -- `(ab)² ≤ 2 B y² = 2 B (ab)²/(2B+1)² < (ab)²`
-      have habs : 0 < |a * b| := abs_pos.2 hne
-      have h2B : 0 < 2 * B + 1 := by linarith
-      have hyy : y * (2 * B + 1) = |a * b| := by rw [hy]; field_simp
-      have hsq : (a * b) ^ 2 = |a * b| ^ 2 := (sq_abs _).symm
-      rw [hsq, ← hyy] at h
-      have : 0 < y ^ 2 := by positivity
-      nlinarith
-    have hb0 : b = 0 := by
-      rcases mul_eq_zero.1 hab with h | h
-      · exact absurd h ha0
-      · exact h
-    have hda' : d = a := by
-      have h1 : a * a = 1 := by nlinarith
-      have h2 : a * d = a * a := by rw [had, h1]
-      exact mul_left_cancel₀ ha0 h2
-    rcases mul_eq_zero.1 (show (a - 1) * (a + 1) = 0 by nlinarith) with h1 | h1
-    · left
-      have ha1 : a = 1 := by linarith
-      apply Subtype.ext
-      rw [e1, Matrix.SpecialLinearGroup.coe_one, hb0, hc0, hda', ha1]
-      exact Matrix.one_fin_two.symm
-    · right
-      have ha1 : a = -1 := by linarith
-      apply Subtype.ext
-      rw [e1, Matrix.SpecialLinearGroup.coe_neg, Matrix.SpecialLinearGroup.coe_one, hb0, hc0, hda', ha1,
-        Matrix.one_fin_two]
-      ext i j
-      fin_cases i <;> fin_cases j <;> simp
-  · -- `c ≠ 0`: at `z = i y`, `Im(m z) = y/(d² + c² y²)` while `y ≤ 2 B Im(m z)`
-    exfalso
-    set y : ℝ := (2 * B + 1) / |c| with hy
-    have hy0 : 0 < y := div_pos (by linarith) (abs_pos.2 hc0)
-    set z : ℍ := UpperHalfPlane.mk ((y : ℂ) * Complex.I) (by simpa using hy0) with hz
-    have hzim : z.im = y := by
-      show ((y : ℂ) * Complex.I).im = y
-      simp
-    have hD : Complex.normSq ((c : ℂ) * z + d) = d ^ 2 + c ^ 2 * y ^ 2 := by
-      show Complex.normSq ((c : ℂ) * ((y : ℂ) * Complex.I) + d) = _
-      rw [Complex.normSq_apply]
-      simp
-      ring
-    have h := key z
-    rw [him z, hD, hzim] at h
-    have hDpos : 0 < d ^ 2 + c ^ 2 * y ^ 2 := by
-      have : 0 < c ^ 2 := lt_of_le_of_ne (sq_nonneg c) (Ne.symm (pow_ne_zero 2 hc0))
-      positivity
-    have h1 : y * y ≤ 2 * B * (y / (d ^ 2 + c ^ 2 * y ^ 2)) * y := by
-      nlinarith [sq_nonneg ((m • z).re - z.re), sq_nonneg (y / (d ^ 2 + c ^ 2 * y ^ 2))]
-    have h2 : y ≤ 2 * B * (y / (d ^ 2 + c ^ 2 * y ^ 2)) := le_of_mul_le_mul_right h1 hy0
-    have h3 : d ^ 2 + c ^ 2 * y ^ 2 ≤ 2 * B := by
-      rw [mul_div_assoc', le_div_iff₀ hDpos] at h2
-      nlinarith
-    have hcy : c ^ 2 * y ^ 2 = (2 * B + 1) ^ 2 := by
-      rw [hy, div_pow, sq_abs]
-      have : c ^ 2 ≠ 0 := pow_ne_zero 2 hc0
-      field_simp
-    nlinarith [sq_nonneg d]
 
 /-- **Compact quotient.**  If `p : ℍ → S` uniformizes a compact `S`, some compact `K ⊆ ℍ` meets every
 `Γ`-orbit. -/
@@ -1824,121 +1740,10 @@ theorem utm_commute_eq_one {S : Type*} [TopologicalSpace S] [ChartedSpace ℂ S]
   rw [← hinv]
   exact hC ⟨γ • z, hγz, rfl⟩
 
-/-- `p² + q² = 1` for `p = Re u`, `q = Im u`, `|u| = 1`. -/
-theorem utm_re_sq_add_im_sq {u : ℂ} (hu : ‖u‖ = 1) : u.re ^ 2 + u.im ^ 2 = 1 := by
-  have h : u.re * u.re + u.im * u.im = 1 := by
-    rw [← Complex.normSq_apply, Complex.normSq_eq_norm_sq, hu, one_pow]
-  nlinarith [h]
 
-/-- The rotation `!![p, q; -q, p]` (`p² + q² = 1`) of `ℍ` about `i`. -/
-def utm_rot (u : ℂ) (hu : ‖u‖ = 1) : Matrix.SpecialLinearGroup (Fin 2) ℝ :=
-  ⟨!![u.re, u.im; -u.im, u.re], by
-    rw [Matrix.det_fin_two_of]
-    have h := utm_re_sq_add_im_sq hu
-    nlinarith [h]⟩
 
-/-- The algebra behind `utm_cayley_rot`. -/
-theorem utm_cayley_rot_alg {p q : ℝ} (hpq : p ^ 2 + q ^ 2 = 1) {τ : ℂ}
-    (hden : -(q : ℂ) * τ + p ≠ 0) :
-    cayley (((p : ℂ) * τ + q) / (-(q : ℂ) * τ + p)) = ((p : ℂ) + q * Complex.I) ^ 2 * cayley τ := by
-  have hpq' : (p : ℂ) ^ 2 + (q : ℂ) ^ 2 = 1 := by exact_mod_cast hpq
-  set N : ℂ := (p : ℂ) * τ + q
-  set Dn : ℂ := -(q : ℂ) * τ + p
-  have e1 : N - Complex.I * Dn = ((p : ℂ) + q * Complex.I) * (τ - Complex.I) := by
-    simp only [N, Dn]
-    linear_combination (q : ℂ) * Complex.I_sq
-  have e2 : N + Complex.I * Dn = ((p : ℂ) - q * Complex.I) * (τ + Complex.I) := by
-    simp only [N, Dn]
-    linear_combination (q : ℂ) * Complex.I_sq
-  have e3 : ((p : ℂ) + q * Complex.I) * ((p : ℂ) - q * Complex.I) = 1 := by
-    linear_combination hpq' - (q : ℂ) ^ 2 * Complex.I_sq
-  have hm : (p : ℂ) - q * Complex.I ≠ 0 := right_ne_zero_of_mul_eq_one e3
-  have hc : cayley (N / Dn) = (N - Complex.I * Dn) / (N + Complex.I * Dn) := by
-    unfold cayley
-    rw [div_sub' hden, div_add' _ _ _ hden, div_div_div_cancel_right₀ hden]
-    ring_nf
-  rw [hc, e1, e2, mul_div_mul_comm]
-  have e4 : ((p : ℂ) + q * Complex.I) / ((p : ℂ) - q * Complex.I) = ((p : ℂ) + q * Complex.I) ^ 2 := by
-    rw [div_eq_iff hm]
-    linear_combination (-((p : ℂ) + q * Complex.I)) * e3
-  rw [e4]
-  rfl
 
-/-- The Cayley conjugate of the rotation `utm_rot u` is `w ↦ u² w`. -/
-theorem utm_cayley_rot (u : ℂ) (hu : ‖u‖ = 1) (τ : ℍ) :
-    cayley ((utm_rot u hu • τ : ℍ) : ℂ) = u ^ 2 * cayley τ := by
-  have hcoe : ((utm_rot u hu • τ : ℍ) : ℂ) = ((u.re : ℂ) * τ + u.im) / (-(u.im : ℂ) * τ + u.re) := by
-    rw [h36t_coe_smul]
-    simp [utm_rot]
-  have hden : -(u.im : ℂ) * τ + u.re ≠ 0 := by
-    have := h36t_den_ne (utm_rot u hu) τ
-    simpa [utm_rot] using this
-  rw [hcoe, utm_cayley_rot_alg (utm_re_sq_add_im_sq hu) hden,
-    Complex.re_add_im]
 
-/-- **The lift of a conformal automorphism is Möbius.**  A self-homeomorphism `F` of `ℍ` whose lift
-`liftToC F` is `1`-quasiconformal on `ℍ` is the action of some `m ∈ SL(2, ℝ)`. -/
-theorem utm_eq_smul_of_isKQC_one (F : ℍ ≃ₜ ℍ) (hF : IsKQC (liftToC F) upperHalf 1) :
-    ∃ m : Matrix.SpecialLinearGroup (Fin 2) ℝ, ∀ τ, F τ = m • τ := by
-  set G := liftToC F with hG
-  have hGτ : ∀ τ : ℍ, G (τ : ℂ) = (F τ : ℂ) := by
-    intro τ
-    simp only [hG, liftToC, τ.coe_im_pos, ↓reduceDIte]
-  have himg : G '' upperHalf = upperHalf := by
-    ext w
-    constructor
-    · rintro ⟨z, hz, rfl⟩
-      have h := hGτ ⟨z, hz⟩
-      change G z = _ at h
-      rw [h]
-      exact (F ⟨z, hz⟩).coe_im_pos
-    · intro hw
-      obtain ⟨τ, hτ⟩ := F.surjective ⟨w, hw⟩
-      refine ⟨τ, τ.coe_im_pos, ?_⟩
-      rw [hGτ, hτ]
-  have hconf : IsConformalOnto G upperHalf upperHalf := by
-    have h := thm7_3_one_qc_conformal hF
-    rwa [himg] at h
-  -- move `F I` back to `I`
-  obtain ⟨m₀, hm₀⟩ := MulAction.exists_smul_eq (Matrix.SpecialLinearGroup (Fin 2) ℝ) (F UpperHalfPlane.I)
-    UpperHalfPlane.I
-  have hdet : 0 < m₀ 0 0 * m₀ 1 1 - m₀ 0 1 * m₀ 1 0 := by
-    have h := m₀.det_coe
-    rw [Matrix.det_fin_two] at h
-    rw [h]
-    exact one_pos
-  have hT := isConformalOnto_mobius_upperHalf hdet
-  have hTτ : ∀ τ : ℍ, mobiusFn (m₀ 0 0) (m₀ 0 1) (m₀ 1 0) (m₀ 1 1) (τ : ℂ) = ((m₀ • τ : ℍ) : ℂ) := by
-    intro τ
-    rw [h36t_coe_smul]
-    rfl
-  -- the Cayley conjugate fixes `0`, hence is a rotation
-  set g : ℂ → ℂ := cayley ∘ (mobiusFn (m₀ 0 0) (m₀ 0 1) (m₀ 1 0) (m₀ 1 1) ∘ G) ∘ cayleyInv with hgdef
-  have hg : IsConformalOnto g unitDisc unitDisc :=
-    isConformalOnto_cayley.comp ((hT.comp hconf).comp s35a_x_isConformalOnto_cayleyInv)
-  have hI : cayleyInv 0 = ((UpperHalfPlane.I : ℍ) : ℂ) := by
-    simp [cayleyInv, UpperHalfPlane.coe_I]
-  have hg0 : g 0 = 0 := by
-    simp only [hgdef, Function.comp]
-    rw [hI, hGτ, hTτ, hm₀]
-    simp [cayley, UpperHalfPlane.coe_I]
-  obtain ⟨c', hc'1, hc'⟩ := exists_rotation_of_isConformalOnto_fix_zero hg hg0
-  obtain ⟨u, hu⟩ := IsAlgClosed.exists_pow_nat_eq c' (by norm_num : 0 < 2)
-  have hu1 : ‖u‖ = 1 := by
-    have h := congrArg norm hu
-    rw [norm_pow, hc'1] at h
-    exact (pow_eq_one_iff_of_nonneg (norm_nonneg u) two_ne_zero).1 h
-  refine ⟨m₀⁻¹ * utm_rot u hu1, fun τ => ?_⟩
-  have h1 : cayley ((m₀ • F τ : ℍ) : ℂ) = cayley ((utm_rot u hu1 • τ : ℍ) : ℂ) := by
-    have h := hc' (cayley_mem_unitDisc τ.im_pos)
-    simp only [hgdef, Function.comp] at h
-    rw [cayleyInv_cayley τ.im_pos, hGτ, hTτ] at h
-    rw [h, utm_cayley_rot, hu]
-  have h2 : m₀ • F τ = utm_rot u hu1 • τ := by
-    apply UpperHalfPlane.ext
-    have h := congrArg cayleyInv h1
-    rwa [cayleyInv_cayley (m₀ • F τ).im_pos, cayleyInv_cayley (utm_rot u hu1 • τ).im_pos] at h
-  rw [mul_smul, ← h2, inv_smul_smul]
 
 end UTMMoved
 

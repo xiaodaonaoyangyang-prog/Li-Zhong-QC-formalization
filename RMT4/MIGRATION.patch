@@ -1,0 +1,58 @@
+--- a/RMT4/cindex.lean
++++ b/RMT4/cindex.lean
+@@ -41,9 +41,9 @@
+   refine ContinuousAt.eventually_ne ?h (hp.iterate_dslope_fslope_ne_zero h)
+   obtain ⟨r, hf⟩ := hp
+   have hr : 0 < r := hf.r_pos
+-  refine ContinuousOn.continuousAt ?h1 (EMetric.ball_mem_nhds _ hr)
+-  have hh : DifferentiableOn ℂ (iterate (swap dslope z₀) p.order f) (EMetric.ball z₀ r) :=
+-    DifferentiableOn.iterate_dslope hf.differentiableOn EMetric.isOpen_ball (EMetric.mem_ball_self hr)
++  refine ContinuousOn.continuousAt ?h1 (Metric.eball_mem_nhds _ hr)
++  have hh : DifferentiableOn ℂ (iterate (swap dslope z₀) p.order f) (Metric.eball z₀ r) :=
++    DifferentiableOn.iterate_dslope hf.differentiableOn Metric.isOpen_eball (Metric.mem_eball_self hr)
+   exact hh.continuousOn
+ 
+ end dslope
+@@ -70,7 +70,7 @@
+     ∀ᶠ z in 𝓝 z₀, z ≠ z₀ → deriv f z / f z = p.order / (z - z₀) + deriv g z / g z := by
+   intro g
+   obtain ⟨r, h2⟩ := hp.has_fpower_series_iterate_dslope_fslope p.order
+-  have lh1 := h2.differentiableOn.eventually_differentiableAt (EMetric.ball_mem_nhds _ h2.r_pos)
++  have lh1 := h2.differentiableOn.eventually_differentiableAt (Metric.eball_mem_nhds _ h2.r_pos)
+   have lh2 := hp.dslope_order_eventually_ne_zero h
+   have lh3 : ∀ᶠ z in 𝓝 z₀, ∀ᶠ y in 𝓝 z, f y = (y - z₀) ^ p.order • g y :=
+     eventually_eventually_nhds.mpr (.of_forall hp.eq_pow_order_mul_iterate_dslope)
+--- a/RMT4/to_mathlib.lean
++++ b/RMT4/to_mathlib.lean
+@@ -27,8 +27,7 @@
+     (φ_lip : ∀ t ∈ Ioc a b, LipschitzOnWith (Real.nnabs C) (λ x => φ x t) (ball z₀ δ))
+     (ψ_cts : ContinuousOn ψ (Ioc a b)) :
+     HasDerivAt (λ z => ∫ t in a..b, φ z t) (∫ t in a..b, ψ t) z₀ := by
+-  simp only [intervalIntegral, not_lt, hab, Ioc_eq_empty, Measure.restrict_empty,
+-    integral_zero_measure, sub_zero]
++  simp only [intervalIntegral.integral_of_le hab]
+   let μ : Measure ℝ := volume.restrict (Ioc a b)
+   have h1 : ∀ᶠ z in 𝓝 z₀, AEStronglyMeasurable (φ z) μ :=
+     φ_cts.mono (λ z h => (h.mono Ioc_subset_Icc_self).aestronglyMeasurable measurableSet_Ioc)
+@@ -40,7 +39,9 @@
+   have h5 : Integrable (λ _ => C) μ := integrable_const _
+   have h6 : ∀ᵐ t ∂μ, HasDerivAt (λ z => φ z t) (ψ t) z₀ :=
+     (ae_restrict_iff' measurableSet_Ioc).mpr (Eventually.of_forall φ_der)
+-  exact (hasDerivAt_integral_of_dominated_loc_of_lip (Metric.ball_mem_nhds z₀ δ_pos) h1 h2 h3 h4 h5 h6).2
++  exact (hasDerivAt_integral_of_dominated_loc_of_lip
++    (μ := μ) (F := φ) (F' := ψ) (bound := fun _ : ℝ => C)
++    (Metric.ball_mem_nhds z₀ δ_pos) h1 h2 h3 h4 h5 h6).2
+ 
+ section uIoo
+ 
+--- a/RMT4/etape2.lean
++++ b/RMT4/etape2.lean
+@@ -72,7 +72,7 @@
+       have h2 : MapsTo g (ball 0 1) (closedBall (g 0) 1) :=
+         (by rwa [g_0_eq_0] : MapsTo g (ball 0 1) (ball (g 0) 1)).mono_right Metric.ball_subset_closedBall
+       have h1 : Set.EqOn g (fun z => g 0 + (z - 0) • dslope g 0 0) (Metric.ball 0 1) := by
+-        apply affine_of_mapsTo_ball_of_exists_norm_dslope_eq_div g_diff h2 (mem_ball_self zero_lt_one)
++        apply affine_of_mapsTo_ball_of_norm_dslope_eq_div g_diff h2 (mem_ball_self zero_lt_one)
+         rwa [dslope_same, div_one]
+       convert h1 using 1
+       ext1 z

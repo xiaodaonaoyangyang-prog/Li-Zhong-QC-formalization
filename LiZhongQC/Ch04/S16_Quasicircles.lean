@@ -6,7 +6,7 @@ import LiZhongQC.Ch03.S15_Distortion
 * Definition 16.1 (`K`-quasicircles and `K`-quasidiscs)   — `IsKQuasicircle`, `IsKQuasidisc`
 * Theorem 16.1 (the three point condition (16.1))         — `thm16_1_three_point`
 * examples: a curve with a cusp is not a quasicircle; ellipses; quasicircles of Hausdorff
-  dimension close to `2`
+  dimension close to `2` (stated and proved in `Lemmas/KochQuasicircle.lean`, user decision 2026-09-27)
 * Definition 16.2 (quasiconformal reflection)            — `IsQCReflection`
 * Theorem 16.2 (quasicircles ⇔ existence of a q.c. reflection) — `thm16_2`
 * Theorem 16.3 (conformal welding)                       — `thm16_3_welding`
@@ -743,13 +743,6 @@ theorem ellipse_isKQuasicircle {a b : ℝ} (hb : 0 < b) (hab : b ≤ a) :
     exact image_congr fun x _ => hMcoe x
   rw [hmap, hMob, himg]
 
-/-- §16.1: there are quasicircles whose Hausdorff dimension is arbitrarily close to `2` (in
-particular quasicircles need not be locally rectifiable). -/
-theorem quasicircle_hausdorff_dim_near_two {ε : ℝ} (hε : 0 < ε) :
-    ∃ C : Set ExtPlane, IsQuasicircle C ∧
-      (2 : ℝ≥0∞) - ENNReal.ofReal ε < dimH {z : ℂ | (z : ExtPlane) ∈ C} := by
-  sorry
-
 /-- The point of `ℂ` represented by a point of `ℂ̄` (`∞ ↦ 0`, a junk value). -/
 def extToC (p : ExtPlane) : ℂ := OnePoint.elim p 0 id
 
@@ -767,11 +760,985 @@ def AreComplementaryComponents (C A₁ A₂ : Set ExtPlane) : Prop :=
   IsJordanCurve C ∧ ∃ p₁ ∈ Cᶜ, ∃ p₂ ∈ Cᶜ, A₁ = connectedComponentIn Cᶜ p₁ ∧
     A₂ = connectedComponentIn Cᶜ p₂ ∧ A₁ ≠ A₂
 
+/-- A point of `ℂ̄` is `∞`, real, in `ℍ` or in `𝕃`. -/
+theorem wd_b_cases (p : ExtPlane) :
+    p = extInf ∨ (∃ x : ℝ, p = (((x : ℝ) : ℂ) : ExtPlane)) ∨ (∃ z ∈ upperHalf, p = (z : ExtPlane)) ∨
+      ∃ z ∈ lowerHalf, p = (z : ExtPlane) := by
+  induction p using OnePoint.rec with
+  | infty => exact Or.inl rfl
+  | coe z =>
+    rcases lt_trichotomy z.im 0 with hlt | heq | hgt
+    · exact Or.inr (Or.inr (Or.inr ⟨z, hlt, rfl⟩))
+    · refine Or.inr (Or.inl ⟨z.re, ?_⟩)
+      congr 1
+      exact Complex.ext (by simp) (by simp [heq])
+    · exact Or.inr (Or.inr (Or.inl ⟨z, hgt, rfl⟩))
+
+/-- `∞` lies in the closure of `ℍ` in `ℂ̄`. -/
+theorem wd_b_infty_mem_closure_upper : extInf ∈ closure (toExt upperHalf) :=
+  frontier_subset_closure infty_mem_frontier_upperHalf
+
+/-- A real point lies in the closure of `ℍ` in `ℂ̄`. -/
+theorem wd_b_real_mem_closure_upper (x : ℝ) : (((x : ℝ) : ℂ) : ExtPlane) ∈ closure (toExt upperHalf) :=
+  frontier_subset_closure (ofReal_mem_frontier_upperHalf x)
+
+/-- A real point lies in the closure of `𝕃` in `ℂ̄`. -/
+theorem wd_b_real_mem_closure_lower (x : ℝ) : (((x : ℝ) : ℂ) : ExtPlane) ∈ closure (toExt lowerHalf) := by
+  have h1 : (x : ℂ) ∈ closure lowerHalf := by
+    rw [show lowerHalf = {z : ℂ | z.im < 0} from rfl, Complex.closure_setOfPred_im_lt]
+    show (x : ℂ).im ≤ 0
+    rw [Complex.ofReal_im]
+  exact image_closure_subset_closure_image OnePoint.continuous_coe ⟨_, h1, rfl⟩
+
+/-- The closure of `ℍ` in `ℂ̄` misses `𝕃`. -/
+theorem wd_b_closure_upper_disjoint : Disjoint (closure (toExt upperHalf)) (toExt lowerHalf) := by
+  refine Disjoint.closure_left ?_ (OnePoint.isOpen_image_coe.2 (isOpen_lt continuous_im continuous_const))
+  rw [Set.disjoint_left]
+  rintro _ ⟨z, hz, rfl⟩ ⟨w, hw, hwz⟩
+  rw [OnePoint.coe_injective hwz] at hw
+  exact lt_asymm (show (0 : ℝ) < z.im from hz) hw
+
+/-- The closure of `𝕃` in `ℂ̄` misses `ℍ`. -/
+theorem wd_b_closure_lower_disjoint : Disjoint (closure (toExt lowerHalf)) (toExt upperHalf) := by
+  refine Disjoint.closure_left ?_ (OnePoint.isOpen_image_coe.2 isOpen_upperHalf)
+  rw [Set.disjoint_left]
+  rintro _ ⟨z, hz, rfl⟩ ⟨w, hw, hwz⟩
+  rw [OnePoint.coe_injective hwz] at hw
+  exact lt_asymm (show z.im < 0 from hz) hw
+
+/-- A point in the closures of both `ℍ` and `𝕃` is `∞` or real. -/
+theorem wd_b_closure_inter {p : ExtPlane} (h₁ : p ∈ closure (toExt upperHalf))
+    (h₂ : p ∈ closure (toExt lowerHalf)) : p = extInf ∨ ∃ x : ℝ, p = (((x : ℝ) : ℂ) : ExtPlane) := by
+  rcases wd_b_cases p with h | h | ⟨z, hz, rfl⟩ | ⟨z, hz, rfl⟩
+  · exact Or.inl h
+  · exact Or.inr h
+  · exact (disjoint_left.1 wd_b_closure_lower_disjoint h₂ ⟨z, hz, rfl⟩).elim
+  · exact (disjoint_left.1 wd_b_closure_upper_disjoint h₁ ⟨z, hz, rfl⟩).elim
+
+/-- A point of the closure of `ℍ` in `ℂ̄` is `∞`, real or in `ℍ`. -/
+theorem wd_b_closure_upper_cases {p : ExtPlane} (hp : p ∈ closure (toExt upperHalf)) :
+    p = extInf ∨ (∃ x : ℝ, p = (((x : ℝ) : ℂ) : ExtPlane)) ∨ ∃ z ∈ upperHalf, p = (z : ExtPlane) := by
+  rcases wd_b_cases p with h | h | h | ⟨z, hz, rfl⟩
+  · exact Or.inl h
+  · exact Or.inr (Or.inl h)
+  · exact Or.inr (Or.inr h)
+  · exact (disjoint_left.1 wd_b_closure_upper_disjoint hp ⟨z, hz, rfl⟩).elim
+
+/-- A point of `ℂ̄` off the closure of `ℍ` is a point of `𝕃`. -/
+theorem wd_b_not_mem_closure_upper {p : ExtPlane} (hp : p ∉ closure (toExt upperHalf)) :
+    ∃ z ∈ lowerHalf, p = (z : ExtPlane) := by
+  rcases wd_b_cases p with rfl | ⟨x, rfl⟩ | ⟨z, hz, rfl⟩ | h
+  · exact absurd wd_b_infty_mem_closure_upper hp
+  · exact absurd (wd_b_real_mem_closure_upper x) hp
+  · exact (hp (subset_closure ⟨z, hz, rfl⟩)).elim
+  · exact h
+
+/-- The inverse of a map continuous and injective on a closed subset `S` of `ℂ̄`, with image `T`: it is continuous on
+`T`, maps `T` into `S`, and is a right inverse on `T` and a left inverse on `S`. -/
+theorem wd_b_inv {F : ExtPlane → ExtPlane} {S T : Set ExtPlane} (hS : IsClosed S) (hFc : ContinuousOn F S)
+    (hFi : InjOn F S) (hFS : F '' S = T) :
+    ContinuousOn (Function.invFunOn F S) T ∧ MapsTo (Function.invFunOn F S) T S ∧
+      (∀ q ∈ T, F (Function.invFunOn F S q) = q) ∧ ∀ p ∈ S, Function.invFunOn F S (F p) = p := by
+  subst hFS
+  exact ⟨continuousOn_invFunOn_of_isClosed hS hFc hFi, fun q hq => Function.invFunOn_mem hq,
+    fun q hq => Function.invFunOn_eq hq, fun p hp => hFi.leftInvOn_invFunOn hp⟩
+
+/-- On `V`, the inverse of a homeomorphic extension `F` of `f : U → V` is the inverse of `f`. -/
+theorem wd_b_invFunOn_coe {f : ℂ → ℂ} {U V : Set ℂ} {F : ExtPlane → ExtPlane} (hF : IsHomeoExtension f U V F)
+    (hfUV : f '' U = V) {v : ℂ} (hv : v ∈ V) :
+    Function.invFunOn F (closure (toExt U)) (v : ExtPlane) = ((Function.invFunOn f U v : ℂ) : ExtPlane) ∧
+      Function.invFunOn f U v ∈ U := by
+  have hv' : v ∈ f '' U := hfUV.symm ▸ hv
+  have hu : Function.invFunOn f U v ∈ U := Function.invFunOn_mem hv'
+  have h1 : F ((Function.invFunOn f U v : ℂ) : ExtPlane) = (v : ExtPlane) := by
+    rw [hF.1 _ hu, Function.invFunOn_eq hv']
+  refine ⟨?_, hu⟩
+  rw [← h1]
+  exact hF.2.2.1.leftInvOn_invFunOn (subset_closure ⟨_, hu, rfl⟩)
+
+/-- Pasting across `ℝ ∪ {∞}`: a map of `ℂ̄` agreeing on `ℍ̄` with a map continuous there and on `𝕃̄` with a map
+continuous there is continuous. -/
+theorem wd_b_paste {F F₁ F₂ : ExtPlane → ExtPlane} (h₁ : ContinuousOn F₁ (closure (toExt upperHalf)))
+    (h₂ : ContinuousOn F₂ (closure (toExt lowerHalf))) (hF₁ : EqOn F F₁ (closure (toExt upperHalf)))
+    (hF₂ : EqOn F F₂ (closure (toExt lowerHalf))) : Continuous F := by
+  have hU : closure (toExt upperHalf) ∪ closure (toExt lowerHalf) = univ := by
+    refine eq_univ_of_forall fun p => ?_
+    rcases wd_b_cases p with rfl | ⟨x, rfl⟩ | ⟨z, hz, rfl⟩ | ⟨z, hz, rfl⟩
+    · exact Or.inl wd_b_infty_mem_closure_upper
+    · exact Or.inl (wd_b_real_mem_closure_upper x)
+    · exact Or.inl (subset_closure ⟨z, hz, rfl⟩)
+    · exact Or.inr (subset_closure ⟨z, hz, rfl⟩)
+  rw [← continuousOn_univ, ← hU]
+  exact (h₁.congr hF₁).union_of_isClosed (h₂.congr hF₂) isClosed_closure isClosed_closure
+
+/-- A continuous injection of `ℂ̄` into itself fixing `∞` restricts to a homeomorphism of `ℂ` onto `ℂ`
+(`lemma12_1`). -/
+theorem wd_b_plane_homeo {F : ExtPlane → ExtPlane} (hF : Continuous F) (hFi : Function.Injective F)
+    (hFinf : F extInf = extInf) :
+    (∀ z : ℂ, ((extToC (F z) : ℂ) : ExtPlane) = F z) ∧
+      IsHomeomorphOnto (fun z : ℂ => extToC (F z)) univ univ := by
+  have hcoe : ∀ z : ℂ, ((extToC (F z) : ℂ) : ExtPlane) = F z := by
+    intro z
+    have hne : F z ≠ extInf := fun h => OnePoint.coe_ne_infty z (hFi (h.trans hFinf.symm))
+    obtain ⟨w, hw⟩ := OnePoint.ne_infty_iff_exists.1 hne
+    rw [← hw]
+    rfl
+  refine ⟨hcoe, ?_⟩
+  have hcomp : ((↑) : ℂ → ExtPlane) ∘ (fun z : ℂ => extToC (F z)) = F ∘ ((↑) : ℂ → ExtPlane) := funext hcoe
+  have hc : Continuous (fun z : ℂ => extToC (F z)) := by
+    rw [OnePoint.isOpenEmbedding_coe.isEmbedding.continuous_iff, hcomp]
+    exact hF.comp OnePoint.continuous_coe
+  have hi : Function.Injective (fun z : ℂ => extToC (F z)) := by
+    intro a b hab
+    have h := congrArg ((↑) : ℂ → ExtPlane) hab
+    simp only [hcoe] at h
+    exact OnePoint.coe_injective (hFi h)
+  have ht : Tendsto (fun z : ℂ => extToC (F z)) (cocompact ℂ) (cocompact ℂ) := by
+    rw [← coclosedCompact_eq_cocompact, ← OnePoint.comap_coe_nhds_infty, tendsto_comap_iff, hcomp]
+    have h1 : Tendsto F (𝓝 extInf) (𝓝 extInf) := by
+      have h2 := hF.tendsto extInf
+      rwa [hFinf] at h2
+    exact h1.comp tendsto_comap
+  obtain ⟨e, he⟩ := lemma12_1 hc ht fun _ => ⟨univ, univ_mem, hi.injOn⟩
+  rw [← he]
+  exact nxI1_isHomeomorphOnto_of_homeomorph e
+
+/-- A finite point lies in `toExt s` iff it lies in `s`. -/
+theorem wd_n_coe_mem_toExt {s : Set ℂ} {z : ℂ} : (z : ExtPlane) ∈ toExt s ↔ z ∈ s :=
+  OnePoint.coe_injective.mem_set_image
+
+/-- `∞` does not lie in `toExt s`. -/
+theorem wd_n_infty_notMem_toExt {s : Set ℂ} : extInf ∉ toExt s := by
+  rintro ⟨z, -, hz⟩
+  exact OnePoint.coe_ne_infty z hz
+
+/-- For a bijection `g` of the plane, the complement of `g(ℝ) ∪ {∞}` in `ℂ̄` is `g(ℍ) ∪ g(𝕃)`. -/
+theorem wd_n_compl_eq {g : ℂ → ℂ} (hg : Function.Bijective g) :
+    (toExt (g '' realLine) ∪ {extInf})ᶜ = toExt (g '' upperHalf) ∪ toExt (g '' lowerHalf) := by
+  ext p
+  induction p using OnePoint.rec with
+  | infty =>
+    refine iff_of_false (fun h => h (Or.inr rfl)) ?_
+    rintro (h | h) <;> exact wd_n_infty_notMem_toExt h
+  | coe z =>
+    obtain ⟨w, rfl⟩ := hg.2 z
+    simp only [mem_compl_iff, mem_union, mem_singleton_iff, wd_n_coe_mem_toExt,
+      hg.1.mem_set_image, OnePoint.coe_ne_infty, or_false]
+    show ¬ w.im = 0 ↔ 0 < w.im ∨ w.im < 0
+    rw [← ne_eq, ne_comm, ne_iff_lt_or_gt, or_comm]
+
+/-- A set `S = U ∪ V` with `U`, `V` disjoint and open and `U` preconnected: the component of `S` through a point of `U`
+is `U`. -/
+theorem wd_n_component_eq {S U V : Set ExtPlane} (hS : S = U ∪ V) (hU : IsOpen U) (hV : IsOpen V)
+    (hUV : Disjoint U V) (hUc : IsPreconnected U) {p : ExtPlane} (hp : p ∈ U) : connectedComponentIn S p = U := by
+  have hpS : p ∈ S := hS ▸ Or.inl hp
+  refine Subset.antisymm ?_ (hUc.subset_connectedComponentIn hp (hS ▸ subset_union_left))
+  exact isPreconnected_connectedComponentIn.subset_left_of_subset_union hU hV hUV
+    ((connectedComponentIn_subset S p).trans hS.subset) ⟨p, mem_connectedComponentIn hpS, hp⟩
+
+/-- The two complementary components of `e(ℝ) ∪ {∞}` for a homeomorphism `e` of the plane: every component of the
+complement is `e(ℍ)` or `e(𝕃)` (these are open, disjoint and connected, and cover the complement). -/
+theorem wd_n_components (e : ℂ ≃ₜ ℂ) {p : ExtPlane} (hp : p ∈ (toExt (e '' realLine) ∪ {extInf})ᶜ) :
+    connectedComponentIn (toExt (e '' realLine) ∪ {extInf})ᶜ p = toExt (e '' upperHalf) ∨
+      connectedComponentIn (toExt (e '' realLine) ∪ {extInf})ᶜ p = toExt (e '' lowerHalf) := by
+  have hS := wd_n_compl_eq e.bijective
+  have hoU : IsOpen (toExt (e '' upperHalf)) := OnePoint.isOpen_image_coe.2 (e.isOpenMap _ isOpen_upperHalf)
+  have hoL : IsOpen (toExt (e '' lowerHalf)) :=
+    OnePoint.isOpen_image_coe.2 (e.isOpenMap _ (isOpen_lt continuous_im continuous_const))
+  have hdisj : Disjoint (toExt (e '' upperHalf)) (toExt (e '' lowerHalf)) := by
+    refine (disjoint_image_iff OnePoint.coe_injective).2 ((disjoint_image_iff e.injective).2 ?_)
+    refine disjoint_left.2 fun z (hz : 0 < z.im) (hz' : z.im < 0) => ?_
+    linarith
+  have hcU : IsPreconnected (toExt (e '' upperHalf)) :=
+    (isConnected_upperHalf.isPreconnected.image _ e.continuous.continuousOn).image _
+      OnePoint.continuous_coe.continuousOn
+  have hcL : IsPreconnected (toExt (e '' lowerHalf)) :=
+    ((((convex_Iio (0 : ℝ)).linear_preimage Complex.imLm).isPreconnected).image _
+      e.continuous.continuousOn).image _ OnePoint.continuous_coe.continuousOn
+  rw [hS] at hp
+  rcases hp with hp | hp
+  · exact Or.inl (wd_n_component_eq hS hoU hoL hdisj hcU hp)
+  · exact Or.inr (wd_n_component_eq (hS.trans (union_comm _ _)) hoL hoU hdisj.symm hcL hp)
+
+/-- The image of a set under `z ↦ -z`, from a membership criterion. -/
+theorem wd_n_neg_image {S T : Set ℂ} (h : ∀ z : ℂ, -z ∈ T ↔ z ∈ S) : (fun z : ℂ => -z) '' S = T := by
+  ext w
+  constructor
+  · rintro ⟨z, hz, rfl⟩
+    exact (h z).2 hz
+  · intro hw
+    exact ⟨-w, (h (-w)).1 (by rwa [neg_neg]), neg_neg w⟩
+
+/-- **N** (normal form of a quasicircle through `∞`, (⇒)): `C = g₀(ℝ) ∪ {∞}` for a `K`-q.c. map `g₀` of the plane
+onto itself with `A₁ = g₀(ℍ)`, `A₂ = g₀(𝕃)` (`tp_quasicircle_through_inf`; `ℂ̄ ∖ C` has exactly the components
+`g₀(ℍ)`, `g₀(𝕃)`; replace `g₀` by `g₀(-z)` if they are swapped). -/
+theorem wd_normal_form {C : Set ExtPlane} {A₁ A₂ : Set ℂ} (hinf : extInf ∈ C)
+    (hC : AreComplementaryComponents C (toExt A₁) (toExt A₂)) (hq : IsQuasicircle C) :
+    ∃ (g₀ : ℂ → ℂ) (K : ℝ), IsKQC g₀ univ K ∧ g₀ '' univ = univ ∧ C = toExt (g₀ '' realLine) ∪ {extInf} ∧
+      A₁ = g₀ '' upperHalf ∧ A₂ = g₀ '' lowerHalf := by
+  obtain ⟨K, hK⟩ := hq
+  obtain ⟨g, hg, hgs, rfl⟩ := tp_quasicircle_through_inf hK hinf
+  obtain ⟨e, rfl⟩ := t1_homeomorph hg hgs
+  obtain ⟨-, p₁, hp₁, p₂, hp₂, h₁, h₂, hne⟩ := hC
+  have hinj : Function.Injective toExt := image_injective.2 OnePoint.coe_injective
+  rcases wd_n_components e hp₁ with hc₁ | hc₁ <;> rcases wd_n_components e hp₂ with hc₂ | hc₂
+  · exact absurd (h₁.trans (hc₁.trans (hc₂.symm.trans h₂.symm))) hne
+  · exact ⟨e, K, hg, hgs, rfl, hinj (h₁.trans hc₁), hinj (h₂.trans hc₂)⟩
+  · -- the components are swapped: precompose with `z ↦ -z`
+    have hneg : IsKQC (fun z : ℂ => -z) univ 1 :=
+      isKQC_one_of_conformal (D' := (fun z : ℂ => -z) '' univ) isOpen_univ
+        ⟨differentiable_id.neg.differentiableOn, fun a _ b _ h => neg_injective h, rfl⟩
+    have hK' := thm7_1_comp hneg hg (subset_univ _)
+    rw [one_mul] at hK'
+    have himg : ∀ S : Set ℂ, (fun z : ℂ => e (-z)) '' S = e '' ((fun z : ℂ => -z) '' S) :=
+      fun S => (image_image e (fun z : ℂ => -z) S).symm
+    have hR : (fun z : ℂ => -z) '' realLine = realLine :=
+      wd_n_neg_image fun z => by
+        show (-z).im = 0 ↔ z.im = 0
+        rw [neg_im, neg_eq_zero]
+    have hU : (fun z : ℂ => -z) '' upperHalf = lowerHalf :=
+      wd_n_neg_image fun z => by
+        show (-z).im < 0 ↔ 0 < z.im
+        rw [neg_im, neg_lt_zero]
+    have hL : (fun z : ℂ => -z) '' lowerHalf = upperHalf :=
+      wd_n_neg_image fun z => by
+        show 0 < (-z).im ↔ z.im < 0
+        rw [neg_im, neg_pos]
+    have huniv : (fun z : ℂ => -z) '' univ = univ := image_univ_of_surjective neg_surjective
+    refine ⟨fun z => e (-z), K, hK', ?_, ?_, ?_, ?_⟩
+    · rw [himg, huniv, hgs]
+    · rw [himg, hR]
+    · rw [himg, hU]
+      exact hinj (h₁.trans hc₁)
+    · rw [himg, hL]
+      exact hinj (h₂.trans hc₂)
+  · exact absurd (h₁.trans (hc₁.trans (hc₂.symm.trans h₂.symm))) hne
+
+/-- Gluing across `ℝ` (a local copy of the S21 lemma `ut2_ruh_glue`, which lies downstream): a map of the plane which is
+a homeomorphism onto its image and is `K`-q.c. on `ℍ` and on `𝕃` is `K`-q.c. on `ℂ` (`s13x_removable` with `L = ℝ`). -/
+theorem wd_glue {f : ℂ → ℂ} {K : ℝ} (hK : 1 ≤ K) (hf : IsHomeomorphOnto f univ (f '' univ))
+    (hU : IsKQC f upperHalf K) (hL : IsKQC f lowerHalf K) : IsKQC f univ K := by
+  refine s13x_removable (L := {z : ℂ | z.im = 0}) isOpen_univ hK hf gzE_volume_im_eq_zero ?_ ?_ ?_
+  · -- a vertical line meets the real axis in one point
+    refine Eventually.of_forall fun x => (countable_singleton (0 : ℝ)).mono fun y hy => ?_
+    simpa using hy
+  · -- a horizontal line off the real axis misses it
+    have h0 : ∀ᵐ y : ℝ, y ∉ ({0} : Set ℝ) :=
+      measure_eq_zero_iff_ae_notMem.1 (measure_singleton 0)
+    filter_upwards [h0] with y hy
+    refine countable_empty.mono fun x hx => ?_
+    exact absurd (by simpa using hx) hy
+  · -- off the real axis, a point lies in `ℍ` or in `𝕃`
+    rintro w ⟨-, hw⟩
+    have hw' : w.im ≠ 0 := hw
+    rcases lt_or_gt_of_ne hw' with hlt | hgt
+    · exact ⟨lowerHalf, hL.1, hlt, subset_univ _, hL⟩
+    · exact ⟨upperHalf, hU.1, hgt, subset_univ _, hU⟩
+
+/-! ### Theorem 16.2 (s21u prover Q16): helpers -/
+
+/-- Composition of fractional linear transformations of `ℂ̄` is given by the matrix product (the inner one
+invertible); a local copy of the S24 lemma `k24_mobiusExt_comp`, which lies downstream. -/
+theorem s16p_mobiusExt_comp {a b c d a' b' c' d' : ℂ} (h' : a' * d' - b' * c' ≠ 0) (p : ExtPlane) :
+    mobiusExt a b c d (mobiusExt a' b' c' d' p) =
+      mobiusExt (a * a' + b * c') (a * b' + b * d') (c * a' + d * c') (c * b' + d * d') p := by
+  induction p using OnePoint.rec with
+  | infty =>
+    by_cases hc' : c' = 0
+    · have ha' : a' ≠ 0 := by
+        rintro rfl
+        apply h'
+        simp [hc']
+      rw [mobiusExt_infty_of_eq hc']
+      by_cases hc : c = 0
+      · rw [mobiusExt_infty_of_eq hc, mobiusExt_infty_of_eq (by simp [hc, hc'])]
+      · have hne : c * a' + d * c' ≠ 0 := by
+          rw [hc', mul_zero, add_zero]
+          exact mul_ne_zero hc ha'
+        rw [mobiusExt_infty_of_ne hc, mobiusExt_infty_of_ne hne]
+        congr 1
+        rw [div_eq_div_iff hc hne, hc']
+        ring
+    · rw [mobiusExt_infty_of_ne hc']
+      have e : c * a' + d * c' = (c * (a' / c') + d) * c' := by
+        field_simp
+      by_cases hden : c * (a' / c') + d = 0
+      · rw [mobiusExt_coe_of_eq_zero hden, mobiusExt_infty_of_eq (by rw [e, hden, zero_mul])]
+      · have hne : c * a' + d * c' ≠ 0 := by
+          rw [e]
+          exact mul_ne_zero hden hc'
+        rw [mobiusExt_coe hden, mobiusExt_infty_of_ne hne]
+        congr 1
+        rw [mobiusFn, div_eq_div_iff hden hne]
+        field_simp
+  | coe z =>
+    by_cases hz : c' * z + d' = 0
+    · have hnum : a' * z + b' ≠ 0 := by
+        intro hab
+        apply h'
+        linear_combination a' * hz - c' * hab
+      rw [mobiusExt_coe_of_eq_zero hz]
+      have hden : (c * a' + d * c') * z + (c * b' + d * d') = c * (a' * z + b') := by
+        linear_combination d * hz
+      by_cases hc : c = 0
+      · rw [mobiusExt_infty_of_eq hc, mobiusExt_coe_of_eq_zero (by rw [hden, hc, zero_mul])]
+      · have hne : (c * a' + d * c') * z + (c * b' + d * d') ≠ 0 := by
+          rw [hden]
+          exact mul_ne_zero hc hnum
+        rw [mobiusExt_infty_of_ne hc, mobiusExt_coe hne]
+        congr 1
+        rw [mobiusFn, div_eq_div_iff hc hne]
+        linear_combination (a * d - b * c) * hz
+    · rw [mobiusExt_coe hz]
+      have hmd := mobiusFn_mul_den (a := a') (b := b') hz
+      have key : (c * a' + d * c') * z + (c * b' + d * d') =
+          (c * mobiusFn a' b' c' d' z + d) * (c' * z + d') := by
+        linear_combination (-c) * hmd
+      have keyN : (a * a' + b * c') * z + (a * b' + b * d') =
+          (a * mobiusFn a' b' c' d' z + b) * (c' * z + d') := by
+        linear_combination (-a) * hmd
+      by_cases hw : c * mobiusFn a' b' c' d' z + d = 0
+      · rw [mobiusExt_coe_of_eq_zero hw, mobiusExt_coe_of_eq_zero (by rw [key, hw, zero_mul])]
+      · rw [mobiusExt_coe hw, mobiusExt_coe (by rw [key]; exact mul_ne_zero hw hz)]
+        congr 1
+        show (a * mobiusFn a' b' c' d' z + b) / (c * mobiusFn a' b' c' d' z + d) =
+          ((a * a' + b * c') * z + (a * b' + b * d')) / ((c * a' + d * c') * z + (c * b' + d * d'))
+        rw [key, keyN, mul_div_mul_right _ _ hz]
+
+/-- The image of a quasicircle under a fractional linear transformation is a quasicircle. -/
+theorem s16p_isQuasicircle_mobius_image {C : Set ExtPlane} (hC : IsQuasicircle C) {a b c d : ℂ}
+    (h : a * d - b * c ≠ 0) : IsQuasicircle (mobiusExt a b c d '' C) := by
+  obtain ⟨K, f, hf, hs, M, ⟨α, β, κ, δ, hdet, rfl⟩, rfl⟩ := hC
+  refine ⟨K, f, hf, hs, mobiusExt (a * α + b * κ) (a * β + b * δ) (c * α + d * κ) (c * β + d * δ),
+    ⟨_, _, _, _, ?_, rfl⟩, ?_⟩
+  · have hmul : (a * α + b * κ) * (c * β + d * δ) - (a * β + b * δ) * (c * α + d * κ) =
+        (a * d - b * c) * (α * δ - β * κ) := by ring
+    rw [hmul]
+    exact mul_ne_zero h hdet
+  · rw [image_image]
+    exact image_congr fun w _ => s16p_mobiusExt_comp hdet w
+
+/-- A homeomorphism of `ℂ̄` carries the complementary components of a Jordan curve to those of its image. -/
+theorem s16p_areComplementaryComponents_image {C A₁ A₂ : Set ExtPlane}
+    (hC : AreComplementaryComponents C A₁ A₂) (e : ExtPlane ≃ₜ ExtPlane) :
+    AreComplementaryComponents (e '' C) (e '' A₁) (e '' A₂) := by
+  obtain ⟨hJ, p₁, hp₁, p₂, hp₂, h₁, h₂, hne⟩ := hC
+  have hcompl : e '' Cᶜ = (e '' C)ᶜ := e.toEquiv.image_compl C
+  refine ⟨uq_isJordanCurve_image e hJ, e p₁, ?_, e p₂, ?_, ?_, ?_, ?_⟩
+  · rw [← hcompl]
+    exact mem_image_of_mem e hp₁
+  · rw [← hcompl]
+    exact mem_image_of_mem e hp₂
+  · rw [h₁, gsep_z_connectedComponentIn_image_homeomorph e hp₁, hcompl]
+  · rw [h₂, gsep_z_connectedComponentIn_image_homeomorph e hp₂, hcompl]
+  · intro h
+    exact hne (image_injective.2 e.injective h)
+
+/-- Elementary facts on the complementary components `A₁, A₂` of a Jordan curve `C`: `C` is closed, `A₁, A₂` are
+open, connected, disjoint from each other and from `C`. -/
+theorem s16p_basic {C A₁ A₂ : Set ExtPlane} (hC : AreComplementaryComponents C A₁ A₂) :
+    IsClosed C ∧ IsOpen A₁ ∧ IsOpen A₂ ∧ IsConnected A₁ ∧ Disjoint A₁ C ∧ Disjoint A₂ C ∧
+      Disjoint A₁ A₂ := by
+  obtain ⟨hJ, p₁, hp₁, p₂, hp₂, h₁, h₂, hne⟩ := hC
+  have hCc : IsClosed C := by
+    obtain ⟨γ, hγc, -, hγr⟩ := hJ
+    rw [← hγr]
+    exact (isCompact_range hγc).isClosed
+  have hCo : IsOpen Cᶜ := hCc.isOpen_compl
+  refine ⟨hCc, h₁ ▸ hCo.connectedComponentIn, h₂ ▸ hCo.connectedComponentIn, ?_, ?_, ?_, ?_⟩
+  · rw [h₁]
+    exact isConnected_connectedComponentIn_iff.2 hp₁
+  · rw [h₁]
+    exact disjoint_compl_left.mono_left (connectedComponentIn_subset _ _)
+  · rw [h₂]
+    exact disjoint_compl_left.mono_left (connectedComponentIn_subset _ _)
+  · rw [Set.disjoint_left]
+    intro q hq₁ hq₂
+    rw [h₁] at hq₁
+    rw [h₂] at hq₂
+    exact hne (by rw [h₁, h₂, connectedComponentIn_eq hq₁, connectedComponentIn_eq hq₂])
+
+/-- Finitely many points are removable: a continuous injective map of an open set which is `K`-q.c. off a finite
+set is `K`-q.c. (`s13x_removable`). -/
+theorem s16p_isKQC_of_finite {g : ℂ → ℂ} {Ω L : Set ℂ} {K : ℝ} (hΩ : IsOpen Ω) (hK : 1 ≤ K)
+    (hgc : ContinuousOn g Ω) (hgi : InjOn g Ω) (hL : L.Finite) (hg : IsKQC g (Ω \ L) K) : IsKQC g Ω K := by
+  refine s13x_removable (L := L) hΩ hK (qcl_f_isHomeomorphOnto_of_injOn hΩ hgc hgi) (hL.measure_zero _)
+    (Eventually.of_forall fun x => ?_) (Eventually.of_forall fun y => ?_)
+    fun z hz => ⟨Ω \ L, hΩ.sdiff hL.isClosed, hz, sdiff_subset, hg⟩
+  · refine (hL.preimage fun y₁ _ y₂ _ h => ?_).countable
+    have h' := congrArg Complex.im h
+    simpa using h'
+  · refine (hL.preimage fun x₁ _ x₂ _ h => ?_).countable
+    have h' := congrArg Complex.re h
+    simpa using h'
+
+/-- `ℂ̄ → ℂ` (`∞ ↦ 0`) is continuous at every finite point. -/
+theorem s16p_continuousAt_extToC (z : ℂ) : ContinuousAt extToC (z : ExtPlane) := by
+  show Tendsto extToC (𝓝 (z : ExtPlane)) (𝓝 (extToC z))
+  rw [← OnePoint.isOpenEmbedding_coe.map_nhds_eq, tendsto_map'_iff]
+  exact tendsto_id
+
+
+/-- The frontier of a complementary component `A₁` of a Jordan curve `C ∋ ∞` is `C`: move a point `b` of the other
+component `A₂` to `∞` by `w ↦ 1/(w - b)`.  The image curve lies in `ℂ`, and by the Jordan curve theorem the image of
+`A₁` is its bounded complementary piece (the unbounded piece has `∞ ∈ e(A₂)` in its closure), whose frontier is the
+image curve. -/
+theorem s16p_frontier_eq {C A₁ A₂ : Set ExtPlane} (hC : AreComplementaryComponents C A₁ A₂)
+    (hinf : extInf ∈ C) : frontier A₁ = C := by
+  obtain ⟨-, -, hA₂o, -, -, -, hA₁₂⟩ := s16p_basic hC
+  obtain ⟨hJ, p₁, hp₁, p₂, hp₂, h₁, h₂, -⟩ := hC
+  have hp₂A : p₂ ∈ A₂ := h₂ ▸ mem_connectedComponentIn hp₂
+  have hp₁A : p₁ ∈ A₁ := h₁ ▸ mem_connectedComponentIn hp₁
+  obtain ⟨b, rfl⟩ : ∃ b : ℂ, p₂ = b :=
+    (uq_j_eq_infty_or_coe p₂).resolve_left (by rintro rfl; exact hp₂ hinf)
+  set e := mobiusHomeomorph 0 1 1 (-b) (uq_j_inv_det b) with he
+  have heb : e (b : ExtPlane) = extInf := uq_j_mobiusInv_apply_self b
+  have hinfC : extInf ∉ e '' C := by
+    rintro ⟨c, hc, hce⟩
+    rw [← heb] at hce
+    rw [e.injective hce] at hc
+    exact hp₂ hc
+  set C₀ : Set ℂ := ((↑) : ℂ → ExtPlane) ⁻¹' (e '' C) with hC₀
+  have hC₀e : toExt C₀ = e '' C := uq_j_toExt_preimage_coe hinfC
+  have hJ₀ : IsJordanCurve (toExt C₀) := by
+    rw [hC₀e]
+    exact uq_isJordanCurve_image e hJ
+  obtain ⟨A, B, hA, hB, hAc, hBc, hAB, hAC, hBC, huniv, hAb, hBb⟩ := jordan_curve_theorem_complex_bounded hJ₀
+  obtain ⟨hfA, -⟩ := frontier_pieces_eq_of_jordan_curve_theorem_complex hJ₀ hA hB hAc hBc hAB hAC hBC huniv
+  have hcompl : e '' Cᶜ = (e '' C)ᶜ := e.toEquiv.image_compl C
+  have hU₁ : e '' A₁ = connectedComponentIn (e '' C)ᶜ (e p₁) := by
+    rw [h₁, gsep_z_connectedComponentIn_image_homeomorph e hp₁, hcompl]
+  have hinfU₂ : extInf ∈ e '' A₂ := ⟨b, hp₂A, heb⟩
+  have hU₂o : IsOpen (e '' A₂) := e.isOpenMap _ hA₂o
+  have hU₁₂ : Disjoint (e '' A₁) (e '' A₂) := (disjoint_image_iff e.injective).2 hA₁₂
+  have hU₁C : e '' A₁ ⊆ (e '' C)ᶜ := by
+    rw [hU₁]
+    exact connectedComponentIn_subset _ _
+  have hsub : e '' A₁ ⊆ toExt A ∪ toExt B := by
+    intro w hw
+    induction w using OnePoint.rec with
+    | infty => exact absurd hinfU₂ (disjoint_left.1 hU₁₂ hw)
+    | coe z =>
+      have hz : z ∉ C₀ := fun h => hU₁C hw h
+      have hz' : z ∈ A ∪ B ∪ C₀ := huniv ▸ mem_univ z
+      rcases hz' with (h | h) | h
+      · exact Or.inl ⟨z, h, rfl⟩
+      · exact Or.inr ⟨z, h, rfl⟩
+      · exact absurd h hz
+  have hAo' : IsOpen (toExt A) := OnePoint.isOpen_image_coe.2 hA
+  have hBo' : IsOpen (toExt B) := OnePoint.isOpen_image_coe.2 hB
+  have hABd : Disjoint (toExt A) (toExt B) := (disjoint_image_iff OnePoint.coe_injective).2 hAB
+  have hpre : IsPreconnected (e '' A₁) := by
+    rw [hU₁]
+    exact isPreconnected_connectedComponentIn
+  have hmem : e p₁ ∈ e '' A₁ := mem_image_of_mem e hp₁A
+  have hSC : ∀ S : Set ℂ, Disjoint S C₀ → toExt S ⊆ (e '' C)ᶜ := by
+    rintro S hS _ ⟨z, hz, rfl⟩ h
+    rw [← hC₀e] at h
+    exact disjoint_left.1 hS hz (coe_mem_toExt_iff.1 h)
+  have key : ∀ S : Set ℂ, IsConnected S → Disjoint S C₀ → e '' A₁ ⊆ toExt S → e '' A₁ = toExt S := by
+    intro S hS hSd hsubS
+    refine Subset.antisymm hsubS ?_
+    rw [hU₁]
+    exact (hS.isPreconnected.image _ OnePoint.continuous_coe.continuousOn).subset_connectedComponentIn
+      (hsubS hmem) (hSC S hSd)
+  rcases hpre.subset_or_subset hAo' hBo' hABd hsub with hsA | hsB
+  · have heq := key A hAc hAC hsA
+    have hfr : frontier (e '' A₁) = e '' C := by
+      rw [heq, frontier_toExt_of_isBounded' hAb hA, hfA, hC₀e]
+    rw [← e.image_frontier] at hfr
+    exact image_injective.2 e.injective hfr
+  · exfalso
+    have heq := key B hBc hBC hsB
+    have hcl : extInf ∈ closure (e '' A₁) := heq ▸ extInf_mem_closure_toExt_of_not_isBounded hBb
+    exact disjoint_left.1 (hU₁₂.closure_left hU₂o) hcl hinfU₂
+
+/-- A Jordan domain with `∞` on its boundary has a conformal map onto `ℍ` whose homeomorphic extension fixes `∞`
+(`uq_exists_uniformizer`, normalized by a real Möbius map); a local copy of the S20 lemma `s20l_uniformizer_inf`,
+which lies downstream. -/
+theorem s16p_uniformizer_inf {Ω : Set ℂ} (hΩ : IsJordanDomain Ω) (hinf : extInf ∈ frontier (toExt Ω)) :
+    ∃ φ : ℂ → ℂ, IsConformalOnto φ Ω upperHalf ∧
+      ∃ Φ : ExtPlane → ExtPlane, IsHomeoExtension φ Ω upperHalf Φ ∧ Φ extInf = extInf := by
+  obtain ⟨ψ, hψ, Ψ, hΨ⟩ := uq_exists_uniformizer hΩ
+  have hHo : IsOpen (toExt upperHalf) := OnePoint.isOpen_image_coe.2 isOpen_upperHalf
+  have hmemcl : extInf ∈ closure (toExt Ω) := frontier_subset_closure hinf
+  have hΨfr : Ψ extInf ∈ frontier (toExt upperHalf) := by
+    refine ⟨hΨ.2.2.2 ▸ mem_image_of_mem Ψ hmemcl, ?_⟩
+    rw [hHo.interior_eq]
+    rintro ⟨w, hw, hwe⟩
+    have hw' : w ∈ ψ '' Ω := hψ.2.2.symm ▸ hw
+    obtain ⟨z, hz, rfl⟩ := hw'
+    have hzcl : ((z : ℂ) : ExtPlane) ∈ closure (toExt Ω) := subset_closure ⟨z, hz, rfl⟩
+    have h1 : Ψ (z : ExtPlane) = Ψ extInf := by rw [hΨ.1 z hz, hwe]
+    have h2 := hΨ.2.2.1 hzcl hmemcl h1
+    exact OnePoint.coe_ne_infty z h2
+  rcases uq_k_frontier_cases hΨfr with ⟨x₀, hx₀⟩ | hx₀
+  · have hdet : (0 : ℝ) < 0 * (-x₀) - (-1) * 1 := by norm_num
+    obtain ⟨hMc, hMe⟩ := uq_k_mobius_auto hdet
+    refine ⟨mobiusFn ((0 : ℝ) : ℂ) ((-1 : ℝ) : ℂ) ((1 : ℝ) : ℂ) ((-x₀ : ℝ) : ℂ) ∘ ψ,
+      hMc.comp hψ, _, hMe.comp hΨ hψ.mapsTo, ?_⟩
+    show mobiusExt _ _ _ _ (Ψ extInf) = extInf
+    rw [hx₀]
+    exact mobiusExt_coe_of_eq_zero (by push_cast; ring)
+  · exact ⟨ψ, hψ, Ψ, hΨ, hx₀⟩
+
+/-- **(⇐) of Theorem 16.2 for a curve through `∞`** (the book's gluing across `ℝ`): with `φ : A₁ → ℍ` conformal,
+extended by `Φ` with `Φ(∞) = ∞`, the map `E = Φ⁻¹` on `ℍ̄`, `E = F ∘ Φ⁻¹ ∘ conj` on `𝕃̄` is a homeomorphism of `ℂ̄`
+fixing `∞` (they agree on `ℝ ∪ {∞}`, where `Φ⁻¹` lands on `C` and `F` is the identity), conformal on `ℍ` and
+`K`-q.c. on `𝕃`; so it is `K`-q.c. (`wd_glue`) and `C = E(ℝ) ∪ {∞}` is a quasicircle. -/
+theorem s16p_bwd_inf {C A₁ A₂ : Set ExtPlane} (hC : AreComplementaryComponents C A₁ A₂) (hinf : extInf ∈ C)
+    {F : ExtPlane → ExtPlane} (hF : IsQCReflection C A₁ A₂ F) : IsQuasicircle C := by
+  classical
+  obtain ⟨-, hA₁o, -, hA₁c, hA₁C, hA₂C, hA₁₂⟩ := s16p_basic hC
+  have hfr : frontier A₁ = C := s16p_frontier_eq hC hinf
+  obtain ⟨hFc, hFi, hFA, hFC, K, hK⟩ := hF
+  have hA₁inf : extInf ∉ A₁ := fun h => disjoint_left.1 hA₁C h hinf
+  set Ω : Set ℂ := ((↑) : ℂ → ExtPlane) ⁻¹' A₁ with hΩdef
+  have hΩA : toExt Ω = A₁ := uq_j_toExt_preimage_coe hA₁inf
+  have hΩo : IsOpen Ω := hA₁o.preimage OnePoint.continuous_coe
+  have hΩc : IsConnected Ω := by
+    have h := hA₁c
+    rw [← hΩA] at h
+    exact ⟨h.nonempty.of_image, OnePoint.isOpenEmbedding_coe.isInducing.isPreconnected_image.1 h.isPreconnected⟩
+  have hΩJ : IsJordanDomain Ω := ⟨hΩo, hΩc, by rw [hΩA, hfr]; exact hC.1⟩
+  obtain ⟨φ, hφ, Φ, hΦ, hΦinf⟩ := s16p_uniformizer_inf hΩJ (by rw [hΩA, hfr]; exact hinf)
+  have hclA : closure (toExt Ω) = A₁ ∪ C := by
+    rw [hΩA, ← hfr, closure_eq_self_union_frontier]
+  obtain ⟨hΦic, hΦim, hΦr, hΦl⟩ := wd_b_inv isClosed_closure hΦ.2.1 hΦ.2.2.1 hΦ.2.2.2
+  have hΦiU : ∀ v ∈ upperHalf, Function.invFunOn Φ (closure (toExt Ω)) (v : ExtPlane) =
+      ((Function.invFunOn φ Ω v : ℂ) : ExtPlane) ∧ Function.invFunOn φ Ω v ∈ Ω :=
+    fun v hv => wd_b_invFunOn_coe hΦ hφ.2.2 hv
+  set Φi := Function.invFunOn Φ (closure (toExt Ω)) with hΦidef
+  set φi := Function.invFunOn φ Ω with hφidef
+  -- boundary points of `ℍ` go to `C`
+  have hbd : ∀ p ∈ closure (toExt upperHalf), p ∉ toExt upperHalf → Φi p ∈ C := by
+    intro p hp hpU
+    have h1 := hΦim hp
+    rw [hclA] at h1
+    rcases h1 with h1 | h1
+    · exfalso
+      rw [← hΩA] at h1
+      obtain ⟨u, hu, hue⟩ := h1
+      apply hpU
+      rw [← hΦr p hp, ← hue, hΦ.1 u hu]
+      exact ⟨φ u, hφ.mapsTo hu, rfl⟩
+    · exact h1
+  have hΦiinf : Φi extInf = extInf := by
+    have h0 := hΦl extInf (by rw [hclA]; exact Or.inr hinf)
+    rwa [hΦinf] at h0
+  -- conjugation on `ℂ̄`
+  set cj : ExtPlane ≃ₜ ExtPlane := (Complex.conjLIE.toHomeomorph).onePointCongr with hcj
+  have hcjz : ∀ z : ℂ, cj (z : ExtPlane) = ((conj z : ℂ) : ExtPlane) := fun z => rfl
+  have hcjinf : cj extInf = extInf := rfl
+  have hconjU : ∀ z ∈ lowerHalf, conj z ∈ upperHalf := fun z hz => by
+    show 0 < (conj z).im
+    rw [conj_im]
+    exact neg_pos.2 hz
+  have hcjL : MapsTo cj (closure (toExt lowerHalf)) (closure (toExt upperHalf)) := by
+    refine MapsTo.closure ?_ cj.continuous
+    rintro _ ⟨z, hz, rfl⟩
+    exact ⟨conj z, hconjU z hz, (hcjz z).symm⟩
+  have hnotU : ∀ x : ℝ, (((x : ℝ) : ℂ) : ExtPlane) ∉ toExt upperHalf := by
+    rintro x ⟨w, hw, hwe⟩
+    have hw' : 0 < w.im := hw
+    rw [OnePoint.coe_injective hwe, ofReal_im] at hw'
+    exact lt_irrefl 0 hw'
+  -- the glued map
+  obtain ⟨E, hE⟩ : ∃ E : ExtPlane → ExtPlane,
+      ∀ p, E p = if p ∈ closure (toExt upperHalf) then Φi p else F (Φi (cj p)) := ⟨_, fun p => rfl⟩
+  have hEU : EqOn E Φi (closure (toExt upperHalf)) := fun p hp => by rw [hE, ite_eq_left hp]
+  have hEL : EqOn E (F ∘ Φi ∘ cj) (closure (toExt lowerHalf)) := fun p hp => by
+    by_cases hpU : p ∈ closure (toExt upperHalf)
+    · rw [hE, ite_eq_left hpU]
+      rcases wd_b_closure_inter hpU hp with rfl | ⟨y, rfl⟩
+      · show Φi extInf = F (Φi (cj extInf))
+        rw [hcjinf, hΦiinf, hFC _ hinf]
+      · show Φi _ = F (Φi (cj _))
+        rw [hcjz, conj_ofReal]
+        exact (hFC _ (hbd _ hpU (hnotU y))).symm
+    · rw [hE, ite_eq_right hpU]
+      rfl
+  have hLmaps : MapsTo (Φi ∘ cj) (closure (toExt lowerHalf)) (A₁ ∪ C) := fun p hp => by
+    have h1 := hΦim (hcjL hp)
+    rwa [hclA] at h1
+  have hEc : Continuous E :=
+    wd_b_paste hΦic (hFc.comp (hΦic.comp cj.continuous.continuousOn hcjL) hLmaps) hEU hEL
+  have hA₂' : ∀ z ∈ lowerHalf, E z ∈ A₂ := by
+    intro z hz
+    have hzU : (z : ExtPlane) ∉ closure (toExt upperHalf) := fun h' =>
+      disjoint_left.1 wd_b_closure_upper_disjoint h' ⟨z, hz, rfl⟩
+    rw [hE, ite_eq_right hzU, hcjz, (hΦiU _ (hconjU z hz)).1, ← hFA]
+    exact mem_image_of_mem F (by rw [← hΩA]; exact ⟨_, (hΦiU _ (hconjU z hz)).2, rfl⟩)
+  have hEinj : Function.Injective E := by
+    have hsep : ∀ p q, p ∈ closure (toExt upperHalf) → q ∉ closure (toExt upperHalf) → E p ≠ E q := by
+      intro p q hp hq hpq
+      obtain ⟨z, hz, rfl⟩ := wd_b_not_mem_closure_upper hq
+      have h1 : E p ∈ A₁ ∪ C := by
+        rw [hEU hp, ← hclA]
+        exact hΦim hp
+      rw [hpq] at h1
+      rcases h1 with h1 | h1
+      · exact disjoint_left.1 hA₁₂ h1 (hA₂' z hz)
+      · exact disjoint_left.1 hA₂C (hA₂' z hz) h1
+    intro p q hpq
+    by_cases hp : p ∈ closure (toExt upperHalf) <;> by_cases hq : q ∈ closure (toExt upperHalf)
+    · rw [hEU hp, hEU hq] at hpq
+      rw [← hΦr p hp, ← hΦr q hq, hpq]
+    · exact (hsep p q hp hq hpq).elim
+    · exact (hsep q p hq hp hpq.symm).elim
+    · obtain ⟨z, hz, rfl⟩ := wd_b_not_mem_closure_upper hp
+      obtain ⟨w, hw, rfl⟩ := wd_b_not_mem_closure_upper hq
+      have hzL : ((z : ℂ) : ExtPlane) ∈ closure (toExt lowerHalf) := subset_closure ⟨z, hz, rfl⟩
+      have hwL : ((w : ℂ) : ExtPlane) ∈ closure (toExt lowerHalf) := subset_closure ⟨w, hw, rfl⟩
+      rw [hEL hzL, hEL hwL] at hpq
+      have h1 := hFi (hLmaps hzL) (hLmaps hwL) hpq
+      have h2 : cj (z : ExtPlane) = cj (w : ExtPlane) := by
+        rw [← hΦr _ (hcjL hzL), ← hΦr _ (hcjL hwL)]
+        exact congrArg Φ h1
+      exact cj.injective h2
+  have hEinf : E extInf = extInf := by
+    rw [hEU wd_b_infty_mem_closure_upper, hΦiinf]
+  -- the plane map
+  obtain ⟨hHcoe, hHhom⟩ := wd_b_plane_homeo hEc hEinj hEinf
+  set H : ℂ → ℂ := fun z => extToC (E z) with hHdef
+  have hφiU : IsKQC φi upperHalf 1 := isKQC_one_of_conformal isOpen_upperHalf (hφ.symm hΩo)
+  have hHU : IsKQC H upperHalf 1 := by
+    refine ad_isKQC_congr hφiU fun z hz => OnePoint.coe_injective ?_
+    show ((extToC (E z) : ℂ) : ExtPlane) = ((φi z : ℂ) : ExtPlane)
+    rw [hHcoe z, hEU (subset_closure ⟨z, hz, rfl⟩)]
+    exact (hΦiU z hz).1
+  -- `conj ∘ F` is `K`-q.c. on `Ω`
+  have hdom : {z : ℂ | (z : ExtPlane) ∈ A₁ ∧ F z ≠ extInf} = Ω := by
+    ext z
+    refine ⟨fun h => h.1, fun h => ⟨h, fun h' => ?_⟩⟩
+    have h2 : F z ∈ A₂ := hFA ▸ mem_image_of_mem F h
+    rw [h'] at h2
+    exact disjoint_left.1 hA₂C h2 hinf
+  rw [hdom] at hK
+  have hGφ := thm7_1_comp hφiU hK (by rw [(hφ.symm hΩo).2.2])
+  have hconj := abR_x_isKQC_conj hGφ
+  have hpre : (starRingEnd ℂ) ⁻¹' upperHalf = lowerHalf := by
+    ext z
+    show 0 < (conj z).im ↔ z.im < 0
+    rw [conj_im, neg_pos]
+  rw [hpre] at hconj
+  have hHL : IsKQC H lowerHalf (1 * K) := by
+    refine ad_isKQC_congr hconj fun z hz => ?_
+    have hzU : (z : ExtPlane) ∉ closure (toExt upperHalf) := fun h' =>
+      disjoint_left.1 wd_b_closure_upper_disjoint h' ⟨z, hz, rfl⟩
+    simp only [Function.comp_apply, conj_conj]
+    show extToC (E z) = extToC (F (φi (conj z)))
+    rw [hE, ite_eq_right hzU, hcjz, (hΦiU _ (hconjU z hz)).1]
+  have hK1 : 1 ≤ 1 * K := hGφ.2.1
+  have hH' : IsHomeomorphOnto H univ (H '' univ) := by
+    rw [hHhom.2.2.1]
+    exact hHhom
+  have hHK : IsKQC H univ (1 * K) := wd_glue hK1 hH' (hHU.mono hK1) hHL
+  -- `C = H(ℝ) ∪ {∞}`
+  have hreal : ∀ x : ℝ, ((H x : ℂ) : ExtPlane) = Φi (((x : ℝ) : ℂ) : ExtPlane) := fun x => by
+    rw [hHcoe, hEU (wd_b_real_mem_closure_upper x)]
+  have hCH : C = toExt (H '' realLine) ∪ {extInf} := by
+    apply Subset.antisymm
+    · intro p hp
+      induction p using OnePoint.rec with
+      | infty => exact Or.inr rfl
+      | coe z =>
+        left
+        have hzcl : (z : ExtPlane) ∈ closure (toExt Ω) := by
+          rw [hclA]
+          exact Or.inr hp
+        have hΦz : Φ z ∈ closure (toExt upperHalf) := hΦ.2.2.2 ▸ mem_image_of_mem Φ hzcl
+        rcases wd_b_closure_upper_cases hΦz with h0 | ⟨x, hx⟩ | ⟨w, hw, hwe⟩
+        · exfalso
+          have h1 := hΦ.2.2.1 hzcl (by rw [hclA]; exact Or.inr hinf) (h0.trans hΦinf.symm)
+          exact OnePoint.coe_ne_infty z h1
+        · refine ⟨H x, ⟨(x : ℂ), ofReal_im x, rfl⟩, ?_⟩
+          rw [hreal, ← hx, hΦl _ hzcl]
+        · exfalso
+          have h1 := hΦl _ hzcl
+          rw [hwe, (hΦiU w hw).1] at h1
+          have h2 : (z : ExtPlane) ∈ A₁ := by
+            rw [← h1, ← hΩA]
+            exact ⟨_, (hΦiU w hw).2, rfl⟩
+          exact disjoint_left.1 hA₁C h2 hp
+    · rintro p (⟨_, ⟨z, hz, rfl⟩, rfl⟩ | hp)
+      · have hz' : ((z.re : ℝ) : ℂ) = z :=
+          Complex.ext (by simp) (by simp [show z.im = 0 from hz])
+        rw [← hz', hreal]
+        exact hbd _ (wd_b_real_mem_closure_upper _) (hnotU _)
+      · rw [mem_singleton_iff] at hp
+        rw [hp]
+        exact hinf
+  rw [hCH]
+  exact ⟨1 * K, isKQuasicircle_image_realLine hHK hHhom.2.2.1⟩
+
+/-- The anti-q.c. core of the reflection in `g₀(ℝ) ∪ {∞}`: `z ↦ conj (g₀ (conj (g₀⁻¹ z)))` is `K²`-q.c. on the
+plane. -/
+theorem s16p_refl_core {g₀ : ℂ → ℂ} {K : ℝ} (hg : IsKQC g₀ univ K) (e : ℂ ≃ₜ ℂ) (he : ⇑e = g₀) :
+    IsKQC (fun z => conj (g₀ (conj (e.symm z)))) univ (K * K) := by
+  have hs : g₀ '' univ = univ := by
+    rw [← he, image_univ_of_surjective e.surjective]
+  have h1 := thm7_2_inv hg
+  rw [hs] at h1
+  have heq : EqOn (⇑e.symm) (Function.invFunOn g₀ univ) univ := by
+    intro z _
+    have hex : ∃ a ∈ (univ : Set ℂ), g₀ a = z := ⟨e.symm z, mem_univ _, by rw [← he]; simp⟩
+    have h := Function.invFunOn_eq hex
+    apply e.injective
+    rw [e.apply_symm_apply, he, h]
+  have h1' : IsKQC (⇑e.symm) univ K := ad_isKQC_congr h1 heq
+  have h2 := abR_x_isKQC_conj hg
+  rw [preimage_univ] at h2
+  have h3 := thm7_1_comp h1' h2 (subset_univ _)
+  exact h3
+
+/-- **(⇒) of Theorem 16.2 for a quasicircle through `∞`**: with `C = g₀(ℝ) ∪ {∞}`, `A₁ = g₀(ℍ)`, `A₂ = g₀(𝕃)`
+(`wd_normal_form`), the reflection is `ĝ₀ ∘ conj ∘ ĝ₀⁻¹`. -/
+theorem s16p_fwd_inf {C : Set ExtPlane} {A₁ A₂ : Set ℂ} (hinf : extInf ∈ C)
+    (hC : AreComplementaryComponents C (toExt A₁) (toExt A₂)) (hq : IsQuasicircle C) :
+    ∃ F : ExtPlane → ExtPlane, IsQCReflection C (toExt A₁) (toExt A₂) F := by
+  obtain ⟨g₀, K, hg₀, hg₀s, hCeq, hA₁, hA₂⟩ := wd_normal_form hinf hC hq
+  obtain ⟨e, he⟩ := t1_homeomorph hg₀ hg₀s
+  set R : ℂ ≃ₜ ℂ := (e.symm.trans Complex.conjLIE.toHomeomorph).trans e with hRdef
+  have hR : ∀ z, R z = e (conj (e.symm z)) := fun z => by simp [R]
+  have hRe : ∀ z, R (e z) = e (conj z) := fun z => by rw [hR, e.symm_apply_apply]
+  have hA₁o : IsOpen A₁ := by
+    rw [hA₁, ← he]
+    exact e.isOpenMap _ isOpen_upperHalf
+  refine ⟨R.onePointCongr, R.onePointCongr.continuous.continuousOn,
+    R.onePointCongr.injective.injOn, ?_, ?_, K * K, ?_⟩
+  · rw [s13x_de_image_toExt]
+    congr 1
+    rw [hA₁, hA₂, ← he]
+    ext w
+    constructor
+    · rintro ⟨_, ⟨z, hz, rfl⟩, rfl⟩
+      refine ⟨conj z, ?_, (hRe z).symm⟩
+      show (conj z).im < 0
+      have hz' : 0 < z.im := hz
+      rw [conj_im]
+      linarith
+    · rintro ⟨z, hz, rfl⟩
+      refine ⟨e (conj z), ⟨conj z, ?_, rfl⟩, ?_⟩
+      · show 0 < (conj z).im
+        have hz' : z.im < 0 := hz
+        rw [conj_im]
+        linarith
+      · rw [hRe, conj_conj]
+  · intro p hp
+    rw [hCeq] at hp
+    rcases hp with ⟨_, ⟨x, hx, rfl⟩, rfl⟩ | hp
+    · have hx' : x.im = 0 := hx
+      have hcx : conj x = x := Complex.conj_eq_iff_im.2 hx'
+      show OnePoint.map R ((g₀ x : ℂ) : ExtPlane) = ((g₀ x : ℂ) : ExtPlane)
+      rw [OnePoint.map_some, ← he, hRe, hcx]
+    · rw [mem_singleton_iff] at hp
+      subst hp
+      rfl
+  · have hdom : {z : ℂ | (z : ExtPlane) ∈ toExt A₁ ∧ R.onePointCongr (z : ExtPlane) ≠ extInf} = A₁ := by
+      ext z
+      simp only [mem_ofPred_eq, coe_mem_toExt_iff]
+      constructor
+      · exact fun h => h.1
+      · intro h
+        exact ⟨h, by simp⟩
+    rw [hdom]
+    have hcore := nx_isKQC_restrict (s16p_refl_core hg₀ e he) hA₁o (subset_univ _)
+    refine ad_isKQC_congr hcore fun z _ => ?_
+    show conj (extToC (OnePoint.map R (z : ExtPlane))) = conj (g₀ (conj (e.symm z)))
+    rw [OnePoint.map_some, hR, he]
+    rfl
+
+/-- **Theorem 16.2 for a Jordan curve through `∞`.** -/
+theorem s16p_main_inf {C A₁ A₂ : Set ExtPlane} (hC : AreComplementaryComponents C A₁ A₂) (hinf : extInf ∈ C) :
+    IsQuasicircle C ↔ ∃ F : ExtPlane → ExtPlane, IsQCReflection C A₁ A₂ F := by
+  refine ⟨fun hq => ?_, fun ⟨F, hF⟩ => s16p_bwd_inf hC hinf hF⟩
+  obtain ⟨-, -, -, -, hA₁C, hA₂C, -⟩ := s16p_basic hC
+  have h₁ : toExt (((↑) : ℂ → ExtPlane) ⁻¹' A₁) = A₁ :=
+    uq_j_toExt_preimage_coe fun h => disjoint_left.1 hA₁C h hinf
+  have h₂ : toExt (((↑) : ℂ → ExtPlane) ⁻¹' A₂) = A₂ :=
+    uq_j_toExt_preimage_coe fun h => disjoint_left.1 hA₂C h hinf
+  have h := s16p_fwd_inf (A₁ := ((↑) : ℂ → ExtPlane) ⁻¹' A₁) (A₂ := ((↑) : ℂ → ExtPlane) ⁻¹' A₂) hinf
+    (by rw [h₁, h₂]; exact hC) hq
+  rwa [h₁, h₂] at h
+
+/-- **Möbius transport of a q.c. reflection.**  Let `e` be the fractional linear map `z ↦ α + β/(z - q)` of `ℂ̄`
+(`β ≠ 0`).  A q.c. reflection `F` in `C` gives the q.c. reflection `e ∘ F ∘ e⁻¹` in `e(C)`: off the (at most two)
+points where `e⁻¹` or `F ∘ e⁻¹` takes the value `∞`, `conj ∘ (e ∘ F ∘ e⁻¹)` is the composition of
+`w ↦ q + β/(w - α)`, `conj ∘ F` and `u ↦ ᾱ + β̄/(u - q̄)`, and finitely many points are removable. -/
+theorem s16p_refl_transport {C A₁ A₂ : Set ExtPlane} (hC : AreComplementaryComponents C A₁ A₂)
+    {F : ExtPlane → ExtPlane} (hF : IsQCReflection C A₁ A₂ F) (e : ExtPlane ≃ₜ ExtPlane) {α β q : ℂ}
+    (hβ : β ≠ 0) (heq : e (q : ExtPlane) = extInf)
+    (hez : ∀ z : ℂ, z ≠ q → e z = ((α + β * (z - q)⁻¹ : ℂ) : ExtPlane)) :
+    IsQCReflection (e '' C) (e '' A₁) (e '' A₂) (e ∘ F ∘ e.symm) := by
+  classical
+  obtain ⟨-, hA₁o, -, -, -, -, -⟩ := s16p_basic hC
+  obtain ⟨hFc, hFi, hFA, hFC, K, hK⟩ := hF
+  have hsw : ∀ w : ℂ, w ≠ α → e.symm (w : ExtPlane) = ((q + β * (w - α)⁻¹ : ℂ) : ExtPlane) := by
+    intro w hw
+    have hwα : w - α ≠ 0 := sub_ne_zero.2 hw
+    have hne : q + β * (w - α)⁻¹ ≠ q := by
+      intro h
+      have h0 : β * (w - α)⁻¹ = 0 := by linear_combination h
+      exact mul_ne_zero hβ (inv_ne_zero hwα) h0
+    rw [e.symm_apply_eq, hez _ hne]
+    congr 1
+    rw [add_sub_cancel_left, mul_inv, inv_inv, ← mul_assoc, mul_inv_cancel₀ hβ, one_mul, add_sub_cancel]
+  have hss : ∀ s : Set ExtPlane, e.symm '' (e '' s) = s := fun s => by
+    rw [image_image]
+    simp
+  have hmaps : MapsTo e.symm (e '' A₁ ∪ e '' C) (A₁ ∪ C) := by
+    rw [← image_union]
+    rintro _ ⟨p, hp, rfl⟩
+    rwa [e.symm_apply_apply]
+  have hF'c : ContinuousOn (e ∘ F ∘ e.symm) (e '' A₁ ∪ e '' C) :=
+    e.continuous.comp_continuousOn (hFc.comp e.symm.continuous.continuousOn hmaps)
+  have hF'i : InjOn (e ∘ F ∘ e.symm) (e '' A₁ ∪ e '' C) :=
+    e.injective.comp_injOn (hFi.comp e.symm.injective.injOn hmaps)
+  refine ⟨hF'c, hF'i, ?_, ?_, 1 * K * 1, ?_⟩
+  · rw [image_comp, image_comp, hss, hFA]
+  · rintro _ ⟨c, hc, rfl⟩
+    show e (F (e.symm (e c))) = e c
+    rw [e.symm_apply_apply, hFC c hc]
+  -- the q.c. part
+  set F' := e ∘ F ∘ e.symm with hF'def
+  set D' : Set ℂ := {w : ℂ | (w : ExtPlane) ∈ e '' A₁ ∧ F' w ≠ extInf} with hD'def
+  set L : Set ℂ := {α} ∪ {w : ℂ | (w : ExtPlane) ∈ e '' A₁ ∧ F (e.symm w) = extInf} with hLdef
+  have hD'o : IsOpen D' :=
+    ((hF'c.mono subset_union_left).isOpen_inter_preimage (e.isOpenMap _ hA₁o)
+      (isOpen_compl_singleton (x := extInf))).preimage OnePoint.continuous_coe
+  have hLf : L.Finite := by
+    refine (finite_singleton α).union (Set.Subsingleton.finite ?_)
+    rintro w₁ ⟨hw₁, hF₁⟩ w₂ ⟨hw₂, hF₂⟩
+    exact OnePoint.coe_injective
+      (e.symm.injective (hFi (hmaps (Or.inl hw₁)) (hmaps (Or.inl hw₂)) (hF₁.trans hF₂.symm)))
+  have hfin : ∀ w ∈ D', ((extToC (F' w) : ℂ) : ExtPlane) = F' w := by
+    intro w hw
+    obtain ⟨u, hu⟩ := OnePoint.ne_infty_iff_exists.1 hw.2
+    rw [← hu]
+    rfl
+  have hgc : ContinuousOn (fun w : ℂ => conj (extToC (F' w))) D' := by
+    intro w hw
+    have h1 : ContinuousWithinAt (fun w : ℂ => F' w) D' w :=
+      ((hF'c.mono subset_union_left) _ hw.1).comp OnePoint.continuous_coe.continuousWithinAt
+        fun v hv => hv.1
+    have h2 : ContinuousAt extToC (F' w) := by
+      rw [← hfin w hw]
+      exact s16p_continuousAt_extToC _
+    have h3 : ContinuousWithinAt (fun v : ℂ => extToC (F' v)) D' w :=
+      ContinuousAt.comp_continuousWithinAt (f := fun v : ℂ => F' v) h2 h1
+    exact Complex.continuous_conj.continuousAt.comp_continuousWithinAt h3
+  have hgi : InjOn (fun w : ℂ => conj (extToC (F' w))) D' := by
+    intro w₁ hw₁ w₂ hw₂ h
+    have h1 : extToC (F' w₁) = extToC (F' w₂) := by
+      have h' := congrArg conj h
+      simpa using h'
+    have h2 : F' w₁ = F' w₂ := by rw [← hfin w₁ hw₁, ← hfin w₂ hw₂, h1]
+    exact OnePoint.coe_injective (hF'i (Or.inl hw₁.1) (Or.inl hw₂.1) h2)
+  have hK1 : 1 ≤ 1 * K * 1 := by
+    rw [one_mul, mul_one]
+    exact hK.2.1
+  refine s16p_isKQC_of_finite hD'o hK1 hgc hgi hLf ?_
+  have hDL : IsOpen (D' \ L) := hD'o.sdiff hLf.isClosed
+  have hmem : ∀ w ∈ D' \ L, w ≠ α ∧ e.symm (w : ExtPlane) = ((q + β * (w - α)⁻¹ : ℂ) : ExtPlane) ∧
+      ((q + β * (w - α)⁻¹ : ℂ) : ExtPlane) ∈ A₁ ∧ F ((q + β * (w - α)⁻¹ : ℂ) : ExtPlane) ≠ extInf := by
+    rintro w ⟨hwD, hwL⟩
+    have hwα : w ≠ α := fun h => hwL (Or.inl h)
+    have hs := hsw w hwα
+    refine ⟨hwα, hs, ?_, ?_⟩
+    · obtain ⟨p, hp, hpw⟩ := hwD.1
+      rw [← hs, ← hpw, e.symm_apply_apply]
+      exact hp
+    · intro h
+      exact hwL (Or.inr ⟨hwD.1, by rw [hs]; exact h⟩)
+  have k1 : IsKQC (fun w : ℂ => q + β * (w - α)⁻¹) (D' \ L) 1 :=
+    ac_t_isKQC_restrict (tp_b1_M_isKQC α q hβ) hDL fun w hw => (hmem w hw).1
+  have k2 := thm7_1_comp k1 hK (by
+    rintro _ ⟨w, hw, rfl⟩
+    exact ⟨(hmem w hw).2.2.1, (hmem w hw).2.2.2⟩)
+  have hβ' : conj β ≠ 0 := (map_ne_zero _).2 hβ
+  have k3 := thm7_1_comp k2 (tp_b1_M_isKQC (conj q) (conj α) hβ') (by
+    rintro _ ⟨w, hw, rfl⟩ h
+    obtain ⟨-, hs, -, hFne⟩ := hmem w hw
+    obtain ⟨u, hu⟩ := OnePoint.ne_infty_iff_exists.1 hFne
+    have h1 : conj (extToC (F ((q + β * (w - α)⁻¹ : ℂ) : ExtPlane))) = conj q := h
+    rw [← hu] at h1
+    have h2 : extToC (u : ExtPlane) = q := by simpa using congrArg conj h1
+    have huq : u = q := h2
+    apply hw.1.2
+    show e (F (e.symm w)) = extInf
+    rw [hs, ← hu, huq, heq])
+  refine ad_isKQC_congr k3 fun w hw => ?_
+  obtain ⟨-, hs, -, hFne⟩ := hmem w hw
+  obtain ⟨u, hu⟩ := OnePoint.ne_infty_iff_exists.1 hFne
+  have huq : u ≠ q := by
+    rintro rfl
+    apply hw.1.2
+    show e (F (e.symm w)) = extInf
+    rw [hs, ← hu, heq]
+  show conj (extToC (e (F (e.symm w)))) =
+    conj α + conj β * (conj (extToC (F ((q + β * (w - α)⁻¹ : ℂ) : ExtPlane))) - conj q)⁻¹
+  rw [hs, ← hu, hez u huq]
+  show conj (α + β * (u - q)⁻¹) = conj α + conj β * (conj u - conj q)⁻¹
+  simp only [map_add, map_mul, map_inv₀, map_sub]
+
+/-- **Theorem 16.2**, proved: for a curve through `∞` directly (`s16p_main_inf`); otherwise move a point `a ∈ C` to
+`∞` by `e(z) = 1/(z - a)`, which carries quasicircles, complementary components and q.c. reflections both ways
+(`s16p_isQuasicircle_mobius_image`, `s16p_areComplementaryComponents_image`, `s16p_refl_transport` for `e` and for
+`e⁻¹(w) = a + 1/w`). -/
+theorem s16p_thm16_2 {C A₁ A₂ : Set ExtPlane} (hC : AreComplementaryComponents C A₁ A₂) :
+    IsQuasicircle C ↔ ∃ F : ExtPlane → ExtPlane, IsQCReflection C A₁ A₂ F := by
+  by_cases hinf : extInf ∈ C
+  · exact s16p_main_inf hC hinf
+  obtain ⟨p, hp⟩ : C.Nonempty := by
+    obtain ⟨γ, -, -, hγ⟩ := hC.1
+    rw [← hγ]
+    exact range_nonempty γ
+  obtain ⟨a, rfl⟩ : ∃ a : ℂ, p = a :=
+    (uq_j_eq_infty_or_coe p).resolve_left (by rintro rfl; exact hinf hp)
+  set e := mobiusHomeomorph 0 1 1 (-a) (uq_j_inv_det a) with he
+  have hC' := s16p_areComplementaryComponents_image hC e
+  have hea : e (a : ExtPlane) = extInf := uq_j_mobiusInv_apply_self a
+  have hmain := s16p_main_inf hC' ⟨a, hp, hea⟩
+  have heinf : e extInf = ((0 : ℂ) : ExtPlane) := by
+    rw [he, mobiusHomeomorph_apply, mobiusExt_infty_of_ne one_ne_zero, zero_div]
+  have hez : ∀ z : ℂ, z ≠ a → e z = ((0 + 1 * (z - a)⁻¹ : ℂ) : ExtPlane) := by
+    intro z hz
+    rw [uq_j_mobiusInv_coe hz]
+    congr 1
+    simp [mobiusFn, sub_eq_add_neg]
+  have hs0 : e.symm ((0 : ℂ) : ExtPlane) = extInf := by
+    rw [e.symm_apply_eq, heinf]
+  have hsz : ∀ z : ℂ, z ≠ 0 → e.symm z = ((a + 1 * (z - 0)⁻¹ : ℂ) : ExtPlane) := by
+    intro z hz
+    have hne : a + 1 * (z - 0)⁻¹ ≠ a := by
+      intro h
+      have h0 : 1 * (z - 0)⁻¹ = 0 := by linear_combination h
+      rw [sub_zero, one_mul] at h0
+      exact inv_ne_zero hz h0
+    rw [e.symm_apply_eq, hez _ hne]
+    congr 1
+    simp
+  have hss : ∀ s : Set ExtPlane, e.symm '' (e '' s) = s := fun s => by
+    rw [image_image]
+    simp
+  constructor
+  · intro hq
+    obtain ⟨F', hF'⟩ := hmain.1 (s16p_isQuasicircle_mobius_image hq (uq_j_inv_det a))
+    have h := s16p_refl_transport hC' hF' e.symm one_ne_zero hs0 hsz
+    rw [hss C, hss A₁, hss A₂] at h
+    exact ⟨_, h⟩
+  · rintro ⟨F, hF⟩
+    have hq' := hmain.2 ⟨_, s16p_refl_transport hC hF e one_ne_zero hea hez⟩
+    have h := s16p_isQuasicircle_mobius_image hq' (a := -a) (b := -1) (c := -1) (d := 0) (by norm_num)
+    have heq : mobiusExt (-a) (-1) (-1) 0 '' (e '' C) = C := hss C
+    rwa [heq] at h
+
 /-- **Theorem 16.2**: a Jordan curve `C` is a quasicircle iff there is a quasiconformal reflection
 in `C`. -/
 theorem thm16_2 {C A₁ A₂ : Set ExtPlane} (hC : AreComplementaryComponents C A₁ A₂) :
     IsQuasicircle C ↔ ∃ F : ExtPlane → ExtPlane, IsQCReflection C A₁ A₂ F := by
-  sorry
+  exact s16p_thm16_2 hC
 
 /-! ### Welding track interface (coordinator 553e2d): Theorem 16.3 -/
 
@@ -940,149 +1907,6 @@ theorem wd_frontier_eq {C : Set ExtPlane} {A V : Set ℂ} {φ : ℂ → ℂ} {Φ
   refine wd_jordan_subcurve hJ hC ?_
   rw [hAp]
   exact wd_f_frontier_component_subset hCc p
-
-/-- A point of `ℂ̄` is `∞`, real, in `ℍ` or in `𝕃`. -/
-theorem wd_b_cases (p : ExtPlane) :
-    p = extInf ∨ (∃ x : ℝ, p = (((x : ℝ) : ℂ) : ExtPlane)) ∨ (∃ z ∈ upperHalf, p = (z : ExtPlane)) ∨
-      ∃ z ∈ lowerHalf, p = (z : ExtPlane) := by
-  induction p using OnePoint.rec with
-  | infty => exact Or.inl rfl
-  | coe z =>
-    rcases lt_trichotomy z.im 0 with hlt | heq | hgt
-    · exact Or.inr (Or.inr (Or.inr ⟨z, hlt, rfl⟩))
-    · refine Or.inr (Or.inl ⟨z.re, ?_⟩)
-      congr 1
-      exact Complex.ext (by simp) (by simp [heq])
-    · exact Or.inr (Or.inr (Or.inl ⟨z, hgt, rfl⟩))
-
-/-- `∞` lies in the closure of `ℍ` in `ℂ̄`. -/
-theorem wd_b_infty_mem_closure_upper : extInf ∈ closure (toExt upperHalf) :=
-  frontier_subset_closure infty_mem_frontier_upperHalf
-
-/-- A real point lies in the closure of `ℍ` in `ℂ̄`. -/
-theorem wd_b_real_mem_closure_upper (x : ℝ) : (((x : ℝ) : ℂ) : ExtPlane) ∈ closure (toExt upperHalf) :=
-  frontier_subset_closure (ofReal_mem_frontier_upperHalf x)
-
-/-- A real point lies in the closure of `𝕃` in `ℂ̄`. -/
-theorem wd_b_real_mem_closure_lower (x : ℝ) : (((x : ℝ) : ℂ) : ExtPlane) ∈ closure (toExt lowerHalf) := by
-  have h1 : (x : ℂ) ∈ closure lowerHalf := by
-    rw [show lowerHalf = {z : ℂ | z.im < 0} from rfl, Complex.closure_setOfPred_im_lt]
-    show (x : ℂ).im ≤ 0
-    rw [Complex.ofReal_im]
-  exact image_closure_subset_closure_image OnePoint.continuous_coe ⟨_, h1, rfl⟩
-
-/-- The closure of `ℍ` in `ℂ̄` misses `𝕃`. -/
-theorem wd_b_closure_upper_disjoint : Disjoint (closure (toExt upperHalf)) (toExt lowerHalf) := by
-  refine Disjoint.closure_left ?_ (OnePoint.isOpen_image_coe.2 (isOpen_lt continuous_im continuous_const))
-  rw [Set.disjoint_left]
-  rintro _ ⟨z, hz, rfl⟩ ⟨w, hw, hwz⟩
-  rw [OnePoint.coe_injective hwz] at hw
-  exact lt_asymm (show (0 : ℝ) < z.im from hz) hw
-
-/-- The closure of `𝕃` in `ℂ̄` misses `ℍ`. -/
-theorem wd_b_closure_lower_disjoint : Disjoint (closure (toExt lowerHalf)) (toExt upperHalf) := by
-  refine Disjoint.closure_left ?_ (OnePoint.isOpen_image_coe.2 isOpen_upperHalf)
-  rw [Set.disjoint_left]
-  rintro _ ⟨z, hz, rfl⟩ ⟨w, hw, hwz⟩
-  rw [OnePoint.coe_injective hwz] at hw
-  exact lt_asymm (show z.im < 0 from hz) hw
-
-/-- A point in the closures of both `ℍ` and `𝕃` is `∞` or real. -/
-theorem wd_b_closure_inter {p : ExtPlane} (h₁ : p ∈ closure (toExt upperHalf))
-    (h₂ : p ∈ closure (toExt lowerHalf)) : p = extInf ∨ ∃ x : ℝ, p = (((x : ℝ) : ℂ) : ExtPlane) := by
-  rcases wd_b_cases p with h | h | ⟨z, hz, rfl⟩ | ⟨z, hz, rfl⟩
-  · exact Or.inl h
-  · exact Or.inr h
-  · exact (disjoint_left.1 wd_b_closure_lower_disjoint h₂ ⟨z, hz, rfl⟩).elim
-  · exact (disjoint_left.1 wd_b_closure_upper_disjoint h₁ ⟨z, hz, rfl⟩).elim
-
-/-- A point of the closure of `ℍ` in `ℂ̄` is `∞`, real or in `ℍ`. -/
-theorem wd_b_closure_upper_cases {p : ExtPlane} (hp : p ∈ closure (toExt upperHalf)) :
-    p = extInf ∨ (∃ x : ℝ, p = (((x : ℝ) : ℂ) : ExtPlane)) ∨ ∃ z ∈ upperHalf, p = (z : ExtPlane) := by
-  rcases wd_b_cases p with h | h | h | ⟨z, hz, rfl⟩
-  · exact Or.inl h
-  · exact Or.inr (Or.inl h)
-  · exact Or.inr (Or.inr h)
-  · exact (disjoint_left.1 wd_b_closure_upper_disjoint hp ⟨z, hz, rfl⟩).elim
-
-/-- A point of `ℂ̄` off the closure of `ℍ` is a point of `𝕃`. -/
-theorem wd_b_not_mem_closure_upper {p : ExtPlane} (hp : p ∉ closure (toExt upperHalf)) :
-    ∃ z ∈ lowerHalf, p = (z : ExtPlane) := by
-  rcases wd_b_cases p with rfl | ⟨x, rfl⟩ | ⟨z, hz, rfl⟩ | h
-  · exact absurd wd_b_infty_mem_closure_upper hp
-  · exact absurd (wd_b_real_mem_closure_upper x) hp
-  · exact (hp (subset_closure ⟨z, hz, rfl⟩)).elim
-  · exact h
-
-/-- The inverse of a map continuous and injective on a closed subset `S` of `ℂ̄`, with image `T`: it is continuous on
-`T`, maps `T` into `S`, and is a right inverse on `T` and a left inverse on `S`. -/
-theorem wd_b_inv {F : ExtPlane → ExtPlane} {S T : Set ExtPlane} (hS : IsClosed S) (hFc : ContinuousOn F S)
-    (hFi : InjOn F S) (hFS : F '' S = T) :
-    ContinuousOn (Function.invFunOn F S) T ∧ MapsTo (Function.invFunOn F S) T S ∧
-      (∀ q ∈ T, F (Function.invFunOn F S q) = q) ∧ ∀ p ∈ S, Function.invFunOn F S (F p) = p := by
-  subst hFS
-  exact ⟨continuousOn_invFunOn_of_isClosed hS hFc hFi, fun q hq => Function.invFunOn_mem hq,
-    fun q hq => Function.invFunOn_eq hq, fun p hp => hFi.leftInvOn_invFunOn hp⟩
-
-/-- On `V`, the inverse of a homeomorphic extension `F` of `f : U → V` is the inverse of `f`. -/
-theorem wd_b_invFunOn_coe {f : ℂ → ℂ} {U V : Set ℂ} {F : ExtPlane → ExtPlane} (hF : IsHomeoExtension f U V F)
-    (hfUV : f '' U = V) {v : ℂ} (hv : v ∈ V) :
-    Function.invFunOn F (closure (toExt U)) (v : ExtPlane) = ((Function.invFunOn f U v : ℂ) : ExtPlane) ∧
-      Function.invFunOn f U v ∈ U := by
-  have hv' : v ∈ f '' U := hfUV.symm ▸ hv
-  have hu : Function.invFunOn f U v ∈ U := Function.invFunOn_mem hv'
-  have h1 : F ((Function.invFunOn f U v : ℂ) : ExtPlane) = (v : ExtPlane) := by
-    rw [hF.1 _ hu, Function.invFunOn_eq hv']
-  refine ⟨?_, hu⟩
-  rw [← h1]
-  exact hF.2.2.1.leftInvOn_invFunOn (subset_closure ⟨_, hu, rfl⟩)
-
-/-- Pasting across `ℝ ∪ {∞}`: a map of `ℂ̄` agreeing on `ℍ̄` with a map continuous there and on `𝕃̄` with a map
-continuous there is continuous. -/
-theorem wd_b_paste {F F₁ F₂ : ExtPlane → ExtPlane} (h₁ : ContinuousOn F₁ (closure (toExt upperHalf)))
-    (h₂ : ContinuousOn F₂ (closure (toExt lowerHalf))) (hF₁ : EqOn F F₁ (closure (toExt upperHalf)))
-    (hF₂ : EqOn F F₂ (closure (toExt lowerHalf))) : Continuous F := by
-  have hU : closure (toExt upperHalf) ∪ closure (toExt lowerHalf) = univ := by
-    refine eq_univ_of_forall fun p => ?_
-    rcases wd_b_cases p with rfl | ⟨x, rfl⟩ | ⟨z, hz, rfl⟩ | ⟨z, hz, rfl⟩
-    · exact Or.inl wd_b_infty_mem_closure_upper
-    · exact Or.inl (wd_b_real_mem_closure_upper x)
-    · exact Or.inl (subset_closure ⟨z, hz, rfl⟩)
-    · exact Or.inr (subset_closure ⟨z, hz, rfl⟩)
-  rw [← continuousOn_univ, ← hU]
-  exact (h₁.congr hF₁).union_of_isClosed (h₂.congr hF₂) isClosed_closure isClosed_closure
-
-/-- A continuous injection of `ℂ̄` into itself fixing `∞` restricts to a homeomorphism of `ℂ` onto `ℂ`
-(`lemma12_1`). -/
-theorem wd_b_plane_homeo {F : ExtPlane → ExtPlane} (hF : Continuous F) (hFi : Function.Injective F)
-    (hFinf : F extInf = extInf) :
-    (∀ z : ℂ, ((extToC (F z) : ℂ) : ExtPlane) = F z) ∧
-      IsHomeomorphOnto (fun z : ℂ => extToC (F z)) univ univ := by
-  have hcoe : ∀ z : ℂ, ((extToC (F z) : ℂ) : ExtPlane) = F z := by
-    intro z
-    have hne : F z ≠ extInf := fun h => OnePoint.coe_ne_infty z (hFi (h.trans hFinf.symm))
-    obtain ⟨w, hw⟩ := OnePoint.ne_infty_iff_exists.1 hne
-    rw [← hw]
-    rfl
-  refine ⟨hcoe, ?_⟩
-  have hcomp : ((↑) : ℂ → ExtPlane) ∘ (fun z : ℂ => extToC (F z)) = F ∘ ((↑) : ℂ → ExtPlane) := funext hcoe
-  have hc : Continuous (fun z : ℂ => extToC (F z)) := by
-    rw [OnePoint.isOpenEmbedding_coe.isEmbedding.continuous_iff, hcomp]
-    exact hF.comp OnePoint.continuous_coe
-  have hi : Function.Injective (fun z : ℂ => extToC (F z)) := by
-    intro a b hab
-    have h := congrArg ((↑) : ℂ → ExtPlane) hab
-    simp only [hcoe] at h
-    exact OnePoint.coe_injective (hFi h)
-  have ht : Tendsto (fun z : ℂ => extToC (F z)) (cocompact ℂ) (cocompact ℂ) := by
-    rw [← coclosedCompact_eq_cocompact, ← OnePoint.comap_coe_nhds_infty, tendsto_comap_iff, hcomp]
-    have h1 : Tendsto F (𝓝 extInf) (𝓝 extInf) := by
-      have h2 := hF.tendsto extInf
-      rwa [hFinf] at h2
-    exact h1.comp tendsto_comap
-  obtain ⟨e, he⟩ := lemma12_1 hc ht fun _ => ⟨univ, univ_mem, hi.injOn⟩
-  rw [← he]
-  exact nxI1_isHomeomorphOnto_of_homeomorph e
 
 /-- **B** (the welded homeomorphism, (⇐) of Theorem 16.3): if `g` is a `K`-q.c. self-map of `ℍ` with boundary values
 `h`, then `H := φ⁻¹ ∘ g⁻¹` on `ℍ̄`, `H := ψ⁻¹` on `𝕃̄` (they agree on `ℝ`: `Φ⁻¹(G⁻¹ y) = Ψ⁻¹ y` by `hh` and F) is a
@@ -1281,117 +2105,6 @@ theorem wd_backward {C : Set ExtPlane} {A₁ A₂ : Set ℂ} (hinf : extInf ∈ 
         rw [hp]
         exact hinf
 
-/-- A finite point lies in `toExt s` iff it lies in `s`. -/
-theorem wd_n_coe_mem_toExt {s : Set ℂ} {z : ℂ} : (z : ExtPlane) ∈ toExt s ↔ z ∈ s :=
-  OnePoint.coe_injective.mem_set_image
-
-/-- `∞` does not lie in `toExt s`. -/
-theorem wd_n_infty_notMem_toExt {s : Set ℂ} : extInf ∉ toExt s := by
-  rintro ⟨z, -, hz⟩
-  exact OnePoint.coe_ne_infty z hz
-
-/-- For a bijection `g` of the plane, the complement of `g(ℝ) ∪ {∞}` in `ℂ̄` is `g(ℍ) ∪ g(𝕃)`. -/
-theorem wd_n_compl_eq {g : ℂ → ℂ} (hg : Function.Bijective g) :
-    (toExt (g '' realLine) ∪ {extInf})ᶜ = toExt (g '' upperHalf) ∪ toExt (g '' lowerHalf) := by
-  ext p
-  induction p using OnePoint.rec with
-  | infty =>
-    refine iff_of_false (fun h => h (Or.inr rfl)) ?_
-    rintro (h | h) <;> exact wd_n_infty_notMem_toExt h
-  | coe z =>
-    obtain ⟨w, rfl⟩ := hg.2 z
-    simp only [mem_compl_iff, mem_union, mem_singleton_iff, wd_n_coe_mem_toExt,
-      hg.1.mem_set_image, OnePoint.coe_ne_infty, or_false]
-    show ¬ w.im = 0 ↔ 0 < w.im ∨ w.im < 0
-    rw [← ne_eq, ne_comm, ne_iff_lt_or_gt, or_comm]
-
-/-- A set `S = U ∪ V` with `U`, `V` disjoint and open and `U` preconnected: the component of `S` through a point of `U`
-is `U`. -/
-theorem wd_n_component_eq {S U V : Set ExtPlane} (hS : S = U ∪ V) (hU : IsOpen U) (hV : IsOpen V)
-    (hUV : Disjoint U V) (hUc : IsPreconnected U) {p : ExtPlane} (hp : p ∈ U) : connectedComponentIn S p = U := by
-  have hpS : p ∈ S := hS ▸ Or.inl hp
-  refine Subset.antisymm ?_ (hUc.subset_connectedComponentIn hp (hS ▸ subset_union_left))
-  exact isPreconnected_connectedComponentIn.subset_left_of_subset_union hU hV hUV
-    ((connectedComponentIn_subset S p).trans hS.subset) ⟨p, mem_connectedComponentIn hpS, hp⟩
-
-/-- The two complementary components of `e(ℝ) ∪ {∞}` for a homeomorphism `e` of the plane: every component of the
-complement is `e(ℍ)` or `e(𝕃)` (these are open, disjoint and connected, and cover the complement). -/
-theorem wd_n_components (e : ℂ ≃ₜ ℂ) {p : ExtPlane} (hp : p ∈ (toExt (e '' realLine) ∪ {extInf})ᶜ) :
-    connectedComponentIn (toExt (e '' realLine) ∪ {extInf})ᶜ p = toExt (e '' upperHalf) ∨
-      connectedComponentIn (toExt (e '' realLine) ∪ {extInf})ᶜ p = toExt (e '' lowerHalf) := by
-  have hS := wd_n_compl_eq e.bijective
-  have hoU : IsOpen (toExt (e '' upperHalf)) := OnePoint.isOpen_image_coe.2 (e.isOpenMap _ isOpen_upperHalf)
-  have hoL : IsOpen (toExt (e '' lowerHalf)) :=
-    OnePoint.isOpen_image_coe.2 (e.isOpenMap _ (isOpen_lt continuous_im continuous_const))
-  have hdisj : Disjoint (toExt (e '' upperHalf)) (toExt (e '' lowerHalf)) := by
-    refine (disjoint_image_iff OnePoint.coe_injective).2 ((disjoint_image_iff e.injective).2 ?_)
-    refine disjoint_left.2 fun z (hz : 0 < z.im) (hz' : z.im < 0) => ?_
-    linarith
-  have hcU : IsPreconnected (toExt (e '' upperHalf)) :=
-    (isConnected_upperHalf.isPreconnected.image _ e.continuous.continuousOn).image _
-      OnePoint.continuous_coe.continuousOn
-  have hcL : IsPreconnected (toExt (e '' lowerHalf)) :=
-    ((((convex_Iio (0 : ℝ)).linear_preimage Complex.imLm).isPreconnected).image _
-      e.continuous.continuousOn).image _ OnePoint.continuous_coe.continuousOn
-  rw [hS] at hp
-  rcases hp with hp | hp
-  · exact Or.inl (wd_n_component_eq hS hoU hoL hdisj hcU hp)
-  · exact Or.inr (wd_n_component_eq (hS.trans (union_comm _ _)) hoL hoU hdisj.symm hcL hp)
-
-/-- The image of a set under `z ↦ -z`, from a membership criterion. -/
-theorem wd_n_neg_image {S T : Set ℂ} (h : ∀ z : ℂ, -z ∈ T ↔ z ∈ S) : (fun z : ℂ => -z) '' S = T := by
-  ext w
-  constructor
-  · rintro ⟨z, hz, rfl⟩
-    exact (h z).2 hz
-  · intro hw
-    exact ⟨-w, (h (-w)).1 (by rwa [neg_neg]), neg_neg w⟩
-
-/-- **N** (normal form of a quasicircle through `∞`, (⇒)): `C = g₀(ℝ) ∪ {∞}` for a `K`-q.c. map `g₀` of the plane
-onto itself with `A₁ = g₀(ℍ)`, `A₂ = g₀(𝕃)` (`tp_quasicircle_through_inf`; `ℂ̄ ∖ C` has exactly the components
-`g₀(ℍ)`, `g₀(𝕃)`; replace `g₀` by `g₀(-z)` if they are swapped). -/
-theorem wd_normal_form {C : Set ExtPlane} {A₁ A₂ : Set ℂ} (hinf : extInf ∈ C)
-    (hC : AreComplementaryComponents C (toExt A₁) (toExt A₂)) (hq : IsQuasicircle C) :
-    ∃ (g₀ : ℂ → ℂ) (K : ℝ), IsKQC g₀ univ K ∧ g₀ '' univ = univ ∧ C = toExt (g₀ '' realLine) ∪ {extInf} ∧
-      A₁ = g₀ '' upperHalf ∧ A₂ = g₀ '' lowerHalf := by
-  obtain ⟨K, hK⟩ := hq
-  obtain ⟨g, hg, hgs, rfl⟩ := tp_quasicircle_through_inf hK hinf
-  obtain ⟨e, rfl⟩ := t1_homeomorph hg hgs
-  obtain ⟨-, p₁, hp₁, p₂, hp₂, h₁, h₂, hne⟩ := hC
-  have hinj : Function.Injective toExt := image_injective.2 OnePoint.coe_injective
-  rcases wd_n_components e hp₁ with hc₁ | hc₁ <;> rcases wd_n_components e hp₂ with hc₂ | hc₂
-  · exact absurd (h₁.trans (hc₁.trans (hc₂.symm.trans h₂.symm))) hne
-  · exact ⟨e, K, hg, hgs, rfl, hinj (h₁.trans hc₁), hinj (h₂.trans hc₂)⟩
-  · -- the components are swapped: precompose with `z ↦ -z`
-    have hneg : IsKQC (fun z : ℂ => -z) univ 1 :=
-      isKQC_one_of_conformal (D' := (fun z : ℂ => -z) '' univ) isOpen_univ
-        ⟨differentiable_id.neg.differentiableOn, fun a _ b _ h => neg_injective h, rfl⟩
-    have hK' := thm7_1_comp hneg hg (subset_univ _)
-    rw [one_mul] at hK'
-    have himg : ∀ S : Set ℂ, (fun z : ℂ => e (-z)) '' S = e '' ((fun z : ℂ => -z) '' S) :=
-      fun S => (image_image e (fun z : ℂ => -z) S).symm
-    have hR : (fun z : ℂ => -z) '' realLine = realLine :=
-      wd_n_neg_image fun z => by
-        show (-z).im = 0 ↔ z.im = 0
-        rw [neg_im, neg_eq_zero]
-    have hU : (fun z : ℂ => -z) '' upperHalf = lowerHalf :=
-      wd_n_neg_image fun z => by
-        show (-z).im < 0 ↔ 0 < z.im
-        rw [neg_im, neg_lt_zero]
-    have hL : (fun z : ℂ => -z) '' lowerHalf = upperHalf :=
-      wd_n_neg_image fun z => by
-        show 0 < (-z).im ↔ z.im < 0
-        rw [neg_im, neg_pos]
-    have huniv : (fun z : ℂ => -z) '' univ = univ := image_univ_of_surjective neg_surjective
-    refine ⟨fun z => e (-z), K, hK', ?_, ?_, ?_, ?_⟩
-    · rw [himg, huniv, hgs]
-    · rw [himg, hR]
-    · rw [himg, hU]
-      exact hinj (h₁.trans hc₁)
-    · rw [himg, hL]
-      exact hinj (h₂.trans hc₂)
-  · exact absurd (h₁.trans (hc₁.trans (hc₂.symm.trans h₂.symm))) hne
-
 /-- Complex conjugation, as a homeomorphism of `ℂ`, maps `ℍ` onto `𝕃`. -/
 theorem wd_w_conj_image_upperHalf : Complex.conjLIE.toHomeomorph '' upperHalf = lowerHalf := by
   ext w
@@ -1563,27 +2276,6 @@ theorem wd_forward_core {A₁ A₂ : Set ℂ} {g₀ : ℂ → ℂ} {K : ℝ} (hg
     rw [hy'2]
     show (((conj ((h y' : ℝ) : ℂ)) : ℂ) : ExtPlane) = _
     rw [conj_ofReal]
-
-/-- Gluing across `ℝ` (a local copy of the S21 lemma `ut2_ruh_glue`, which lies downstream): a map of the plane which is
-a homeomorphism onto its image and is `K`-q.c. on `ℍ` and on `𝕃` is `K`-q.c. on `ℂ` (`s13x_removable` with `L = ℝ`). -/
-theorem wd_glue {f : ℂ → ℂ} {K : ℝ} (hK : 1 ≤ K) (hf : IsHomeomorphOnto f univ (f '' univ))
-    (hU : IsKQC f upperHalf K) (hL : IsKQC f lowerHalf K) : IsKQC f univ K := by
-  refine s13x_removable (L := {z : ℂ | z.im = 0}) isOpen_univ hK hf gzE_volume_im_eq_zero ?_ ?_ ?_
-  · -- a vertical line meets the real axis in one point
-    refine Eventually.of_forall fun x => (countable_singleton (0 : ℝ)).mono fun y hy => ?_
-    simpa using hy
-  · -- a horizontal line off the real axis misses it
-    have h0 : ∀ᵐ y : ℝ, y ∉ ({0} : Set ℝ) :=
-      measure_eq_zero_iff_ae_notMem.1 (measure_singleton 0)
-    filter_upwards [h0] with y hy
-    refine countable_empty.mono fun x hx => ?_
-    exact absurd (by simpa using hx) hy
-  · -- off the real axis, a point lies in `ℍ` or in `𝕃`
-    rintro w ⟨-, hw⟩
-    have hw' : w.im ≠ 0 := hw
-    rcases lt_or_gt_of_ne hw' with hlt | hgt
-    · exact ⟨lowerHalf, hL.1, hlt, subset_univ _, hL⟩
-    · exact ⟨upperHalf, hU.1, hgt, subset_univ _, hU⟩
 
 /-- (⇒) of Theorem 16.3 with `G ∞ = ∞` (used also for the quasisymmetric corollary in §17): N, then W. -/
 theorem wd_forward {C : Set ExtPlane} {A₁ A₂ : Set ℂ} (hinf : extInf ∈ C)

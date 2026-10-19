@@ -3108,6 +3108,822 @@ def schwarzianUnivalentSet : Set (ℂ → ℂ) :=
 def IsBersInteriorPoint (S : Set (ℂ → ℂ)) (φ : ℂ → ℂ) : Prop :=
   ∃ ε > 0, ∀ ψ ∈ bersSpaceL, bersNormL (ψ - φ) < ENNReal.ofReal ε → lowerHalf.indicator ψ ∈ S
 
+/-! ### Gehring chain (s21u stage P4, coordinator 553e2d): Theorem 21.4
+
+`⊇` is Theorem 21.3 (`s21g_supset`, the scout's `h21u2_t214_supset`).  `⊆` (`s21g_subset`) follows the book: if
+`φ = S_f` is an interior point of `𝓕*`, normalize `f` to a conformal `F` of `𝕃` (`s21g_normalize`); `F(𝕃)` is then an
+`ε`-Schwarz domain (`s21g_isSchwarzDomain`: a small Schwarzian on `F(𝕃)` pulls back to a point of the `ε`-ball about
+`φ`, whose univalent representative forces univalence, `s21g_pullback`, `s21g_isUnivMero_of_schwarzian_eq`), hence a
+quasidisc (`thm20_5_gehring`); so `F` has a quasiconformal extension (`s21g_qc_extension`), and the normalized
+extension is `f_ν` for `ν ∈ M` with `Ψ[ν] = φ` (`aw_extend`, `aw_nu` at `μ = 0`, `f_0 = id`). -/
+
+/-- An injective holomorphic map of an open subset of `𝕃` omits a value: otherwise its inverse would be an entire
+function with values in `𝕃`, and `1/(w - i)` of it would be bounded, hence constant (Liouville). -/
+theorem s21g_c_exists_omitted {f : ℂ → ℂ} {U : Set ℂ} (hU : IsOpen U) (hUL : U ⊆ lowerHalf)
+    (hd : DifferentiableOn ℂ f U) (hinj : InjOn f U) : ∃ w₀ : ℂ, ∀ w ∈ U, f w ≠ w₀ := by
+  by_contra hcon
+  simp only [not_exists, not_forall, not_not, exists_prop] at hcon
+  have himg : f '' U = univ := Set.eq_univ_of_forall fun v => hcon v
+  have hconf : IsConformalOnto f U univ := ⟨hd, hinj, himg⟩
+  obtain ⟨hψd, -, hψimg⟩ := hconf.symm hU
+  have hψ : Differentiable ℂ (Function.invFunOn f U) := differentiableOn_univ.1 hψd
+  have hψL : ∀ w, (Function.invFunOn f U w).im < 0 := fun w =>
+    hUL (hψimg.subset (mem_image_of_mem (Function.invFunOn f U) (mem_univ w)))
+  have him : ∀ w, (Function.invFunOn f U w - I).im = (Function.invFunOn f U w).im - 1 := fun w => by simp
+  have hne : ∀ w, Function.invFunOn f U w - I ≠ 0 := fun w h => by
+    have h1 := congrArg Complex.im h
+    rw [him w, zero_im] at h1
+    linarith [hψL w]
+  have hk : Differentiable ℂ fun w => (Function.invFunOn f U w - I)⁻¹ := fun w =>
+    ((hψ w).sub_const I).inv (hne w)
+  have hb : Bornology.IsBounded (Set.range fun w => (Function.invFunOn f U w - I)⁻¹) := by
+    refine (Metric.isBounded_closedBall (x := (0 : ℂ)) (r := 1)).subset ?_
+    rintro _ ⟨w, rfl⟩
+    rw [mem_closedBall_zero_iff, norm_inv]
+    have h1 : 1 ≤ ‖Function.invFunOn f U w - I‖ := by
+      have h3 := Complex.abs_im_le_norm (Function.invFunOn f U w - I)
+      have h4 := hψL w
+      rw [him w, abs_of_neg (by linarith)] at h3
+      linarith
+    exact inv_le_one_of_one_le₀ h1
+  have h01 := hk.apply_eq_apply_of_bounded hb 0 1
+  have e01 : Function.invFunOn f U 0 = Function.invFunOn f U 1 := by
+    have h2 := inv_injective h01
+    simpa using h2
+  have e0 : f (Function.invFunOn f U 0) = 0 := Function.invFunOn_eq (hcon 0)
+  have e1 : f (Function.invFunOn f U 1) = 1 := Function.invFunOn_eq (hcon 1)
+  rw [e01] at e0
+  exact zero_ne_one (e0.symm.trans e1)
+
+/-- **Normalization**: a univalent meromorphic `f` in `𝕃` is, after a Möbius transformation, a conformal map of `𝕃`
+with the same Schwarzian.
+
+*Truth*: if `f` has no pole, `F = f`.  If `f` has its (unique) pole at `z₀ ∈ 𝕃`, then `f(𝕃 ∖ {z₀}) ≠ ℂ`: otherwise the
+inverse would be an entire function with values in `𝕃`, tending to `z₀` at `∞` (near `z₀`, `f` covers a neighbourhood
+of `∞`), hence constant by Liouville.  For `c ∉ f(𝕃 ∖ {z₀})`, `F = 1/(f - c)`, set to `0` at `z₀` (the value of the
+normal form of `1/(f - c)` there), is holomorphic and injective on `𝕃` with `S_F = S_f` (`schwarzian_mobius_comp`;
+the Schwarzian depends only on germs, through `toMeromorphicNFAt`).
+
+*Route*: `IsUnivMero`, `schwarzian_mobius_comp` (S19:435), `toMeromorphicNFAt` API, Liouville
+(`Differentiable.apply_eq_apply_of_bounded`) composed with the Cayley map, `isLocUnivMero_of_isConformalOnto`. -/
+theorem s21g_normalize {f : ℂ → ℂ} (hf : IsUnivMero f lowerHalf) :
+    ∃ F : ℂ → ℂ, IsConformalOnto F lowerHalf (F '' lowerHalf) ∧
+      ∀ z ∈ lowerHalf, schwarzian F z = schwarzian f z := by
+  obtain ⟨hloc, hinj, hpole⟩ := hf
+  by_cases hall : ∀ w ∈ lowerHalf, AnalyticAt ℂ f w
+  · refine ⟨f, ⟨fun w hw => (hall w hw).differentiableAt.differentiableWithinAt, ?_, rfl⟩, fun _ _ => rfl⟩
+    intro w₁ hw₁ w₂ hw₂ he
+    exact hinj ⟨hw₁, hall w₁ hw₁⟩ ⟨hw₂, hall w₂ hw₂⟩ he
+  · simp only [not_forall, exists_prop] at hall
+    obtain ⟨z₀, hz₀, hA₀⟩ := hall
+    -- every other point is analytic
+    have hana : ∀ w ∈ lowerHalf, w ≠ z₀ → AnalyticAt ℂ f w := fun w hw hne => by
+      by_contra hA
+      exact hne (hpole ⟨hw, hA⟩ ⟨hz₀, hA₀⟩)
+    -- the chart at the pole: `f = 1/u` near `z₀`, `u z₀ = 0`, `u' z₀ ≠ 0`
+    obtain ⟨u, hu, hu', -, hchart⟩ := exists_chart_of_isLocUnivMero hloc hz₀
+    have hord : meromorphicOrderAt f z₀ < 0 := by
+      rcases hloc.2 z₀ hz₀ with ⟨hA, -⟩ | ⟨h, -, -⟩
+      · exact absurd hA hA₀
+      · exact h
+    have hfu : f =ᶠ[𝓝[≠] z₀] fun y => (u y)⁻¹ := by
+      rcases hchart with h | h
+      · exfalso
+        rw [meromorphicOrderAt_congr h] at hord
+        exact absurd hord (not_lt.2 hu.meromorphicOrderAt_nonneg)
+      · exact h
+    have hu0 : u z₀ = 0 := by
+      by_contra hne
+      rw [meromorphicOrderAt_congr hfu] at hord
+      exact absurd hord (not_lt.2 (hu.inv hne).meromorphicOrderAt_nonneg)
+    have hune : ∀ᶠ y in 𝓝[≠] z₀, u y ≠ 0 := by
+      refine hu.eventually_eq_zero_or_eventually_ne_zero.resolve_left fun hcon => hu' ?_
+      have hz0 : u =ᶠ[𝓝 z₀] fun _ => (0 : ℂ) := hcon
+      rw [hz0.deriv_eq, deriv_const]
+    -- the omitted value
+    have hUo : IsOpen (lowerHalf \ {z₀}) := isOpen_lowerHalf.sdiff isClosed_singleton
+    obtain ⟨w₀, hw₀⟩ := s21g_c_exists_omitted hUo Set.sdiff_subset
+      (fun w hw => (hana w hw.1 hw.2).differentiableAt.differentiableWithinAt)
+      (fun w₁ hw₁ w₂ hw₂ he => hinj ⟨hw₁.1, hana _ hw₁.1 hw₁.2⟩ ⟨hw₂.1, hana _ hw₂.1 hw₂.2⟩ he)
+    have hne_w₀ : ∀ w ∈ lowerHalf, w ≠ z₀ → f w - w₀ ≠ 0 := fun w hw hne =>
+      sub_ne_zero.2 (hw₀ w ⟨hw, hne⟩)
+    -- the holomorphic replacement `F = 1/(f - w₀)`, with the value `0` at the pole
+    have hFeq : ∀ w, w ≠ z₀ → Function.update (fun y => (f y - w₀)⁻¹) z₀ 0 w = (f w - w₀)⁻¹ :=
+      fun w hw => Function.update_of_ne hw _ _
+    have hFz₀ : Function.update (fun y => (f y - w₀)⁻¹) z₀ 0 z₀ = 0 := Function.update_self _ _ _
+    -- off `z₀`, `F` is a Möbius transform of `f`
+    have hgerm : ∀ w ∈ lowerHalf, Function.update (fun y => (f y - w₀)⁻¹) z₀ 0 =ᶠ[𝓝[≠] w]
+        fun y => (0 * f y + 1) / (1 * f y + -w₀) := by
+      intro w _
+      have hev : ∀ᶠ y in 𝓝[≠] w, y ≠ z₀ := by
+        rcases eq_or_ne w z₀ with rfl | hne
+        · exact self_mem_nhdsWithin
+        · exact (eventually_ne_nhds hne).filter_mono nhdsWithin_le_nhds
+      filter_upwards [hev] with y hy
+      rw [hFeq y hy]
+      simp only [zero_mul, zero_add, one_mul, one_div, sub_eq_add_neg]
+    have hS : ∀ w ∈ lowerHalf, schwarzian (Function.update (fun y => (f y - w₀)⁻¹) z₀ 0) w =
+        schwarzian f w := fun w hw => by
+      rw [schwarzian_congr (hgerm w hw),
+        schwarzian_mobius_comp hloc (by norm_num : (0 : ℂ) * -w₀ - 1 * 1 ≠ 0) hw]
+    -- analyticity
+    have hFan : ∀ w ∈ lowerHalf, AnalyticAt ℂ (Function.update (fun y => (f y - w₀)⁻¹) z₀ 0) w := by
+      intro w hw
+      rcases eq_or_ne w z₀ with rfl | hne
+      · -- near the pole `F = u/(1 - w₀ u)`
+        have hG : AnalyticAt ℂ (fun y => u y / (1 - w₀ * u y)) w :=
+          hu.div (analyticAt_const.sub (analyticAt_const.mul hu)) (by rw [hu0]; simp)
+        refine hG.congr ?_
+        have h1' : ∀ᶠ y in 𝓝[≠] w,
+            u y / (1 - w₀ * u y) = Function.update (fun y => (f y - w₀)⁻¹) w 0 y := by
+          filter_upwards [hfu, hune, self_mem_nhdsWithin] with y hy hy0 hyw
+          rw [hFeq y hyw, hy]
+          field_simp
+        have h1 := eventually_nhdsWithin_iff.1 h1'
+        filter_upwards [h1] with y hy
+        by_cases hyw : y = w
+        · subst hyw
+          simp [hu0]
+        · exact hy hyw
+      · have hA := hana w hw hne
+        refine ((hA.sub analyticAt_const).inv (hne_w₀ w hw hne)).congr ?_
+        filter_upwards [eventually_ne_nhds hne] with y hy
+        exact (hFeq y hy).symm
+    -- injectivity
+    have hFinj : InjOn (Function.update (fun y => (f y - w₀)⁻¹) z₀ 0) lowerHalf := by
+      intro w₁ hw₁ w₂ hw₂ he
+      rcases eq_or_ne w₁ z₀ with h1 | h1 <;> rcases eq_or_ne w₂ z₀ with h2 | h2
+      · rw [h1, h2]
+      · rw [h1, hFz₀, hFeq w₂ h2, eq_comm, inv_eq_zero] at he
+        exact absurd he (hne_w₀ w₂ hw₂ h2)
+      · rw [h2, hFz₀, hFeq w₁ h1, inv_eq_zero] at he
+        exact absurd he (hne_w₀ w₁ hw₁ h1)
+      · rw [hFeq w₁ h1, hFeq w₂ h2, inv_inj, sub_left_inj] at he
+        exact hinj ⟨hw₁, hana _ hw₁ h1⟩ ⟨hw₂, hana _ hw₂ h2⟩ he
+    exact ⟨_, ⟨fun w hw => (hFan w hw).differentiableAt.differentiableWithinAt, hFinj, rfl⟩, hS⟩
+
+/-- The conformal image of `𝕃` is a hyperbolic simply connected domain.
+
+*Truth*: open (open mapping), connected, homeomorphic to the convex `𝕃` via `F` (so simply connected), and not all of
+`ℂ` (else `F⁻¹` would be an entire function with values in `𝕃`, constant by Liouville after the Cayley map).
+
+*Route*: `IsConformalOnto.isOpen`, `IsConformalOnto.symm` (continuity of the inverse), transport of
+`SimplyConnectedSpace` along the homeomorphism `𝕃 ≃ₜ F(𝕃)` (as in `t1_simplyConnected_image`, S13:4780),
+`bA_k_isHyperbolicSimplyConnected_lowerHalf` (S21:1612), Liouville. -/
+theorem s21g_hsc_image {F : ℂ → ℂ} (hF : IsConformalOnto F lowerHalf (F '' lowerHalf)) :
+    IsHyperbolicSimplyConnected (F '' lowerHalf) := by
+  have hL := bA_k_isHyperbolicSimplyConnected_lowerHalf
+  refine ⟨hF.isOpen isOpen_lowerHalf, hL.2.1.image F hF.1.continuousOn, ?_, ?_⟩
+  · have hsym := hF.symm isOpen_lowerHalf
+    let h : ↥lowerHalf ≃ₜ ↥(F '' lowerHalf) :=
+      { toFun := fun z => ⟨F z, mem_image_of_mem F z.2⟩
+        invFun := fun w => ⟨Function.invFunOn F lowerHalf w, Function.invFunOn_mem w.2⟩
+        left_inv := fun z => Subtype.ext (hF.2.1.leftInvOn_invFunOn z.2)
+        right_inv := fun w => Subtype.ext (Function.invFunOn_eq w.2)
+        continuous_toFun := hF.1.continuousOn.domRestrict.subtype_mk _
+        continuous_invFun := hsym.1.continuousOn.domRestrict.subtype_mk _ }
+    have : SimplyConnectedSpace ↥lowerHalf := hL.2.2.1
+    exact h.symm.toHomotopyEquiv.simplyConnectedSpace
+  · obtain ⟨w₀, hw₀⟩ := s21g_c_exists_omitted isOpen_lowerHalf Subset.rfl hF.1 hF.2.1
+    intro h
+    have hw : w₀ ∈ F '' lowerHalf := h ▸ mem_univ w₀
+    obtain ⟨z, hz, hzw⟩ := hw
+    exact hw₀ z hz hzw
+
+/-- **A pole pulled back** by a map `F` analytic at `z` with `F' z ≠ 0`: if `g` has a pole at `F z` whose chart
+`u = 1/(normal form of g)` is analytic there, then `g ∘ F` has a pole at `z` with chart `u ∘ F` (near `z`), and the
+chain rule for the Schwarzian holds at `z` (both Schwarzians at poles are those of the charts). -/
+theorem s21g_c_pole_comp {F g : ℂ → ℂ} {z : ℂ} (hFa : AnalyticAt ℂ F z) (hF' : deriv F z ≠ 0)
+    (hgm : MeromorphicAt g (F z)) (hord : meromorphicOrderAt g (F z) < 0)
+    (hu : AnalyticAt ℂ (fun w => (toMeromorphicNFAt g (F z) w)⁻¹) (F z))
+    (hu' : deriv (fun w => (toMeromorphicNFAt g (F z) w)⁻¹) (F z) ≠ 0) :
+    meromorphicOrderAt (g ∘ F) z < 0 ∧
+      (fun w => (toMeromorphicNFAt (g ∘ F) z w)⁻¹) =ᶠ[𝓝 z]
+        (fun w => (toMeromorphicNFAt g (F z) w)⁻¹) ∘ F ∧
+      schwarzian (g ∘ F) z = schwarzian g (F z) * deriv F z ^ 2 + schwarzian F z := by
+  set u : ℂ → ℂ := fun w => (toMeromorphicNFAt g (F z) w)⁻¹ with hudef
+  have hgu : g =ᶠ[𝓝[≠] F z] fun w => (u w)⁻¹ := by
+    filter_upwards [hgm.eq_nhdsNE_toMeromorphicNFAt] with w hw
+    simp only [hudef, inv_inv]
+    exact hw
+  have hu0 : u (F z) = 0 := by
+    by_contra hne
+    rw [meromorphicOrderAt_congr hgu] at hord
+    exact absurd hord (not_lt.2 (hu.inv hne).meromorphicOrderAt_nonneg)
+  have hFne : ∀ᶠ y in 𝓝[≠] z, F y ∈ ({F z}ᶜ : Set ℂ) := by
+    have hsub : AnalyticAt ℂ (fun y => F y - F z) z := hFa.sub analyticAt_const
+    have h1 := neh_eventually_ne_zero hsub (Or.inr (by rwa [deriv_sub_const]))
+    filter_upwards [h1] with y hy
+    exact sub_ne_zero.1 hy
+  have hT : Tendsto F (𝓝[≠] z) (𝓝[≠] (F z)) :=
+    tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _
+      (hFa.continuousAt.tendsto.mono_left nhdsWithin_le_nhds) hFne
+  have hGa : AnalyticAt ℂ (u ∘ F) z := hu.comp hFa
+  have hG0 : (u ∘ F) z = 0 := hu0
+  have hG' : deriv (u ∘ F) z ≠ 0 := by
+    rw [deriv_comp z hu.differentiableAt hFa.differentiableAt]
+    exact mul_ne_zero hu' hF'
+  have hgF : g ∘ F =ᶠ[𝓝[≠] z] fun y => ((u ∘ F) y)⁻¹ := hgu.comp_tendsto hT
+  have h1 : meromorphicOrderAt (u ∘ F) z = 1 := by
+    rw [hGa.meromorphicOrderAt_eq, hGa.analyticOrderAt_eq_one_of_zero_deriv_ne_zero hG0 hG']
+    rfl
+  have hordF : meromorphicOrderAt (g ∘ F) z < 0 := by
+    rw [meromorphicOrderAt_congr hgF]
+    have hval : meromorphicOrderAt (fun y => ((u ∘ F) y)⁻¹) z = -1 := by
+      show meromorphicOrderAt (u ∘ F)⁻¹ z = -1
+      rw [meromorphicOrderAt_inv, h1]
+    rw [hval]
+    decide
+  have hNF : toMeromorphicNFAt (g ∘ F) z =ᶠ[𝓝 z] fun y => ((u ∘ F) y)⁻¹ := by
+    have h2 := toMeromorphicNFAt_congr_nhdsNE hgF
+    rwa [(toMeromorphicNFAt_eq_self (f := fun y => ((u ∘ F) y)⁻¹) (x := z)).mpr hGa.meromorphicNFAt.inv] at h2
+  refine ⟨hordF, ?_, ?_⟩
+  · filter_upwards [hNF] with y hy
+    rw [hy, inv_inv]
+  · rw [schwarzian_congr hgF, schwarzian_inv hGa hG', eq19_1_chain_rule hFa hF' hu hu',
+      schwarzian_of_order_neg hord, schwarzian_of_analyticAt hu]
+
+/-- **Pullback** of a locally univalent meromorphic `g` on `D` by a conformal map `F : 𝕃 → D`: `g ∘ F` is locally
+univalent meromorphic on `𝕃`, with the chain rule for the Schwarzian, and univalence of `g ∘ F` gives univalence of
+`g`.
+
+*Truth*: `F` is holomorphic with `F' ≠ 0`, so `g ∘ F` is meromorphic (`MeromorphicAt.comp_analyticAt`); at a point
+where `g` is analytic with `g' ≠ 0` so is `g ∘ F`; at a pole `F z` of `g`, `g ∘ F` has a pole at `z` (the order is
+multiplied by the order `1` of `F - F z`), and the normal form of `g ∘ F` at `z` is the normal form of `g` at `F z`
+composed with `F` near `z`, so `1/(g ∘ F)` is analytic at `z` with nonzero derivative.  The chain rule holds at
+analytic points by `eq19_1_chain_rule` and at poles by the same rule for `1/g` (the Schwarzian at a pole is that of
+`1/g`, by definition).  Univalence: `F` is a bijection `𝕃 → D`, `g` is analytic at `F z` iff `g ∘ F` is analytic at
+`z` (`g = (g ∘ F) ∘ F⁻¹` near `F z`), so injectivity at analytic points and the single pole transfer.
+
+*Route*: `MeromorphicAt.comp_analyticAt`, `meromorphicOrderAt` of a composition with a locally injective analytic
+map, `toMeromorphicNFAt` congruence, `eq19_1_chain_rule` (S19:252), `IsConformalOnto.symm`,
+`deriv_ne_zero_of_injOn`. -/
+theorem s21g_pullback {F g : ℂ → ℂ} {D : Set ℂ} (hF : IsConformalOnto F lowerHalf D) (hg : IsLocUnivMero g D) :
+    IsLocUnivMero (g ∘ F) lowerHalf ∧
+      (∀ z ∈ lowerHalf, schwarzian (g ∘ F) z = schwarzian g (F z) * deriv F z ^ 2 + schwarzian F z) ∧
+      (IsUnivMero (g ∘ F) lowerHalf → IsUnivMero g D) := by
+  have hLo : IsOpen lowerHalf := isOpen_lowerHalf
+  have hFa : ∀ z ∈ lowerHalf, AnalyticAt ℂ F z := fun z hz => hF.1.analyticAt (hLo.mem_nhds hz)
+  have hF' : ∀ z ∈ lowerHalf, deriv F z ≠ 0 := fun z hz => deriv_ne_zero_of_injOn hLo hF.1 hF.2.1 hz
+  have hFD : ∀ z ∈ lowerHalf, F z ∈ D := fun z hz => hF.mapsTo hz
+  have hloc : IsLocUnivMero (g ∘ F) lowerHalf := by
+    refine ⟨fun z hz => (hg.1 (F z) (hFD z hz)).comp_analyticAt (hFa z hz), fun z hz => ?_⟩
+    rcases hg.2 (F z) (hFD z hz) with ⟨hA, hA'⟩ | ⟨hord, hu, hu'⟩
+    · refine Or.inl ⟨hA.comp (hFa z hz), ?_⟩
+      rw [deriv_comp z hA.differentiableAt (hFa z hz).differentiableAt]
+      exact mul_ne_zero hA' (hF' z hz)
+    · obtain ⟨h1, h2, -⟩ := s21g_c_pole_comp (hFa z hz) (hF' z hz) (hg.1 (F z) (hFD z hz)) hord hu hu'
+      refine Or.inr ⟨h1, (hu.comp (hFa z hz)).congr h2.symm, ?_⟩
+      rw [h2.deriv_eq, deriv_comp z hu.differentiableAt (hFa z hz).differentiableAt]
+      exact mul_ne_zero hu' (hF' z hz)
+  refine ⟨hloc, fun z hz => ?_, fun hU => ?_⟩
+  · rcases hg.2 (F z) (hFD z hz) with ⟨hA, hA'⟩ | ⟨hord, hu, hu'⟩
+    · exact eq19_1_chain_rule (hFa z hz) (hF' z hz) hA hA'
+    · exact (s21g_c_pole_comp (hFa z hz) (hF' z hz) (hg.1 (F z) (hFD z hz)) hord hu hu').2.2
+  · have hDo : IsOpen D := hF.isOpen hLo
+    have hsym := hF.symm hLo
+    -- `g` is analytic at `F z` as soon as `g ∘ F` is analytic at `z` (`g = (g ∘ F) ∘ F⁻¹` near `F z`)
+    have hback : ∀ z ∈ lowerHalf, AnalyticAt ℂ (g ∘ F) z → AnalyticAt ℂ g (F z) := by
+      intro z hz hA
+      have hFz : F z ∈ D := hFD z hz
+      have hinvA : AnalyticAt ℂ (Function.invFunOn F lowerHalf) (F z) :=
+        hsym.1.analyticAt (hDo.mem_nhds hFz)
+      have hinvz : Function.invFunOn F lowerHalf (F z) = z := hF.2.1.leftInvOn_invFunOn hz
+      have hcomp : AnalyticAt ℂ ((g ∘ F) ∘ Function.invFunOn F lowerHalf) (F z) := by
+        refine AnalyticAt.comp ?_ hinvA
+        rw [hinvz]
+        exact hA
+      refine hcomp.congr ?_
+      filter_upwards [hDo.mem_nhds hFz] with w hw
+      have hw' : w ∈ F '' lowerHalf := by rwa [hF.2.2]
+      show g (F (Function.invFunOn F lowerHalf w)) = g w
+      rw [Function.invFunOn_eq hw']
+    refine ⟨hg, ?_, ?_⟩
+    · rintro w₁ ⟨hw₁, hA₁⟩ w₂ ⟨hw₂, hA₂⟩ he
+      rw [← hF.2.2] at hw₁ hw₂
+      obtain ⟨z₁, hz₁, rfl⟩ := hw₁
+      obtain ⟨z₂, hz₂, rfl⟩ := hw₂
+      rw [hU.2.1 ⟨hz₁, hA₁.comp (hFa z₁ hz₁)⟩ ⟨hz₂, hA₂.comp (hFa z₂ hz₂)⟩ he]
+    · rintro w₁ ⟨hw₁, hA₁⟩ w₂ ⟨hw₂, hA₂⟩
+      rw [← hF.2.2] at hw₁ hw₂
+      obtain ⟨z₁, hz₁, rfl⟩ := hw₁
+      obtain ⟨z₂, hz₂, rfl⟩ := hw₂
+      rw [hU.2.2 ⟨hz₁, fun h => hA₁ (hback z₁ hz₁ h)⟩ ⟨hz₂, fun h => hA₂ (hback z₂ hz₂ h)⟩]
+
+/-- **The Möbius relation on `ℂ̄`-values**: if near `z` the function `v` is `G` or `1/G` (`G` analytic with `G' ≠ 0`)
+and `u = M ∘ v` off the zeros of the denominator, `M = (a·+b)/(c·+d)`, then `meroToExt u z = M (meroToExt v z)`: both
+germs are ratios of analytic germs without common zeros (`t203_ode_meroToExt`), and `M` acts linearly on the pair
+(`t203_c1_mobius_ratio`). -/
+theorem s21g_c_meroToExt_mobius {u v G : ℂ → ℂ} {z a b c d : ℂ} (hG : AnalyticAt ℂ G z)
+    (hG' : deriv G z ≠ 0) (hdet : a * d - b * c ≠ 0)
+    (hvG : v =ᶠ[𝓝[≠] z] G ∨ v =ᶠ[𝓝[≠] z] fun y => (G y)⁻¹)
+    (hrel : ∀ᶠ y in 𝓝[≠] z, c * v y + d ≠ 0 → u y = (a * v y + b) / (c * v y + d)) :
+    meroToExt u z = mobiusExt a b c d (meroToExt v z) := by
+  have hlin : ∀ p q : ℂ, AnalyticAt ℂ (fun y => q * G y + p) z := fun p q =>
+    (analyticAt_const.mul hG).add analyticAt_const
+  -- `q G + p` with `(p, q) ≠ (0, 0)` has no zeros on a punctured neighbourhood of `z`
+  have hcomb : ∀ p q : ℂ, (p ≠ 0 ∨ q ≠ 0) → ∀ᶠ y in 𝓝[≠] z, q * G y + p ≠ 0 := by
+    intro p q hpq
+    refine neh_eventually_ne_zero (hlin p q) ?_
+    by_cases h0 : q * G z + p = 0
+    · right
+      have hd : HasDerivAt (fun y => q * G y + p) (q * deriv G z) z :=
+        (hG.differentiableAt.hasDerivAt.const_mul q).add_const p
+      rw [hd.deriv]
+      refine mul_ne_zero (fun hq => ?_) hG'
+      rw [hq, zero_mul, zero_add] at h0
+      exact hpq.elim (fun hp => hp h0) (fun hq' => hq' hq)
+    · exact Or.inl h0
+  have hdc : d ≠ 0 ∨ c ≠ 0 := by
+    by_contra hcon
+    obtain ⟨h1, h2⟩ := not_or.1 hcon
+    apply hdet
+    rw [not_not.1 h1, not_not.1 h2]
+    ring
+  have hone : ∀ᶠ y in 𝓝[≠] z, (1 : ℂ) ≠ 0 := Eventually.of_forall fun _ => one_ne_zero
+  rcases hvG with hvG | hvG
+  · have hW₂ := hcomb d c hdc
+    have hgerm : u =ᶠ[𝓝[≠] z] fun y => (a * G y + b) / (c * G y + d) := by
+      filter_upwards [hvG, hrel, hW₂] with y e1 e2 e3
+      rw [e2 (by rwa [e1]), e1]
+    have hne : c * G z + d = 0 → a * G z + b ≠ 0 := fun h0 h1 =>
+      hdet (by linear_combination a * h0 - c * h1)
+    have hv1 : v =ᶠ[𝓝[≠] z] fun y => G y / 1 := by
+      filter_upwards [hvG] with y hy
+      rw [hy, div_one]
+    rw [t203_ode_meroToExt (hlin b a) (hlin d c) hne hW₂ hgerm,
+      t203_ode_meroToExt (W₁ := G) (W₂ := fun _ => 1) hG analyticAt_const (fun h => absurd h one_ne_zero) hone hv1,
+      t203_c1_mobius_ratio one_ne_zero (Or.inr one_ne_zero)]
+    simp only [div_one, mul_one]
+  · have hW₂ := hcomb c d hdc.symm
+    have hGne := eventually_ne_zero_of_deriv_ne_zero hG hG'
+    have hgerm : u =ᶠ[𝓝[≠] z] fun y => (b * G y + a) / (d * G y + c) := by
+      filter_upwards [hvG, hrel, hW₂, hGne] with y e1 e2 e3 e4
+      have e5 : c * (G y)⁻¹ + d = (d * G y + c) * (G y)⁻¹ := by
+        rw [add_mul, mul_assoc, mul_inv_cancel₀ e4, mul_one, add_comm]
+      have hden : c * v y + d ≠ 0 := by
+        rw [e1, e5]
+        exact mul_ne_zero e3 (inv_ne_zero e4)
+      rw [e2 hden, e1, mobius_inv_arg e4]
+    have hne : d * G z + c = 0 → b * G z + a ≠ 0 := fun h0 h1 =>
+      hdet (by linear_combination d * h1 - b * h0)
+    have hv1 : v =ᶠ[𝓝[≠] z] fun y => 1 / G y := by
+      filter_upwards [hvG] with y hy
+      rw [hy, one_div]
+    rw [t203_ode_meroToExt (hlin a b) (hlin c d) hne hW₂ hgerm,
+      t203_ode_meroToExt (W₁ := fun _ => 1) (W₂ := G) analyticAt_const hG (fun _ => one_ne_zero) hGne hv1,
+      t203_c1_mobius_ratio one_ne_zero (Or.inl one_ne_zero)]
+    congr 1 <;> ring
+
+/-- **Möbius uniqueness for univalence**: on a domain, a locally univalent meromorphic `u` with the Schwarzian of a
+univalent `v` is univalent.
+
+*Truth*: by Theorem 19.1 (uniqueness) `u = M ∘ v` for a Möbius `M`, as maps to `ℂ̄`: `meroToExt u = M ∘ meroToExt v`
+on `U` (at the finitely many exceptional points — the pole of `v`, the zero of the denominator of `M ∘ v` — by the
+germ-level version `exists_mobius_eventuallyEq_of_schwarzian_eq` and `t203_ode_meroToExt`).  `meroToExt v` is
+injective on `U` (finite values at analytic points, `∞` at the single pole), hence so is `meroToExt u`, which gives
+injectivity at the analytic points of `u` and at most one pole (`IsLocUnivMero` excludes removable singularities).
+
+*Route*: `thm19_1_unique` (S19:1340), `exists_mobius_eventuallyEq_of_schwarzian_eq` (S19:1290), `t203_ode_meroToExt`
+(S20:3899), `t203_univ_meroToExt_of_analyticAt` / `_of_order_neg` (S20:5188/5196), the second half of
+`t203_univalent` (S20:5218). -/
+theorem s21g_isUnivMero_of_schwarzian_eq {U : Set ℂ} (hU : IsOpen U) (hUc : IsConnected U) {u v : ℂ → ℂ}
+    (hu : IsLocUnivMero u U) (hv : IsUnivMero v U) (h : ∀ z ∈ U, schwarzian u z = schwarzian v z) :
+    IsUnivMero u U := by
+  obtain ⟨a, b, c, d, hdet, hrel⟩ := thm19_1_unique hU hUc hu hv.1 h
+  -- the `ℂ̄`-value of `u` is the Möbius image of that of `v`
+  have hext : ∀ z ∈ U, meroToExt u z = mobiusExt a b c d (meroToExt v z) := by
+    intro z hz
+    obtain ⟨G, hG, hG', -, hvG⟩ := exists_chart_of_isLocUnivMero hv.1 hz
+    refine s21g_c_meroToExt_mobius hG hG' hdet hvG ?_
+    have hmem : ∀ᶠ y in 𝓝[≠] z, y ∈ U := (hU.eventually_mem hz).filter_mono nhdsWithin_le_nhds
+    filter_upwards [hmem, neh_eventually_analyticAt hu hz, neh_eventually_analyticAt hv.1 hz] with
+      y hy hyu hyv hden
+    exact hrel y hy hyu hyv hden
+  have hpole : ∀ f : ℂ → ℂ, IsLocUnivMero f U → ∀ x ∈ U, ¬ AnalyticAt ℂ f x → meroToExt f x = extInf :=
+    fun f hf x hx hna => by
+      rcases hf.2 x hx with h' | h'
+      · exact absurd h'.1 hna
+      · exact t203_univ_meroToExt_of_order_neg h'.1
+  -- `meroToExt v` is injective on `U` (finite values at analytic points, `∞` at the single pole)
+  have hvinj : InjOn (meroToExt v) U := by
+    intro z hz w hw hzw
+    by_cases hAz : AnalyticAt ℂ v z <;> by_cases hAw : AnalyticAt ℂ v w
+    · rw [t203_univ_meroToExt_of_analyticAt hAz, t203_univ_meroToExt_of_analyticAt hAw] at hzw
+      exact hv.2.1 ⟨hz, hAz⟩ ⟨hw, hAw⟩ (OnePoint.coe_injective hzw)
+    · rw [t203_univ_meroToExt_of_analyticAt hAz, hpole v hv.1 w hw hAw] at hzw
+      exact absurd hzw (OnePoint.coe_ne_infty _)
+    · rw [hpole v hv.1 z hz hAz, t203_univ_meroToExt_of_analyticAt hAw] at hzw
+      exact absurd hzw.symm (OnePoint.coe_ne_infty _)
+    · exact hv.2.2 ⟨hz, hAz⟩ ⟨hw, hAw⟩
+  have huinj : InjOn (meroToExt u) U := fun z hz w hw hzw => by
+    rw [hext z hz, hext w hw] at hzw
+    exact hvinj hz hw (t203_pack_mobius_injective hdet hzw)
+  refine ⟨hu, fun z hz w hw hzw => ?_, fun z hz w hw => ?_⟩
+  · refine huinj hz.1 hw.1 ?_
+    rw [t203_univ_meroToExt_of_analyticAt hz.2, t203_univ_meroToExt_of_analyticAt hw.2, hzw]
+  · exact huinj hz.1 hw.1 (by rw [hpole u hu z hz.1 hz.2, hpole u hu w hw.1 hw.2])
+
+/-- **Carathéodory for `𝕃`**: a conformal map of `𝕃` onto a Jordan domain extends to a homeomorphism of the closures
+in `ℂ̄`.
+
+*Truth*: `D` has a uniformizer `ψ : D → ℍ` with a homeomorphic extension `Ψ` (`uq_exists_uniformizer`); `ψ ∘ F` is a
+conformal bijection `𝕃 → ℍ`, i.e. (after the Cayley maps, `exists_rotation_blaschke_of_isConformalOnto_unitDisc`) a
+real Möbius map with negative determinant, which extends to a homeomorphism of `ℂ̄` carrying `closure 𝕃` onto
+`closure ℍ`; compose with the inverse extension of `ψ`.
+
+*Route*: `uq_exists_uniformizer` (S13:4218), `exists_rotation_blaschke_of_isConformalOnto_unitDisc`
+(DiscAutomorphism:187), `isHomeoExtension_invFunOn` (ImageQuad:63), `IsHomeoExtension.comp` /
+`IsHomeoExtension.comp_homeomorph` (Mobius:363/374), `s13x_th_isHomeoExtension_congr` (S13:11174). -/
+theorem s21g_homeoExt {F : ℂ → ℂ} {D : Set ℂ} (hF : IsConformalOnto F lowerHalf D) (hD : IsJordanDomain D) :
+    ∃ Φ : ExtPlane → ExtPlane, IsHomeoExtension F lowerHalf D Φ := by
+  have hnU : (Homeomorph.neg ℂ) '' upperHalf = lowerHalf :=
+    wd_n_neg_image fun z => by
+      show (-z).im < 0 ↔ 0 < z.im
+      rw [neg_im, neg_lt_zero]
+  have hL : IsJordanDomain lowerHalf :=
+    uq_isJordanDomain_image (Homeomorph.neg ℂ).onePointCongr isJordanDomain_upperHalf
+      (by rw [s13x_de_image_toExt, hnU])
+  exact thm13_3_boundary_correspondence hL hD ⟨1, isKQC_one_of_conformal hL.1 hF⟩ hF.2.2
+
+/-- **The component argument**: a connected open `D ⊆ ℂ` whose frontier in `ℂ̄` is `e(ℝ) ∪ {∞}`, for a homeomorphism
+`e` of the plane, is `e(ℍ)` or `e(𝕃)`.  It misses `e(ℝ)`, so it lies in one of the two connected open pieces, and it
+is relatively closed there (a point of `closure D ∖ D` lies on `e(ℝ)`). -/
+theorem s21g_c_component {D : Set ℂ} (hDo : IsOpen D) (hDc : IsConnected D) (e : ℂ ≃ₜ ℂ)
+    (hC : frontier (toExt D) = toExt (e '' realLine) ∪ {extInf}) :
+    D = e '' upperHalf ∨ D = e '' lowerHalf := by
+  have hopen : IsOpen (toExt D) := OnePoint.isOpen_image_coe.2 hDo
+  have hbd : ∀ w ∈ closure D, w ∉ D → w ∈ e '' realLine := by
+    intro w hw hwD
+    have h1 : (w : ExtPlane) ∈ frontier (toExt D) := by
+      rw [hopen.frontier_eq]
+      refine ⟨image_closure_subset_closure_image OnePoint.continuous_coe ⟨w, hw, rfl⟩, ?_⟩
+      rintro ⟨x, hx, hxw⟩
+      exact hwD (OnePoint.coe_injective hxw ▸ hx)
+    rw [hC] at h1
+    rcases h1 with ⟨x, hx, hxw⟩ | h1
+    · exact OnePoint.coe_injective hxw ▸ hx
+    · exact absurd h1 (OnePoint.coe_ne_infty w)
+  have hDR : ∀ z ∈ D, z ∉ e '' realLine := by
+    intro z hz hzR
+    have h1 : (z : ExtPlane) ∈ frontier (toExt D) := by
+      rw [hC]
+      exact Or.inl ⟨z, hzR, rfl⟩
+    rw [hopen.frontier_eq] at h1
+    exact h1.2 ⟨z, hz, rfl⟩
+  have hsplit : D ⊆ e '' upperHalf ∪ e '' lowerHalf := by
+    intro z hz
+    obtain ⟨w, rfl⟩ := e.surjective z
+    rcases lt_trichotomy w.im 0 with h | h | h
+    · exact Or.inr ⟨w, h, rfl⟩
+    · exact absurd ⟨w, h, rfl⟩ (hDR _ hz)
+    · exact Or.inl ⟨w, h, rfl⟩
+  have hdisj : Disjoint (e '' upperHalf) (e '' lowerHalf) := by
+    refine (disjoint_image_iff e.injective).2 (disjoint_left.2 fun z (hz : 0 < z.im) (hz' : z.im < 0) => ?_)
+    linarith
+  have hoff : ∀ S : Set ℂ, (∀ x ∈ S, x.im ≠ 0) → ∀ w ∈ e '' S, w ∉ e '' realLine := by
+    rintro S hS _ ⟨a, ha, rfl⟩ ⟨b, hb, hab⟩
+    rw [e.injective hab] at hb
+    exact hS a ha hb
+  have hclopen : ∀ W : Set ℂ, IsPreconnected W → (∀ w ∈ W, w ∉ e '' realLine) → D ⊆ W → D = W := by
+    intro W hWc hWR hDW
+    refine Subset.antisymm hDW (hWc.subset_of_closure_inter_subset hDo ?_ ?_)
+    · obtain ⟨z, hz⟩ := hDc.nonempty
+      exact ⟨z, hDW hz, hz⟩
+    · rintro w ⟨hwc, hwW⟩
+      by_contra hwD
+      exact hWR w hwW (hbd w hwc hwD)
+  rcases hDc.isPreconnected.subset_or_subset (e.isOpenMap _ isOpen_upperHalf)
+    (e.isOpenMap _ isOpen_lowerHalf) hdisj hsplit with h | h
+  · exact Or.inl (hclopen _ (isConnected_upperHalf.isPreconnected.image _ e.continuous.continuousOn)
+      (hoff _ fun x (hx : 0 < x.im) => hx.ne') h)
+  · exact Or.inr (hclopen _ (bA_isConnected_lowerHalf.isPreconnected.image _ e.continuous.continuousOn)
+      (hoff _ fun x (hx : x.im < 0) => hx.ne) h)
+
+/-- **Core of the q.c. extension**: if `D = e(𝕃)` for a `K`-q.c. homeomorphism `e` of the plane, a conformal
+`F : 𝕃 → D` whose homeomorphic extension fixes `∞` is the restriction of a q.c. map of the plane.  `u = e⁻¹ ∘ F` is a
+`K`-q.c. self-map of `𝕃` fixing `∞`; `conj ∘ u ∘ conj` extends by reflection (`qc_reflection_extension`), and
+`E = e ∘ conj ∘ G₀ ∘ conj`. -/
+theorem s21g_c_qcext_core {F : ℂ → ℂ} {D : Set ℂ} {K : ℝ} (e : ℂ ≃ₜ ℂ) (he : IsKQC e univ K)
+    (hDe : D = e '' lowerHalf) (hF : IsConformalOnto F lowerHalf D) {Φ : ExtPlane → ExtPlane}
+    (hΦ : IsHomeoExtension F lowerHalf D Φ) (hΦinf : Φ extInf = extInf) :
+    ∃ (E : ℂ → ℂ) (K' : ℝ), IsKQC E univ K' ∧ E '' univ = univ ∧ ∀ z ∈ lowerHalf, E z = F z := by
+  subst hDe
+  have hLo : IsOpen lowerHalf := isOpen_lowerHalf
+  have hsi : ∀ s : Set ℂ, e.symm '' (e '' s) = s := fun s => by
+    rw [image_image]
+    simp
+  -- `e⁻¹` is `K`-q.c.
+  have heinv : IsKQC e.symm univ K := by
+    have h1 := thm7_2_inv he
+    have h2 : Function.invFunOn e univ = e.symm := by
+      funext w
+      apply e.injective
+      rw [e.apply_symm_apply]
+      exact Function.invFunOn_eq (f := e) (s := univ) ⟨e.symm w, mem_univ _, e.apply_symm_apply w⟩
+    rw [h2, image_univ_of_surjective e.surjective] at h1
+    exact h1
+  -- `u = e⁻¹ ∘ F`, a `K`-q.c. self-map of `𝕃` whose extension `ê⁻¹ ∘ Φ` fixes `∞`
+  have hu : IsKQC (e.symm ∘ F) lowerHalf (1 * K) :=
+    thm7_1_comp (isKQC_one_of_conformal hLo hF) heinv (subset_univ _)
+  have hus : (e.symm ∘ F) '' lowerHalf = lowerHalf := by
+    rw [image_comp, hF.2.2, hsi]
+  have hum : MapsTo (e.symm ∘ F) lowerHalf lowerHalf := fun z hz => hus ▸ mem_image_of_mem _ hz
+  have hue : IsHomeoExtension (e.symm ∘ F) lowerHalf lowerHalf (e.symm.onePointCongr ∘ Φ) := by
+    refine hΦ.comp_homeomorph hF.mapsTo e.symm.onePointCongr (fun w _ => rfl) ?_
+    rw [s13x_de_image_toExt, hsi]
+  have hueinf : (e.symm.onePointCongr ∘ Φ) extInf = extInf := by
+    show e.symm.onePointCongr (Φ extInf) = extInf
+    rw [hΦinf]
+    rfl
+  -- conjugate by `conj` to a self-map of `ℍ`
+  set c : ℂ ≃ₜ ℂ := Complex.conjLIE.toHomeomorph
+  have hcU : IsHomeoExtension c upperHalf lowerHalf c.onePointCongr := by
+    have h1 := s13x_de_isHomeoExtension_homeomorph c upperHalf
+    rwa [wd_w_conj_image_upperHalf] at h1
+  have hcL : IsHomeoExtension c lowerHalf upperHalf c.onePointCongr := by
+    have h1 := s13x_de_isHomeoExtension_homeomorph c lowerHalf
+    rwa [wd_w_conj_image_lowerHalf] at h1
+  have hcm : MapsTo c upperHalf lowerHalf := fun z hz =>
+    wd_w_conj_image_upperHalf ▸ mem_image_of_mem _ hz
+  have hTe : IsHomeoExtension (c ∘ ((e.symm ∘ F) ∘ c)) upperHalf upperHalf
+      (c.onePointCongr ∘ ((e.symm.onePointCongr ∘ Φ) ∘ c.onePointCongr)) :=
+    hcL.comp (hue.comp hcU hcm) (hum.comp hcm)
+  have hTinf : (c.onePointCongr ∘ ((e.symm.onePointCongr ∘ Φ) ∘ c.onePointCongr)) extInf = extInf := by
+    show c.onePointCongr ((e.symm.onePointCongr ∘ Φ) extInf) = extInf
+    rw [hueinf]
+    rfl
+  have hT : IsKQC (c ∘ ((e.symm ∘ F) ∘ c)) upperHalf (1 * K) := by
+    have h1 := abR_x_isKQC_conj hu
+    have hpre : (starRingEnd ℂ) ⁻¹' lowerHalf = upperHalf := by
+      ext z
+      show (conj z).im < 0 ↔ 0 < z.im
+      rw [conj_im, neg_lt_zero]
+    rw [hpre] at h1
+    exact h1
+  have hTs : (c ∘ ((e.symm ∘ F) ∘ c)) '' upperHalf = upperHalf := by
+    rw [image_comp, image_comp, wd_w_conj_image_upperHalf, hus, wd_w_conj_image_lowerHalf]
+  obtain ⟨G₀, hG₀, hG₀s, hG₀T, -⟩ := qc_reflection_extension hT hTs (b4_ext_tendsto_cocompact hTe hTinf)
+  -- undo the conjugation and compose with `e`
+  have hU : IsKQC (fun z => conj (G₀ (conj z))) univ (1 * K) := by
+    have h1 := abR_x_isKQC_conj hG₀
+    rwa [preimage_univ] at h1
+  have hUs : (fun z => conj (G₀ (conj z))) '' univ = univ := by
+    refine eq_univ_of_forall fun w => ?_
+    have hw : conj w ∈ G₀ '' univ := by
+      rw [hG₀s]
+      exact mem_univ _
+    obtain ⟨x, -, hx⟩ := hw
+    exact ⟨conj x, mem_univ _, by simp [hx]⟩
+  refine ⟨e ∘ fun z => conj (G₀ (conj z)), 1 * K * K, thm7_1_comp hU he (subset_univ _), ?_, fun z hz => ?_⟩
+  · rw [image_comp, hUs, image_univ_of_surjective e.surjective]
+  · have hcz : conj z ∈ upperHalf := by
+      show 0 < (conj z).im
+      rw [conj_im]
+      exact neg_pos.2 hz
+    have h1 := hG₀T hcz
+    show e (conj (G₀ (conj z))) = F z
+    rw [h1]
+    show e (conj (conj ((e.symm ∘ F) (conj (conj z))))) = F z
+    simp
+
+/-- **Quasiconformal extension, `∞ ↦ ∞`**: a conformal map `F` of `𝕃` onto a `K`-quasidisc `D` whose homeomorphic
+extension fixes `∞` is the restriction to `𝕃` of a quasiconformal self-map of the plane.
+
+*Truth*: `∞ = Φ ∞ ∈ ∂D`, so `C = ∂D = g₁(ℝ) ∪ {∞}` with `g₁` a `K`-q.c. self-map of `ℂ` (`tp_quasicircle_through_inf`).
+`D` is connected, open and disjoint from `C`, so it lies in `g₁(ℍ)` or in `g₁(𝕃)`, and equals it (it is relatively
+closed there: its boundary points lie on `C`); precomposing `g₁` with `z ↦ -z` if necessary, `D = g₁(𝕃)`.  Then
+`u = g₁⁻¹ ∘ F` is a `K`-q.c. self-map of `𝕃` whose extension `ĝ₁⁻¹ ∘ Φ` is a homeomorphism of `closure 𝕃` fixing `∞`,
+hence a homeomorphism of `ℝ` on the boundary.  Its reflection `U` (`u` on `𝕃`, the boundary map on `ℝ`,
+`conj ∘ u ∘ conj` on `ℍ`) is a homeomorphism of `ℂ` (`s20l_homeo_of_bij`), `K`-q.c. on `ℍ` and on `𝕃`, hence `K`-q.c.
+(`wd_glue`).  `E = g₁ ∘ U` is `K²`-q.c., onto, and `E = g₁ ∘ g₁⁻¹ ∘ F = F` on `𝕃`.
+
+*Route*: `tp_quasicircle_through_inf` (S16:496), the component argument of `s20l_uw_normal_form` (S20:1472),
+`thm7_2_inv` (S07:310), `thm7_1_comp` (S07:181), `b4_qc_conj_isKQC` (S16:129), `s20l_homeo_of_bij` (S20:987),
+`wd_glue` (S16:1026), `ba_reflect_homeomorph` (S17:488) or a direct gluing. -/
+theorem s21g_qc_extension_inf {F : ℂ → ℂ} {D : Set ℂ} {K : ℝ} (hF : IsConformalOnto F lowerHalf D)
+    (hD : IsKQuasidisc D K) {Φ : ExtPlane → ExtPlane} (hΦ : IsHomeoExtension F lowerHalf D Φ)
+    (hΦinf : Φ extInf = extInf) :
+    ∃ (E : ℂ → ℂ) (K' : ℝ), IsKQC E univ K' ∧ E '' univ = univ ∧ ∀ z ∈ lowerHalf, E z = F z := by
+  have hLo : IsOpen lowerHalf := isOpen_lowerHalf
+  have hDo : IsOpen D := hF.isOpen hLo
+  -- `∞ ∈ ∂D`
+  have hinf : extInf ∈ frontier (toExt D) := by
+    rw [← hΦ.image_frontier hLo hDo hF.2.2, aw_qd_frontier_lowerHalf]
+    exact ⟨extInf, Or.inr rfl, hΦinf⟩
+  obtain ⟨g, hg, hgs, hC⟩ := tp_quasicircle_through_inf hD.2 hinf
+  obtain ⟨e, rfl⟩ := t1_homeomorph hg hgs
+  rcases s21g_c_component hDo hD.1.2.1 e hC with hDe | hDe
+  · -- `D = e(ℍ) = (e ∘ neg)(𝕃)`
+    have hneg : IsKQC (fun z : ℂ => -z) univ 1 :=
+      isKQC_one_of_conformal (D' := (fun z : ℂ => -z) '' univ) isOpen_univ
+        ⟨differentiable_id.neg.differentiableOn, fun a _ b _ h => neg_injective h, rfl⟩
+    have hcoe : ⇑((Homeomorph.neg ℂ).trans e) = ⇑e ∘ fun z : ℂ => -z := rfl
+    have he' : IsKQC ((Homeomorph.neg ℂ).trans e) univ (1 * K) := by
+      rw [hcoe]
+      exact thm7_1_comp hneg hg (subset_univ _)
+    have hL : (fun z : ℂ => -z) '' lowerHalf = upperHalf :=
+      wd_n_neg_image fun z => by
+        show 0 < (-z).im ↔ z.im < 0
+        rw [neg_im, neg_pos]
+    have hDe' : D = (Homeomorph.neg ℂ).trans e '' lowerHalf := by
+      rw [hDe, hcoe, image_comp, hL]
+    exact s21g_c_qcext_core _ he' hDe' hF hΦ hΦinf
+  · exact s21g_c_qcext_core e hg hDe hF hΦ hΦinf
+
+/-- A `K`-quasidisc stays a `K`-quasidisc under `z ↦ 1/(z - b)` for `b ∉ D`: the Möbius homeomorphism of `ℂ̄` carries
+Jordan domains to Jordan domains (`uq_isJordanDomain_image`) and frontiers to frontiers, and composing the Möbius map
+of the quasicircle normal form with it gives a Möbius map (`s16p_mobiusExt_comp`). -/
+theorem s21g_isKQuasidisc_inv {D : Set ℂ} {K : ℝ} (hD : IsKQuasidisc D K) {b : ℂ} (hb : b ∉ D) :
+    IsKQuasidisc (mobiusFn 0 1 1 (-b) '' D) K := by
+  have hbD : ∀ z ∈ D, z ≠ b := fun z hz h => hb (h ▸ hz)
+  set e := mobiusHomeomorph 0 1 1 (-b) (uq_j_inv_det b)
+  have himg : e '' toExt D = toExt (mobiusFn 0 1 1 (-b) '' D) := uq_j_image_toExt hbD
+  refine ⟨uq_isJordanDomain_image e hD.1 himg, ?_⟩
+  rw [← himg, ← e.image_frontier]
+  obtain ⟨g, hg, hgs, M, ⟨a₁, b₁, c₁, d₁, hdet, rfl⟩, hC⟩ := hD.2
+  refine ⟨g, hg, hgs, _, ⟨0 * a₁ + 1 * c₁, 0 * b₁ + 1 * d₁, 1 * a₁ + -b * c₁, 1 * b₁ + -b * d₁, ?_, rfl⟩, ?_⟩
+  · intro h0
+    apply hdet
+    linear_combination -h0
+  · rw [hC, image_image]
+    exact image_congr fun p _ => s16p_mobiusExt_comp hdet p
+
+/-- **Quasiconformal extension**: a conformal map of `𝕃` onto a `K`-quasidisc has a quasiconformal extension to `ℂ̄`
+(`HasQCExtensionExt`).  If the homeomorphic extension `Φ` (`s21g_homeoExt`) fixes `∞` this is
+`s21g_qc_extension_inf` with `A = T = id` in `t203_package`; otherwise `b = Φ ∞ ∉ D` is moved to `∞` by
+`z ↦ 1/(z - b)` (`s21g_isKQuasidisc_inv`) and moved back by `A = mobiusExt 0 1 1 (-b)`. -/
+theorem s21g_qc_extension {F : ℂ → ℂ} {D : Set ℂ} {K : ℝ} (hF : IsConformalOnto F lowerHalf D)
+    (hD : IsKQuasidisc D K) : ∃ K' : ℝ, HasQCExtensionExt F lowerHalf K' := by
+  obtain ⟨Φ, hΦ⟩ := s21g_homeoExt hF hD.1
+  have hinf : extInf ∈ closure (toExt lowerHalf) := by
+    refine frontier_subset_closure ?_
+    rw [aw_qd_frontier_lowerHalf]
+    exact Or.inr rfl
+  have hFa : ∀ z ∈ lowerHalf, meroToExt F z = ((F z : ℂ) : ExtPlane) := fun z hz =>
+    t203_univ_meroToExt_of_analyticAt (hF.1.analyticAt (isOpen_lowerHalf.mem_nhds hz))
+  have hid : IsMobius (mobiusExt 1 0 0 1) := ⟨1, 0, 0, 1, by norm_num, rfl⟩
+  by_cases hq : Φ extInf = extInf
+  · obtain ⟨E, K', hE, hEs, hEF⟩ := s21g_qc_extension_inf hF hD hΦ hq
+    refine ⟨K', t203_package (G := OnePoint.map E) hid hid hE hEs (fun p => ?_) (fun z hz => ?_)⟩
+    · rw [t203_pack_mobius_id, t203_pack_mobius_id]
+    · rw [hFa z hz, OnePoint.map_some, hEF z hz]
+  · obtain ⟨b, hb⟩ := OnePoint.ne_infty_iff_exists.1 hq
+    have hbD : b ∉ D := by
+      intro hbD
+      rw [← hF.2.2] at hbD
+      obtain ⟨z, hz, hzb⟩ := hbD
+      have h1 : Φ (z : ExtPlane) = Φ extInf := by rw [hΦ.1 z hz, hzb, hb]
+      exact OnePoint.coe_ne_infty z (hΦ.2.2.1 (subset_closure ⟨z, hz, rfl⟩) hinf h1)
+    have hbD' : ∀ w ∈ D, w ≠ b := fun w hw h => hbD (h ▸ hw)
+    set e := mobiusHomeomorph 0 1 1 (-b) (uq_j_inv_det b) with he
+    have hF' : IsConformalOnto (mobiusFn 0 1 1 (-b) ∘ F) lowerHalf (mobiusFn 0 1 1 (-b) '' D) :=
+      (uq_j_isConformalOnto_mobiusInv hbD').comp hF
+    have hΦ' : IsHomeoExtension (mobiusFn 0 1 1 (-b) ∘ F) lowerHalf (mobiusFn 0 1 1 (-b) '' D) (e ∘ Φ) :=
+      hΦ.comp_homeomorph hF.mapsTo e (fun w hw => uq_j_mobiusInv_coe (hbD' w hw)) (uq_j_image_toExt hbD')
+    have hΦ'inf : (e ∘ Φ) extInf = extInf := by
+      show e (Φ extInf) = extInf
+      rw [← hb]
+      exact uq_j_mobiusInv_apply_self b
+    obtain ⟨E, K', hE, hEs, hEF⟩ := s21g_qc_extension_inf hF' (s21g_isKQuasidisc_inv hD hbD) hΦ' hΦ'inf
+    refine ⟨K', t203_package (A := mobiusExt 0 1 1 (-b)) (G := fun p => e.symm (OnePoint.map E p))
+      ⟨0, 1, 1, -b, uq_j_inv_det b, rfl⟩ hid hE hEs (fun p => ?_) (fun z hz => ?_)⟩
+    · rw [t203_pack_mobius_id]
+      exact e.apply_symm_apply _
+    · have hFz : F z ≠ b := hbD' _ (hF.mapsTo hz)
+      rw [hFa z hz]
+      show e.symm (OnePoint.map E (z : ExtPlane)) = ((F z : ℂ) : ExtPlane)
+      rw [OnePoint.map_some, hEF z hz, Function.comp_apply, ← uq_j_mobiusInv_coe hFz]
+      exact e.symm_apply_apply _
+
+/-- `bersNormL` is subadditive. -/
+theorem s21g_bersNormL_add_le (φ ψ : ℂ → ℂ) : bersNormL (φ + ψ) ≤ bersNormL φ + bersNormL ψ := by
+  refine iSup₂_le fun z hz => ?_
+  have h1 : ENNReal.ofReal (‖φ z‖ * z.im ^ 2) ≤ bersNormL φ := le_iSup₂ (f := fun z (_ : z ∈ lowerHalf) =>
+    ENNReal.ofReal (‖φ z‖ * z.im ^ 2)) z hz
+  have h2 : ENNReal.ofReal (‖ψ z‖ * z.im ^ 2) ≤ bersNormL ψ := le_iSup₂ (f := fun z (_ : z ∈ lowerHalf) =>
+    ENNReal.ofReal (‖ψ z‖ * z.im ^ 2)) z hz
+  calc ENNReal.ofReal (‖(φ + ψ) z‖ * z.im ^ 2)
+      ≤ ENNReal.ofReal (‖φ z‖ * z.im ^ 2 + ‖ψ z‖ * z.im ^ 2) := by
+        apply ENNReal.ofReal_le_ofReal
+        rw [Pi.add_apply, ← add_mul]
+        exact mul_le_mul_of_nonneg_right (norm_add_le _ _) (sq_nonneg _)
+    _ ≤ ENNReal.ofReal (‖φ z‖ * z.im ^ 2) + ENNReal.ofReal (‖ψ z‖ * z.im ^ 2) := ENNReal.ofReal_add_le
+    _ ≤ bersNormL φ + bersNormL ψ := add_le_add h1 h2
+
+/-- **The Schwarz-domain step** (Gehring): if `S_F` (`F` conformal on `𝕃`) is an interior point of `𝓕*` with radius
+`ε`, then `F(𝕃)` is an `ε`-Schwarz domain.  For `g` locally univalent meromorphic in `F(𝕃)` with `‖S_g‖ < ε`, the
+Schwarzian `ψ = S_{g∘F}` satisfies `‖ψ - S_F‖_𝕃 = ‖S_g‖_{F(𝕃)} < ε` (the transport `aw_tr_transport_gen`), so
+`ψ = S_h` with `h` univalent; hence `g ∘ F` and then `g` are univalent. -/
+theorem s21g_isSchwarzDomain {F : ℂ → ℂ} (hF : IsConformalOnto F lowerHalf (F '' lowerHalf)) {ε : ℝ} (hε : 0 < ε)
+    (hint : ∀ ψ ∈ bersSpaceL, bersNormL (ψ - lowerHalf.indicator (schwarzian F)) < ENNReal.ofReal ε →
+      lowerHalf.indicator ψ ∈ schwarzianUnivalentSet) :
+    IsSchwarzDomain (F '' lowerHalf) ε := by
+  refine ⟨s21g_hsc_image hF, hε, fun g hg hS => ?_⟩
+  obtain ⟨hgF, hchain, hback⟩ := s21g_pullback hF hg
+  have hSd : DifferentiableOn ℂ (schwarzian (g ∘ F)) lowerHalf := schwarzian_holomorphic isOpen_lowerHalf hgF
+  obtain ⟨ψ', -, hψ', hψ'N⟩ := aw_tr_transport_gen hF hSd
+  have hψ'g : ∀ w ∈ F '' lowerHalf, ψ' w = schwarzian g w := by
+    rintro _ ⟨z, hz, rfl⟩
+    have hF' : deriv F z ≠ 0 := deriv_ne_zero_of_injOn isOpen_lowerHalf hF.1 hF.2.1 hz
+    have h1 := hψ' z hz
+    rw [hchain z hz, add_sub_cancel_right] at h1
+    exact mul_right_cancel₀ (pow_ne_zero 2 hF') h1
+  set ψ := lowerHalf.indicator (schwarzian (g ∘ F)) with hψdef
+  have hnorm : bersNormL (ψ - lowerHalf.indicator (schwarzian F)) = schwarzianNorm g (F '' lowerHalf) := by
+    have e1 : schwarzianNorm g (F '' lowerHalf) = hyperbolicSupNorm ψ' (F '' lowerHalf) := by
+      unfold schwarzianNorm hyperbolicSupNorm
+      exact biSup_congr fun w hw => by rw [hψ'g w hw]
+    rw [e1, hψ'N]
+    unfold bersNormL
+    exact biSup_congr fun z hz => by
+      rw [Pi.sub_apply, hψdef, indicator_of_mem hz, indicator_of_mem hz]
+  have hψ : ψ ∈ bersSpaceL := by
+    refine ⟨hSd.congr fun z hz => indicator_of_mem hz _, ?_⟩
+    have hsplit : ψ = (ψ - lowerHalf.indicator (schwarzian F)) + lowerHalf.indicator (schwarzian F) := by
+      rw [sub_add_cancel]
+    rw [hsplit]
+    refine lt_of_le_of_lt (s21g_bersNormL_add_le _ _) (ENNReal.add_lt_top.2 ⟨?_, ?_⟩)
+    · rw [hnorm]
+      exact lt_of_lt_of_le hS le_top
+    · rw [bA_bersNormL_eq]
+      exact lt_of_le_of_lt (bA_kraus_lowerHalf hF) ENNReal.ofReal_lt_top
+  obtain ⟨h, hh, hψh⟩ := hint ψ hψ (by rw [hnorm]; exact hS)
+  refine hback (s21g_isUnivMero_of_schwarzian_eq isOpen_lowerHalf bA_isConnected_lowerHalf hgF hh fun z hz => ?_)
+  have := congrFun hψh z
+  rwa [indicator_of_mem hz, hψdef, indicator_of_mem hz, indicator_of_mem hz] at this
+
+/-- The `⊆` half of Theorem 21.4 (Gehring): an interior point `φ = S_f` of `𝓕*` is `Ψ[ν]` for some `ν ∈ M`
+(`s21g_normalize`, `s21g_isSchwarzDomain`, `thm20_5_gehring`, `s21g_qc_extension`, then `aw_extend` and `aw_nu` at the
+base point `μ = 0`, whose normalized solution is the identity). -/
+theorem s21g_subset :
+    {φ | φ ∈ bersSpaceL ∧ IsBersInteriorPoint schwarzianUnivalentSet φ ∧ φ = lowerHalf.indicator φ} ⊆
+      range bersMapU := by
+  rintro φ ⟨hφ, ⟨ε, hε, hint⟩, hφind⟩
+  have h0 : bersNormL (φ - φ) < ENNReal.ofReal ε := by
+    rw [sub_self]
+    unfold bersNormL
+    refine lt_of_le_of_lt (iSup₂_le fun z _ => ?_) (ENNReal.ofReal_pos.2 hε)
+    simp
+  obtain ⟨f, hf, hfφ⟩ := hint φ hφ h0
+  rw [← hφind] at hfφ
+  obtain ⟨F, hF, hFS⟩ := s21g_normalize hf
+  have hφF : φ = lowerHalf.indicator (schwarzian F) := by
+    rw [hfφ]
+    funext z
+    by_cases hz : z ∈ lowerHalf
+    · rw [indicator_of_mem hz, indicator_of_mem hz, hFS z hz]
+    · rw [indicator_of_notMem hz, indicator_of_notMem hz]
+  have hSD := s21g_isSchwarzDomain hF hε fun ψ hψ hlt => hint ψ hψ (by rwa [hφF])
+  obtain ⟨K, hK⟩ := thm20_5_gehring hε
+  obtain ⟨K', hext⟩ := s21g_qc_extension hF (hK _ hSD)
+  have hid : normalizedSolution (0 : ℂ → ℂ) = id := bB_l_normalizedSolution_zero
+  have himg : normalizedSolution (0 : ℂ → ℂ) '' lowerHalf = lowerHalf := by rw [hid, image_id]
+  obtain ⟨H, K₂, hH, hHs, hH0, hH1, hHd, hHS, hK'⟩ := aw_extend ⟨0, bB_l_zero_mem⟩ (g := F) (φ := φ)
+    (by
+      show IsUnivMero F (normalizedSolution (0 : ℂ → ℂ) '' lowerHalf)
+      rw [himg]
+      exact bA_k_isUnivMero_of_isConformalOnto hF)
+    (by
+      show HasQCExtensionExt F (normalizedSolution (0 : ℂ → ℂ) '' lowerHalf) K'
+      rw [himg]
+      exact hext)
+    (fun z hz => by
+      show schwarzian F (normalizedSolution (0 : ℂ → ℂ) z) * deriv (normalizedSolution (0 : ℂ → ℂ)) z ^ 2 =
+        φ z - schwarzian (normalizedSolution (0 : ℂ → ℂ)) z
+      rw [hid, deriv_id, bB_l_schwarzian_id, one_pow, mul_one, sub_zero, hφF, indicator_of_mem hz]
+      rfl)
+  obtain ⟨ν', hν'S, -⟩ := aw_nu ⟨0, bB_l_zero_mem⟩ hH hHs hH0 hH1 hHd hHS hK'
+  refine ⟨Quotient.mk teichSetoid ν', ?_⟩
+  rw [aw_t_bersMapU_mk]
+  funext z
+  by_cases hz : z ∈ lowerHalf
+  · rw [bersFunction, indicator_of_mem hz, hν'S z hz]
+  · rw [bersFunction, indicator_of_notMem hz, hφind, indicator_of_notMem hz]
+
+/-- The `⊇` half of Theorem 21.4: `Ψ(T)` consists of interior points of `𝓕*` (Theorem 21.3; the scout probe
+`h21u2_t214_supset`). -/
+theorem s21g_supset :
+    range bersMapU ⊆
+      {φ | φ ∈ bersSpaceL ∧ IsBersInteriorPoint schwarzianUnivalentSet φ ∧ φ = lowerHalf.indicator φ} := by
+  rintro _ ⟨p, rfl⟩
+  refine ⟨(bersMapU_mem p).1, ?_, ?_⟩
+  · obtain ⟨ε, hε, h⟩ := thm21_3_open p
+    refine ⟨ε, hε, fun ψ hψ hlt => ?_⟩
+    obtain ⟨q, hq⟩ := h ψ hψ hlt
+    refine ⟨normalizedSolution (Quotient.out q).1,
+      bA_k_isUnivMero_of_isConformalOnto (ut_conformal_lowerHalf (Quotient.out q)), ?_⟩
+    funext z
+    by_cases hz : z ∈ lowerHalf
+    · rw [indicator_of_mem hz, indicator_of_mem hz, ← hq hz]
+      simp only [bersMapU, bersFunction, indicator_of_mem hz]
+    · rw [indicator_of_notMem hz, indicator_of_notMem hz]
+  · funext z
+    by_cases hz : z ∈ lowerHalf
+    · rw [indicator_of_mem hz]
+    · rw [indicator_of_notMem hz]
+      simp only [bersMapU, bersFunction, indicator_of_notMem hz]
+
 /-- **Theorem 21.4** (Gehring): `T* = Ψ(T)` is the interior of `𝓕*` in `A(𝕃)`.
 
 The condition `φ ∈ bersSpaceL` is part of "interior point of `𝓕*` in `A(𝕃)`": without it an
@@ -3116,18 +3932,10 @@ non-holomorphic `φ` close to `0` (corrected 2026-09-25). -/
 theorem thm21_4_gehring :
     {φ | φ ∈ bersSpaceL ∧ IsBersInteriorPoint schwarzianUnivalentSet φ ∧ φ = lowerHalf.indicator φ} =
       range bersMapU := by
-  sorry
+  exact Subset.antisymm s21g_subset s21g_supset
 
-/-- Gehring's answer to Bers' question: the closure of `T*` is strictly smaller than `𝓕*`. -/
-theorem gehring_closure_ne :
-    ∃ φ ∈ schwarzianUnivalentSet, ∃ ε > 0, ∀ p : UniversalTeichmuller,
-      ENNReal.ofReal ε ≤ bersNormL (φ - bersMapU p) := by
-  sorry
-
-/-- Thurston: `𝓕*` has isolated points (in particular it is not connected). -/
-theorem thurston_isolated_points :
-    ∃ φ ∈ schwarzianUnivalentSet, ∃ ε > 0, ∀ ψ ∈ schwarzianUnivalentSet,
-      bersNormL (ψ - φ) < ENNReal.ofReal ε → ψ = φ := by
-  sorry
+-- `gehring_closure_ne` (Gehring: the closure of `T*` is strictly smaller than `𝓕*`) and
+-- `thurston_isolated_points` (Thurston: `𝓕*` has isolated points) were deleted by user decision, 2026-10-17
+-- (the book only cites these results; see the R83 triage).
 
 end LiZhongQC

@@ -1,4 +1,5 @@
 import LiZhongQC.Ch07.S26_TeichmullerUniqueness
+import LiZhongQC.Lemmas.UniformizedUniqueness
 
 /-!
 # §27 Teichmüller 存在性定理 — Teichmüller's existence theorem
@@ -16,8 +17,7 @@ import LiZhongQC.Ch07.S26_TeichmullerUniqueness
   injective), (27.15)–(27.17); Lemma 27.2 (`F(S₀)` is connected); Lemma 27.3 (no boundary point of
   `Ψ∘Φ(T̃(S₀))` lies in `F(S₀)`); `Ψ∘Φ` is a homeomorphism (Brouwer); Theorem 27.2 (existence)
                                                        — `IsDeformationPoint`, `lemma27_1_*`,
-                                                         `lemma27_2_connected`, `lemma27_3_boundary`,
-                                                         `thm27_2_existence`
+                                                         `lemma27_2_connected`, `lemma27_3_boundary`
 
 ## What is proved here
 
@@ -31,6 +31,14 @@ import LiZhongQC.Ch07.S26_TeichmullerUniqueness
 
 Everything else needs the normalized lifts of §13, the Fricke coordinates, or Brouwer's invariance
 of domain for `Ψ∘Φ`.
+
+The bijection `Φ : T̃(S₀) → T(S₀)` of §27.2 (`teichSpace_deformation_bijection`) is stated and proved in
+`LiZhongQC.Lemmas.UniformizedTeichmuller` (moved there by leader decision, 2026-10-12): its existence half
+is Hamilton's theorem (§36), which this chapter cannot import.
+
+Theorem 27.2 (`thm27_2_existence`) is stated and proved in `LiZhongQC.Lemmas.UniformizedTeichmuller` (moved
+there by leader decision, 2026-10-13): its proof is Hamilton's theorem (§36) on the uniformized surfaces, which
+this chapter cannot import.
 -/
 
 open Complex Set Metric Filter Topology MeasureTheory
@@ -1833,7 +1841,8 @@ theorem s27l_mdifferentiable_descend {X Y : Type*} [TopologicalSpace X] [Charted
     MDifferentiable 𝓘(ℂ) 𝓘(ℂ) c := by
   intro x
   obtain ⟨τ, rfl⟩ := hsurj x
-  obtain ⟨U, hUo, hτU, hUH, hUs, hψ⟩ := h23l_chart_proj hcov hhol τ
+  obtain ⟨U, hUo, hτU, hUH, hUs, hψ⟩ :=
+    h23l_chart_proj (τ := τ) hcov hhol _ (mem_chart_source ℂ _)
   have hconf := thm7_3_one_qc_conformal hψ
   set φ : ℂ → ℂ := fun z => chartAt ℂ (p τ) (p (UpperHalfPlane.ofComplex z)) with hφ
   have hVo : IsOpen (φ '' U) := hconf.isOpen hUo
@@ -2143,16 +2152,8 @@ structure StandardGenerators (Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) �
   for `γ_g = (a b; c d)` the fixed points of `γ_g` have product `-b/c < 0`, so they separate `0` and `∞`. -/
   alternate : 0 < γg 0 1 * γg 1 0
 
-/-- §27.1: the covering group of a closed surface of genus `g > 1` has a system of generators
-satisfying (27.4) (lifted from a canonical system `α₁, β₁, …` of generators of `π₁`), and after a
-suitable adjustment `p₀ ↦ p₀ ∘ ψ⁻¹` of the projection (conjugating `G₀` by `ψ`) a standard system
-of generators exists.  (The fixed points of `γ_g` and `δ_g` alternate on `ℝ̂`, since `α_g`, `β_g` have
-geometric intersection number `1`.) -/
-theorem exists_standardGenerators [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] {g : ℕ}
-    (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
-    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) :
-    ∃ A : Matrix.SpecialLinearGroup (Fin 2) ℝ, Nonempty (StandardGenerators (conjGroup Γ₀ A) g) := by
-  sorry
+-- exists_standardGenerators is stated and proved in LiZhongQC/Lemmas/StdGenSystem.lean
+-- (it needs the standard-generator construction of StdGenSystem, built on top of this file).
 
 /-- The Fricke coordinates `(σ, τ, λ)` of a hyperbolic transformation with finite fixed points. -/
 def frickeTriple (γ : Matrix.SpecialLinearGroup (Fin 2) ℝ) : ℝ × ℝ × ℝ :=
@@ -2966,12 +2967,6 @@ uniformization of an abstract surface, no invariance of domain, no Riemann–Roc
 The final forms are `s27u_uniformization_transport` (explicit `F`, `Γ`, `p`, `G`) and `s27u_exists_uniformization`
 (for `m : MarkedRS S₀`).  U10 and U11 are optional helpers for the E2 bridge; nothing here uses them. -/
 
-/-- Copy of UTM `utm_pext` (UTM imports S27, so it cannot be imported here), generalized from the section variable
-`S₀` to any `{X : Type*}` with the body unchanged; for `X = S₀`, `s27u_pext = utm_pext` holds by `rfl`.  The
-uniformization `p₀ : ℍ → X` as a map `ℂ → X`, with the junk value `p₀ i` off `ℍ`. -/
-def s27u_pext {X : Type*} (p₀ : UpperHalfPlane → X) (z : ℂ) : X :=
-  if hz : 0 < z.im then p₀ ⟨z, hz⟩ else p₀ UpperHalfPlane.I
-
 /-- **The lifted Beltrami coefficient** of `f ∘ p₀` ((23.5), the complex dilatation of a lift of `f`).  At `z ∈ ℍ` it
 is the complex dilatation at `z` of `w ↦ φ_y(f(p₀ w))`, where `φ_y` is the chart of `S` at the image point
 `y = f(p₀ z)`, read in the coordinate of `ℍ` itself; off `ℍ` it is `0`, so a bounded one lies in `M` (`BeltramiH`).
@@ -2980,7 +2975,7 @@ which leaves the dilatation unchanged (`s23_dilatation_comp_left`).  For every u
 `F` of `f` it is the complex dilatation of `F` (U10, `s27u_liftCoeff_eq_dilatation`). -/
 def s27u_liftCoeff {X S : Type*} [TopologicalSpace S] [ChartedSpace ℂ S] (p₀ : UpperHalfPlane → X) (f : X → S) :
     ℂ → ℂ :=
-  upperHalf.indicator fun z => complexDilatation (fun w => chartAt ℂ (f (s27u_pext p₀ z)) (f (s27u_pext p₀ w))) z
+  upperHalf.indicator fun z => complexDilatation (fun w => chartAt ℂ (f (utm_pext p₀ z)) (f (utm_pext p₀ w))) z
 
 /-- Verbatim copy of S33 `symmetricExtension` (S33 imports S27, so it cannot be imported here);
 `s27u_symExt = symmetricExtension` holds by `rfl`.  (33.3): the symmetric extension `μ(z) = conj μ(z̄)` of `μ` to the
@@ -3014,31 +3009,15 @@ def s27u_proj {X S : Type*} (p₀ : UpperHalfPlane → X) (f : X → S) (F : Upp
     (τ : UpperHalfPlane) : S :=
   f (p₀ (F.symm τ))
 
-/-- Verbatim copy of UTM `utm_a_pext_eq` (UTM imports S27, so it cannot be imported here).  On `ℍ`, `s27u_pext p₀`
-is `p₀ ∘ ofComplex`. -/
-theorem s27u_pext_eq {X : Type*} (p₀ : UpperHalfPlane → X) {z : ℂ} (hz : 0 < z.im) :
-    s27u_pext p₀ z = p₀ (UpperHalfPlane.ofComplex z) := by
-  rw [UpperHalfPlane.ofComplex_apply_of_im_pos hz]
-  simp only [s27u_pext, hz, ↓reduceDIte]
-
-/-- `s27u_pext p₀` agrees with `p₀` at the points of `ℍ`. -/
+/-- `utm_pext p₀` agrees with `p₀` at the points of `ℍ`. -/
 theorem s27u_pext_coe {X : Type*} (p₀ : UpperHalfPlane → X) (τ : UpperHalfPlane) :
-    s27u_pext p₀ (τ : ℂ) = p₀ τ := by
-  simp only [s27u_pext, τ.coe_im_pos, ↓reduceDIte]
-
-/-- Verbatim copy of UTM `utm_a_continuousAt` (UTM imports S27, so it cannot be imported here).  `s27u_pext p₀` is
-continuous at every point of `ℍ`, where it is `p₀ ∘ ofComplex` nearby. -/
-theorem s27u_pext_continuousAt {X : Type*} [TopologicalSpace X] {p₀ : UpperHalfPlane → X} (hp : Continuous p₀)
-    {z : ℂ} (hz : 0 < z.im) : ContinuousAt (s27u_pext p₀) z := by
-  have hev : (fun w => p₀ (UpperHalfPlane.ofComplex w)) =ᶠ[𝓝 z] s27u_pext p₀ := by
-    filter_upwards [isOpen_upperHalf.mem_nhds hz] with w hw
-    exact (s27u_pext_eq p₀ hw).symm
-  exact (hp.continuousAt.comp (UpperHalfPlane.mdifferentiableAt_ofComplex hz).continuousAt).congr hev
+    utm_pext p₀ (τ : ℂ) = p₀ τ := by
+  simp only [utm_pext, τ.coe_im_pos, ↓reduceDIte]
 
 /-- The lifted coefficient at a point of `ℍ`. -/
 theorem s27u_liftCoeff_of_mem {X S : Type*} [TopologicalSpace S] [ChartedSpace ℂ S] (p₀ : UpperHalfPlane → X)
     (f : X → S) {z : ℂ} (hz : z ∈ upperHalf) :
-    s27u_liftCoeff p₀ f z = complexDilatation (fun w => chartAt ℂ (f (s27u_pext p₀ z)) (f (s27u_pext p₀ w))) z := by
+    s27u_liftCoeff p₀ f z = complexDilatation (fun w => chartAt ℂ (f (utm_pext p₀ z)) (f (utm_pext p₀ w))) z := by
   exact indicator_of_mem hz _
 
 /-- The lifted coefficient vanishes off `ℍ`. -/
@@ -3047,7 +3026,7 @@ theorem s27u_liftCoeff_of_not_mem {X S : Type*} [TopologicalSpace S] [ChartedSpa
   exact indicator_of_notMem hz _
 
 /-- **[U1, stub] Local form of the lifted coefficient.**  Near every `z₀ ∈ ℍ`, `μ = s27u_liftCoeff p₀ f` is, at EVERY
-point, the complex dilatation of one `K`-q.c. map.  Write `p̂₀ = s27u_pext p₀`, `y₀ = f(p̂₀ z₀)` and
+point, the complex dilatation of one `K`-q.c. map.  Write `p̂₀ = utm_pext p₀`, `y₀ = f(p̂₀ z₀)` and
 `g = φ_{y₀} ∘ f ∘ p̂₀`.  There is an open `U ∋ z₀` inside `ℍ` on which `f ∘ p̂₀` stays in the chart source at `y₀`,
 `g` is `K`-q.c., and `μ = μ_g` pointwise.
 
@@ -3064,7 +3043,7 @@ point, the complex dilatation of one `K`-q.c. map.  Write `p̂₀ = s27u_pext p�
   l.60, `s23_transition_mem` l.69, `s23_dilatation_comp_left` l.154, `s23_localMapDomain_isOpen` l.215,
   `s23_h_center` l.656.
 - S07 `thm7_1_comp` l.181; S09 `ac_t_isKQC_restrict` l.6555; S13 `ad_isKQC_congr` l.5796.
-- Here: `s27u_pext_eq`, `s27u_pext_continuousAt`, `s27u_liftCoeff_of_mem`.  The chart bookkeeping is as in UTM
+- Here: `utm_a_pext_eq`, `utm_a_continuousAt`, `s27u_liftCoeff_of_mem`.  The chart bookkeeping is as in UTM
   `utm_liftQD_local` (l.455).
 
 *Estimate.*  150–250 lines. -/
@@ -3072,13 +3051,14 @@ theorem s27u_liftCoeff_local [IsManifold 𝓘(ℂ) ω S₀] {S : Type u} [Topolo
     [IsManifold 𝓘(ℂ) ω S] {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀}
     (hp₀ : IsUniformization Γ₀ p₀) {f : S₀ ≃ₜ S} {K : ℝ} (hf : IsKQCRS f K) {z₀ : ℂ} (hz₀ : z₀ ∈ upperHalf) :
     ∃ U : Set ℂ, IsOpen U ∧ z₀ ∈ U ∧ U ⊆ upperHalf ∧
-      (∀ w ∈ U, f (s27u_pext p₀ w) ∈ (chartAt ℂ (f (s27u_pext p₀ z₀))).source) ∧
-      IsKQC (fun w => chartAt ℂ (f (s27u_pext p₀ z₀)) (f (s27u_pext p₀ w))) U K ∧
+      (∀ w ∈ U, f (utm_pext p₀ w) ∈ (chartAt ℂ (f (utm_pext p₀ z₀))).source) ∧
+      IsKQC (fun w => chartAt ℂ (f (utm_pext p₀ z₀)) (f (utm_pext p₀ w))) U K ∧
       ∀ z ∈ U, s27u_liftCoeff p₀ f z =
-        complexDilatation (fun w => chartAt ℂ (f (s27u_pext p₀ z₀)) (f (s27u_pext p₀ w))) z := by
+        complexDilatation (fun w => chartAt ℂ (f (utm_pext p₀ z₀)) (f (utm_pext p₀ w))) z := by
   have hz₀' : 0 < z₀.im := hz₀
-  have hpz₀ : s27u_pext p₀ z₀ = p₀ ⟨z₀, hz₀'⟩ := s27u_pext_coe p₀ ⟨z₀, hz₀'⟩
-  obtain ⟨U₀, hU₀o, hz₀U₀, hU₀H, hU₀s, hψ₀⟩ := h23l_chart_proj hp₀.1 hp₀.2.1 ⟨z₀, hz₀'⟩
+  have hpz₀ : utm_pext p₀ z₀ = p₀ ⟨z₀, hz₀'⟩ := s27u_pext_coe p₀ ⟨z₀, hz₀'⟩
+  obtain ⟨U₀, hU₀o, hz₀U₀, hU₀H, hU₀s, hψ₀⟩ :=
+    h23l_chart_proj (τ := ⟨z₀, hz₀'⟩) hp₀.1 hp₀.2.1 _ (mem_chart_source ℂ _)
   rw [hpz₀]
   set x : S₀ := p₀ ⟨z₀, hz₀'⟩
   set ψ₀ : ℂ → ℂ := fun z => chartAt ℂ x (p₀ (UpperHalfPlane.ofComplex z))
@@ -3091,37 +3071,37 @@ theorem s27u_liftCoeff_local [IsManifold 𝓘(ℂ) ω S₀] {S : Type u} [Topolo
     rw [UpperHalfPlane.ofComplex_apply_of_im_pos hz₀']
     exact (s23_h_center f x).1
   -- on `U`, `p̂₀ = φ_x⁻¹ ∘ ψ₀`
-  have hpw : ∀ w ∈ U, s27u_pext p₀ w = (chartAt ℂ x).symm (ψ₀ w) := fun w hw => by
-    rw [s27u_pext_eq p₀ (hU₀H hw.1)]
+  have hpw : ∀ w ∈ U, utm_pext p₀ w = (chartAt ℂ x).symm (ψ₀ w) := fun w hw => by
+    rw [utm_a_pext_eq p₀ (hU₀H hw.1)]
     exact ((chartAt ℂ x).left_inv (hU₀s w hw.1)).symm
-  have hsrc : ∀ w ∈ U, f (s27u_pext p₀ w) ∈ (chartAt ℂ (f x)).source := fun w hw => by
+  have hsrc : ∀ w ∈ U, f (utm_pext p₀ w) ∈ (chartAt ℂ (f x)).source := fun w hw => by
     rw [hpw w hw]
     exact hw.2.2
   -- `g = L ∘ ψ₀` on `U`, with `ψ₀` `1`-q.c. and `L = localMapExpr f x` `K`-q.c.
-  have hgK : IsKQC (fun w => chartAt ℂ (f x) (f (s27u_pext p₀ w))) U K := by
+  have hgK : IsKQC (fun w => chartAt ℂ (f x) (f (utm_pext p₀ w))) U K := by
     have h1 := ac_t_isKQC_restrict hψ₀ hUo inter_subset_left
     have h2 := thm7_1_comp h1 (hf.2 x) (by rintro _ ⟨w, hw, rfl⟩; exact hw.2)
     rw [one_mul] at h2
     refine ad_isKQC_congr h2 fun w hw => ?_
-    show chartAt ℂ (f x) (f (s27u_pext p₀ w)) = chartAt ℂ (f x) (f ((chartAt ℂ x).symm (ψ₀ w)))
+    show chartAt ℂ (f x) (f (utm_pext p₀ w)) = chartAt ℂ (f x) (f ((chartAt ℂ x).symm (ψ₀ w)))
     rw [hpw w hw]
   refine ⟨U, hUo, hz₀U, fun w hw => hU₀H hw.1, hsrc, hgK, fun z hz => ?_⟩
   -- at `z ∈ U` the defining chart (at `f(p̂₀ z)`) differs from the one at `f x` by a holomorphic transition
   rw [s27u_liftCoeff_of_mem p₀ f (hU₀H hz.1)]
-  set y := f (s27u_pext p₀ z)
-  set g : ℂ → ℂ := fun w => chartAt ℂ (f x) (f (s27u_pext p₀ w))
-  have hev : (fun w => chartAt ℂ y (f (s27u_pext p₀ w))) =ᶠ[𝓝 z] chartTransition y (f x) ∘ g := by
+  set y := f (utm_pext p₀ z)
+  set g : ℂ → ℂ := fun w => chartAt ℂ (f x) (f (utm_pext p₀ w))
+  have hev : (fun w => chartAt ℂ y (f (utm_pext p₀ w))) =ᶠ[𝓝 z] chartTransition y (f x) ∘ g := by
     filter_upwards [hUo.mem_nhds hz] with w hw
-    show _ = chartAt ℂ y ((chartAt ℂ (f x)).symm (chartAt ℂ (f x) (f (s27u_pext p₀ w))))
+    show _ = chartAt ℂ y ((chartAt ℂ (f x)).symm (chartAt ℂ (f x) (f (utm_pext p₀ w))))
     rw [(chartAt ℂ (f x)).left_inv (hsrc w hw)]
   have hgz : g z ∈ (chartAt ℂ (f x)).target := (chartAt ℂ (f x)).map_source (hsrc z hz)
   have hgz' : (chartAt ℂ (f x)).symm (g z) ∈ (chartAt ℂ y).source := by
-    show (chartAt ℂ (f x)).symm (chartAt ℂ (f x) (f (s27u_pext p₀ z))) ∈ _
+    show (chartAt ℂ (f x)).symm (chartAt ℂ (f x) (f (utm_pext p₀ z))) ∈ _
     rw [(chartAt ℂ (f x)).left_inv (hsrc z hz)]
     exact mem_chart_source ℂ y
   obtain ⟨hT1, hT2, -⟩ := s23_transition_mem hgz hgz'
   have hc : ContinuousAt g z := (hgK.2.2.1.1 z hz).continuousAt (hUo.mem_nhds hz)
-  have h1 : complexDilatation (fun w => chartAt ℂ y (f (s27u_pext p₀ w))) z =
+  have h1 : complexDilatation (fun w => chartAt ℂ y (f (utm_pext p₀ w))) z =
       complexDilatation (chartTransition y (f x) ∘ g) z := by
     simp only [complexDilatation, dz, dzbar, hev.fderiv_eq (𝕜 := ℝ)]
   rw [h1]
@@ -3137,7 +3117,7 @@ theorem s27u_liftCoeff_local [IsManifold 𝓘(ℂ) ω S₀] {S : Type u} [Topolo
 
 *Reuse.*  S23: `h23l_dilatation_conj` l.927 (the same computation for `liftToC F`), `h23l_b_mob` l.878,
 `h23l_b_coe_smul` l.845, `h23l_b_det` l.851, `h23l_b_den_ne` l.858, `s23_dilatation_comp_right` l.162.  Here:
-`s27u_liftCoeff_of_mem`, `s27u_pext_eq`, `s27u_pext_coe`.
+`s27u_liftCoeff_of_mem`, `utm_a_pext_eq`, `s27u_pext_coe`.
 
 *Estimate.*  50–90 lines. -/
 theorem s27u_liftCoeff_compat {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S]
@@ -3149,11 +3129,11 @@ theorem s27u_liftCoeff_compat {S : Type u} [TopologicalSpace S] [ChartedSpace �
   have hz' : 0 < z.im := hz
   -- `p̂₀ ∘ γ = p̂₀` on `ℍ`: the fibres of `p₀` are the `Γ₀`-orbits
   have hpγ : ∀ w : ℂ, 0 < w.im →
-      s27u_pext p₀ (((γ 0 0 : ℂ) * w + γ 0 1) / ((γ 1 0 : ℂ) * w + γ 1 1)) = s27u_pext p₀ w := by
+      utm_pext p₀ (((γ 0 0 : ℂ) * w + γ 0 1) / ((γ 1 0 : ℂ) * w + γ 1 1)) = utm_pext p₀ w := by
     intro w hw
     have e1 : ((γ • (⟨w, hw⟩ : UpperHalfPlane) : UpperHalfPlane) : ℂ) =
         ((γ 0 0 : ℂ) * w + γ 0 1) / ((γ 1 0 : ℂ) * w + γ 1 1) := h23l_b_coe_smul γ ⟨w, hw⟩
-    have e2 : s27u_pext p₀ w = p₀ ⟨w, hw⟩ := s27u_pext_coe p₀ ⟨w, hw⟩
+    have e2 : utm_pext p₀ w = p₀ ⟨w, hw⟩ := s27u_pext_coe p₀ ⟨w, hw⟩
     rw [← e1, s27u_pext_coe, e2]
     exact ((hp₀.2.2.2 ⟨w, hw⟩ (γ • ⟨w, hw⟩)).2 ⟨γ, hγ, rfl⟩).symm
   have hTz : ((γ 0 0 : ℂ) * z + γ 0 1) / ((γ 1 0 : ℂ) * z + γ 1 1) ∈ upperHalf := by
@@ -3163,14 +3143,14 @@ theorem s27u_liftCoeff_compat {S : Type u} [TopologicalSpace S] [ChartedSpace �
     rw [← e1]
     exact UpperHalfPlane.coe_im_pos _
   rw [s27u_liftCoeff_of_mem p₀ f hz, s27u_liftCoeff_of_mem p₀ f hTz, hpγ z hz']
-  set g : ℂ → ℂ := fun w => chartAt ℂ (f (s27u_pext p₀ z)) (f (s27u_pext p₀ w))
+  set g : ℂ → ℂ := fun w => chartAt ℂ (f (utm_pext p₀ z)) (f (utm_pext p₀ w))
   obtain ⟨hTd, hSd, hST, hTS, hTder⟩ := h23l_b_mob (h23l_b_det γ) (h23l_b_den_ne γ hz)
   -- `g ∘ γ = g` near `z`
   have hev : (g ∘ fun w => ((γ 0 0 : ℂ) * w + γ 0 1) / ((γ 1 0 : ℂ) * w + γ 1 1)) =ᶠ[𝓝 z] g := by
     filter_upwards [isOpen_upperHalf.mem_nhds hz] with w hw
-    show chartAt ℂ (f (s27u_pext p₀ z))
-        (f (s27u_pext p₀ (((γ 0 0 : ℂ) * w + γ 0 1) / ((γ 1 0 : ℂ) * w + γ 1 1)))) =
-      chartAt ℂ (f (s27u_pext p₀ z)) (f (s27u_pext p₀ w))
+    show chartAt ℂ (f (utm_pext p₀ z))
+        (f (utm_pext p₀ (((γ 0 0 : ℂ) * w + γ 0 1) / ((γ 1 0 : ℂ) * w + γ 1 1)))) =
+      chartAt ℂ (f (utm_pext p₀ z)) (f (utm_pext p₀ w))
     rw [hpγ w hw]
   have h2 := s23_dilatation_comp_right (g := g) hTd hSd hST hTS
   have h3 : complexDilatation (g ∘ fun w => ((γ 0 0 : ℂ) * w + γ 0 1) / ((γ 1 0 : ℂ) * w + γ 1 1)) z =
@@ -3214,8 +3194,8 @@ theorem s27u_liftCoeff_isBeltramiCoeff [IsManifold 𝓘(ℂ) ω S₀] {S : Type 
     have : Countable T := hTc.to_subtype
     rw [biUnion_eq_iUnion, aestronglyMeasurable_iUnion_iff]
     rintro ⟨z, hz⟩
-    have hm := (measurable_dzbar (fun w => chartAt ℂ (f (s27u_pext p₀ z)) (f (s27u_pext p₀ w)))).div
-      (measurable_dz (fun w => chartAt ℂ (f (s27u_pext p₀ z)) (f (s27u_pext p₀ w))))
+    have hm := (measurable_dzbar (fun w => chartAt ℂ (f (utm_pext p₀ z)) (f (utm_pext p₀ w)))).div
+      (measurable_dz (fun w => chartAt ℂ (f (utm_pext p₀ z)) (f (utm_pext p₀ w))))
     refine hm.aestronglyMeasurable.congr ?_
     filter_upwards [ae_restrict_mem (hWo z (hTsub hz)).measurableSet] with w hw
     exact (hμ z (hTsub hz) w hw).symm
@@ -3697,8 +3677,8 @@ theorem s27u_proj_mdifferentiable [IsManifold 𝓘(ℂ) ω S₀] {S : Type u} [T
   obtain ⟨σ, rfl⟩ : ∃ σ, F σ = τ₁ := ⟨F.symm τ₁, F.apply_symm_apply τ₁⟩
   have hz₀ : (σ : ℂ) ∈ upperHalf := σ.coe_im_pos
   obtain ⟨U, hUo, hz₀U, hUH, -, hgK, hμg⟩ := s27u_liftCoeff_local hp₀ hf hz₀
-  set y₀ := f (s27u_pext p₀ (σ : ℂ))
-  set g : ℂ → ℂ := fun w => chartAt ℂ y₀ (f (s27u_pext p₀ w))
+  set y₀ := f (utm_pext p₀ (σ : ℂ))
+  set g : ℂ → ℂ := fun w => chartAt ℂ y₀ (f (utm_pext p₀ w))
   set W := s27u_fSym (s27u_liftCoeff p₀ f)
   have hWU := ac_t_isKQC_restrict hwK hUo hUH
   -- `g` and `w = f^μ` have the same dilatation a.e. on `U`, so `g ∘ w⁻¹` is conformal on `w(U)`
@@ -3716,8 +3696,8 @@ theorem s27u_proj_mdifferentiable [IsManifold 𝓘(ℂ) ω S₀] {S : Type u} [T
     have hzH : 0 < z.im := hUH hz
     have e0 : ((F ⟨z, hzH⟩ : UpperHalfPlane) : ℂ) = W z := hF ⟨z, hzH⟩
     rw [Function.comp_apply, hWU.2.2.1.2.1.leftInvOn_invFunOn hz, ← e0, UpperHalfPlane.ofComplex_apply]
-    show chartAt ℂ y₀ (f (p₀ (F.symm (F ⟨z, hzH⟩)))) = chartAt ℂ y₀ (f (s27u_pext p₀ z))
-    rw [F.symm_apply_apply, s27u_pext_eq p₀ hzH, UpperHalfPlane.ofComplex_apply_of_im_pos hzH]
+    show chartAt ℂ y₀ (f (p₀ (F.symm (F ⟨z, hzH⟩)))) = chartAt ℂ y₀ (f (utm_pext p₀ z))
+    rw [F.symm_apply_apply, utm_a_pext_eq p₀ hzH, UpperHalfPlane.ofComplex_apply_of_im_pos hzH]
   have hd : DifferentiableAt ℂ ((fun τ => chartAt ℂ y₀ (s27u_proj p₀ f F τ)) ∘ UpperHalfPlane.ofComplex)
       ((F σ : UpperHalfPlane) : ℂ) :=
     (hconf.1.differentiableAt (hVo.mem_nhds hτ₁)).congr_of_eventuallyEq
@@ -3726,7 +3706,7 @@ theorem s27u_proj_mdifferentiable [IsManifold 𝓘(ℂ) ω S₀] {S : Type u} [T
     UpperHalfPlane.mdifferentiableAt_iff.2 hd
   -- `p = φ_{y₀}⁻¹ ∘ (φ_{y₀} ∘ p)` near `F σ`
   have hproj : s27u_proj p₀ f F (F σ) = y₀ := by
-    show f (p₀ (F.symm (F σ))) = f (s27u_pext p₀ (σ : ℂ))
+    show f (p₀ (F.symm (F σ))) = f (utm_pext p₀ (σ : ℂ))
     rw [F.symm_apply_apply, s27u_pext_coe]
   have hsrc : s27u_proj p₀ f F (F σ) ∈ (chartAt ℂ y₀).source := by
     rw [hproj]
@@ -3885,7 +3865,8 @@ theorem s27u_liftCoeff_eq_dilatation {S : Type u} [TopologicalSpace S] [ChartedS
   have _ := hp₀
   have hz' : 0 < z.im := hz
   -- `ψ = φ_y ∘ p ∘ ofComplex` (`y = p (F z)`) is conformal near `F z`, with a holomorphic local inverse
-  obtain ⟨U, hUo, hFU, -, -, hψ⟩ := h23l_chart_proj hp.1 hp.2.1 (F ⟨z, hz'⟩)
+  obtain ⟨U, hUo, hFU, -, -, hψ⟩ :=
+    h23l_chart_proj (τ := (F ⟨z, hz'⟩)) hp.1 hp.2.1 _ (mem_chart_source ℂ _)
   have hψc := thm7_3_one_qc_conformal hψ
   have hψV := isOpen_image_of_isKQC hψ
   have hψi := hψc.symm hUo
@@ -3899,12 +3880,12 @@ theorem s27u_liftCoeff_eq_dilatation {S : Type u} [TopologicalSpace S] [ChartedS
     (Filter.eventually_of_mem (hUo.mem_nhds hgzU) fun u hu => hψc.2.1.leftInvOn_invFunOn hu)
   -- on `ℍ`, the chart expression of `f ∘ p₀` defining `μ(z)` is `ψ ∘ liftToC F` (`p ∘ F = f ∘ p₀`)
   have heq : EqOn ((fun u => chartAt ℂ (p (F ⟨z, hz'⟩)) (p (UpperHalfPlane.ofComplex u))) ∘ liftToC F)
-      (fun w => chartAt ℂ (f (s27u_pext p₀ z)) (f (s27u_pext p₀ w))) upperHalf := by
+      (fun w => chartAt ℂ (f (utm_pext p₀ z)) (f (utm_pext p₀ w))) upperHalf := by
     intro w hw
     have hw' : 0 < w.im := hw
     simp only [Function.comp_apply]
     rw [h23l_liftToC_eq F hw, UpperHalfPlane.ofComplex_apply, hF ⟨z, hz'⟩,
-      hF (UpperHalfPlane.ofComplex w), s27u_pext_eq p₀ hw', s27u_pext_eq p₀ hz',
+      hF (UpperHalfPlane.ofComplex w), utm_a_pext_eq p₀ hw', utm_a_pext_eq p₀ hz',
       UpperHalfPlane.ofComplex_apply_of_im_pos hz']
   rw [s27u_liftCoeff_of_mem p₀ f hz, ← h1]
   exact abR_t_complexDilatation_congr isOpen_upperHalf heq hz
@@ -4643,6 +4624,41 @@ theorem isDeformationPoint_unique [T2Space S₀] [ConnectedSpace S₀] [IsManifo
     (e₂ : C(S₀, X₂.carrier))
   rw [he]
 
+/-- The injectivity core of (27.15) (UTM's companion `lemma27_1_injective_of_uniformization` is derived from it; S29's
+`s29_m_equiv_of_eq` is used in its one-line form `Quot.eqvGen_exact`).  Two Teichmüller deformations
+`S_{q₁,k₁}`, `S_{q₂,k₂}` (`‖e qᵢ‖ = 1`, `0 < kᵢ < 1`) representing the same point of `T(S₀)`, `S₀ = ℍ/Γ₀`, have
+`k₁ = k₂` and `q₁ = q₂`: the inverse trick (`utm_x_dil_le_of_equiv`, both ways) gives `k₁ = k₂` and `e₂ = c ∘ e₁`; then
+`q₂ = r q₁` with `r > 0` ([S7b]), and `‖e qᵢ‖ = 1` forces `r = 1`. -/
+theorem s27w_injective_core [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g)
+    (e : (holQuadDiffSubmodule S₀).restrictScalars ℝ ≃ₗ[ℝ] EuclideanSpace ℝ (Fin (6 * g - 6)))
+    {q₁ q₂ : (holQuadDiffSubmodule S₀).restrictScalars ℝ} (hq₁ : ‖e q₁‖ = 1) (hq₂ : ‖e q₂‖ = 1)
+    {k₁ k₂ : ℝ} (hk₁ : 0 < k₁) (hk₁' : k₁ < 1) (hk₂ : 0 < k₂) (hk₂' : k₂ < 1) {p : TeichSpace S₀}
+    (h₁ : IsDeformationPoint q₁ k₁ p) (h₂ : IsDeformationPoint q₂ k₂ p)
+    {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀}
+    (hp₀ : IsUniformization Γ₀ p₀) : k₁ = k₂ ∧ q₁ = q₂ := by
+  obtain ⟨X₁, e₁, hqc₁, q'₁, hT₁, rfl⟩ := h₁
+  obtain ⟨X₂, e₂, hqc₂, q'₂, hT₂, hp⟩ := h₂
+  obtain ⟨c, hc, hhom⟩ := markedRS_equiv_equivalence.eqvGen_iff.1 (Quot.eqvGen_exact hp)
+  have hTM₁ := teichDeformation_isTeichmullerMap hT₁
+  have hTM₂ := teichDeformation_isTeichmullerMap hT₂
+  obtain ⟨h12, hfun⟩ := utm_x_dil_le_of_equiv hg hS hTM₁ hTM₂ hc hhom hp₀
+  obtain ⟨h21, -⟩ := utm_x_dil_le_of_equiv hg hS hTM₂ hTM₁ hc.homeomorph_symm (utm_x_homotopic_trans_symm hhom) hp₀
+  have hk : k₁ = k₂ := utm_x_eq_of_ofReal_le hk₁.le hk₁' hk₂.le hk₂' h12 h21
+  refine ⟨hk, ?_⟩
+  subst hk
+  obtain ⟨r, hr, hqr⟩ := utm_x_eq_smul_of_trans hk₁ hTM₁ hTM₂ hc (hfun rfl)
+  have hq : q₂ = r • q₁ := by
+    apply Subtype.ext
+    rw [hqr, Submodule.coe_smul_of_tower]
+    funext x z
+    simp [Complex.real_smul]
+  have hr1 : r = 1 := by
+    have h := hq₂
+    rw [hq, map_smul, norm_smul, Real.norm_eq_abs, abs_of_pos hr, hq₁, mul_one] at h
+    exact h
+  rw [hq, hr1, one_smul]
+
 /-- (27.15): if `[S_{q₁,k₁}, f₁] = [S_{q₂,k₂}, f₂]` with `k₂ ≤ k₁`, there is a conformal
 `φ : S_{q₁,k₁} → S_{q₂,k₂}` with `f₁ ≃ φ ∘ f₂`, so by Theorem 26.2 `K[f₁] ≤ K[φ ∘ f₂] = K[f₂]`,
 `k₁ = k₂`, and then `f₁ = φ ∘ f₂`, `q₁ = q₂` (for `q₁, q₂` normalized on the unit sphere `B`). -/
@@ -4652,7 +4668,1244 @@ theorem lemma27_1_injective [T2Space S₀] [ConnectedSpace S₀] [IsManifold �
     {q₁ q₂ : (holQuadDiffSubmodule S₀).restrictScalars ℝ} (hq₁ : ‖e q₁‖ = 1) (hq₂ : ‖e q₂‖ = 1)
     {k₁ k₂ : ℝ} (hk₁ : 0 < k₁) (hk₁' : k₁ < 1) (hk₂ : 0 < k₂) (hk₂' : k₂ < 1) {p : TeichSpace S₀}
     (h₁ : IsDeformationPoint q₁ k₁ p) (h₂ : IsDeformationPoint q₂ k₂ p) : k₁ = k₂ ∧ q₁ = q₂ := by
-  sorry
+  -- `S₀` is `ℍ/Γ₀` by the uniformization theorem (S22), and the injectivity core applies
+  obtain ⟨Γ₀, p₀, -, -, hp₀⟩ := s22hg_exists_fuchsian_uniformization hg hS
+  exact s27w_injective_core hg hS e hq₁ hq₂ hk₁ hk₁' hk₂ hk₂' h₁ h₂ hp₀
+
+/-! ### Stage T3 (s27t, coordinator 553e2d): Beltrami-deformed surfaces and the continuity of Fricke coordinates
+
+A non-book helper block for `eq27_17_lifts_converge` (item 15), `lemma27_2_path` (item 17) and `lemma27_2_connected`
+(item 18); prefix `s27v_`.  Seven stubs, everything else proved.
+
+1. **`X^μ`** ([A1], [A2]; proved `s27v_exists_marked`).  For `μ ∈ M(Γ₀)` (a Beltrami coefficient on `ℍ`,
+   `‖μ‖∞ ≤ k < 1`, `Γ₀`-compatible) there is a marked surface `(X^μ, e)` of `S₀` whose lifted coefficient
+   `s27u_liftCoeff p₀ e` is `μ` a.e. on `ℍ`.  `X^μ` is the point set of `S₀` with the charts `f^μ ∘ (local sections of
+   p₀)` ([A1]); `e ∘ p₀ ∘ (f^μ|ℍ)⁻¹` uniformizes it (U6, [A1]), `f^μ|ℍ` is a `K`-q.c. lift of `e`, so `e` is `K`-q.c.
+   ([A2]) and its lifted coefficient is the dilatation of that lift (U10), i.e. `μ` (U4').
+2. **Continuity** ([B1]–[B4]; proved `s27v_fricke_tendsto`).  If the lifted coefficients of marked surfaces `mₙ`
+   converge a.e. on `ℍ` to that of `m`, with a common bound `k < 1`, then every choice of Fricke coordinates of `mₙ`
+   converges to the Fricke coordinates of `m`.  Theorem 13.8 in sequential a.e. form on `Δ` ([B1]), carried to the
+   symmetric plane solutions by the Cayley map ([B2]), gives `f^{μₙ} → f^μ` on `ℍ`; the representatives of
+   `f^{μₙ} γ (f^{μₙ})⁻¹` converge up to sign ([B3]); `frickeTriple` is continuous at hyperbolic elements inside a
+   regime `c = 0` / `c ≠ 0` ([B4]), and conjugation by normalized lifts preserves the regime (`s27f_fix_infty`).
+3. **Teichmüller deformations** ([C1]: E2's S3 of `Lemmas/UniformizedTeichmuller`, restated on `s27u_liftCoeff`).  The
+   lifted coefficient of a Teichmüller map with initial differential `q` is `k ψ̄/|ψ|`, `ψ = utm_liftQD q p₀ ≠ 0` a.e.
+4. **Glue** (proved): `s27v_eq27_17`, `s27v_lemma27_2_path`, `s27v_lemma27_2_connected` are the three targets.
+
+No stub is a book statement, and none implies W-IoD (invariance of domain in `ℝ^{6g-6}`), W-RR (`dim_ℝ Q(S₀) = 6g-6`),
+W-QC (`exists_qc_in_homotopy_class`), W-TOP (classification of surfaces, `π₁`) or W-UC (uniformizing an abstract
+surface): each is a local analytic or algebraic statement about data built from the fixed uniformization `p₀`. -/
+
+/-- **The local deck step.**  Let `p₀ : ℍ → Y` be continuous with fibres the `Γ₀`-orbits, and let `E` be an open
+partial homeomorphism with `⇑E = p₀` (a local inverse of `p₀` is `E.symm`).  If `p₀ η₀` lies in the target of `E`,
+then near `η₀` the local lift `E.symm ∘ p₀` is one fixed `γ ∈ Γ₀`: `E.symm (p₀ η) = γ • η`.  (Both `E.symm (p₀ η)` and
+`γ • η` lie in the source of `E` near `η₀` and have the same image `p₀ η` under the injective `E`.) -/
+theorem s27v_a_deck {Y : Type*} [TopologicalSpace Y] {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → Y} (hcont : Continuous p₀)
+    (hfib : ∀ τ₁ τ₂ : UpperHalfPlane, p₀ τ₁ = p₀ τ₂ ↔ ∃ γ ∈ Γ₀, γ • τ₁ = τ₂)
+    (E : OpenPartialHomeomorph UpperHalfPlane Y) (hE : ⇑E = p₀) {η₀ : UpperHalfPlane} (hη₀ : p₀ η₀ ∈ E.target) :
+    ∃ γ ∈ Γ₀, ∀ᶠ η in 𝓝 η₀, E.symm (p₀ η) = γ • η := by
+  have hs : E.symm (p₀ η₀) ∈ E.source := E.map_target hη₀
+  have h1 : p₀ (E.symm (p₀ η₀)) = p₀ η₀ := by
+    rw [← congrFun hE (E.symm (p₀ η₀))]
+    exact E.right_inv hη₀
+  obtain ⟨γ, hγ, hγe⟩ := (hfib η₀ (E.symm (p₀ η₀))).1 h1.symm
+  refine ⟨γ, hγ, ?_⟩
+  have hsγ : γ • η₀ ∈ E.source := by
+    rw [hγe]
+    exact hs
+  filter_upwards [hcont.continuousAt.preimage_mem_nhds (E.open_target.mem_nhds hη₀),
+    (continuous_const_smul γ).continuousAt.preimage_mem_nhds (E.open_source.mem_nhds hsγ)] with η ha hb
+  refine E.injOn (E.map_target ha) hb ?_
+  rw [E.right_inv ha, congrFun hE (γ • η)]
+  exact (hfib η (γ • η)).2 ⟨γ, hγ, rfl⟩
+
+/-- **The chart `F ∘ E⁻¹` of `X^μ`**: for an open partial homeomorphism `E : ℍ → Y` (a local branch of the covering)
+and a homeomorphism `F` of `ℍ`, the open partial homeomorphism `y ↦ F (E⁻¹ y)` of `Y` into `ℂ`, with source the target
+of `E` (`s27v_a_chart_source`). -/
+def s27v_a_chart {Y : Type*} [TopologicalSpace Y] (E : OpenPartialHomeomorph UpperHalfPlane Y)
+    (F : UpperHalfPlane ≃ₜ UpperHalfPlane) : OpenPartialHomeomorph Y ℂ :=
+  E.symm.trans ((UpperHalfPlane.isOpenEmbedding_coe.comp F.isOpenEmbedding).toOpenPartialHomeomorph _)
+
+/-- The chart `s27v_a_chart E F` sends `y` to `F (E⁻¹ y)`. -/
+theorem s27v_a_chart_apply {Y : Type*} [TopologicalSpace Y] (E : OpenPartialHomeomorph UpperHalfPlane Y)
+    (F : UpperHalfPlane ≃ₜ UpperHalfPlane) (y : Y) : s27v_a_chart E F y = F (E.symm y) := by
+  rfl
+
+/-- The source of the chart `s27v_a_chart E F` is the target of `E`. -/
+theorem s27v_a_chart_source {Y : Type*} [TopologicalSpace Y] (E : OpenPartialHomeomorph UpperHalfPlane Y)
+    (F : UpperHalfPlane ≃ₜ UpperHalfPlane) : (s27v_a_chart E F).source = E.target := by
+  simp [s27v_a_chart]
+
+/-- The inverse of the chart `s27v_a_chart E F`: every point `w` of its target lies in `ℍ`, and the chart's inverse
+sends it to `E (F⁻¹ w)`. -/
+theorem s27v_a_chart_symm {Y : Type*} [TopologicalSpace Y] (E : OpenPartialHomeomorph UpperHalfPlane Y)
+    (F : UpperHalfPlane ≃ₜ UpperHalfPlane) {w : ℂ} (hw : w ∈ (s27v_a_chart E F).target) :
+    0 < w.im ∧ (s27v_a_chart E F).symm w = E (F.symm (UpperHalfPlane.ofComplex w)) := by
+  have hy : (s27v_a_chart E F).symm w ∈ E.target := by
+    rw [← s27v_a_chart_source E F]
+    exact (s27v_a_chart E F).map_target hw
+  have h1 : ((F (E.symm ((s27v_a_chart E F).symm w)) : UpperHalfPlane) : ℂ) = w := by
+    rw [← s27v_a_chart_apply]
+    exact (s27v_a_chart E F).right_inv hw
+  have h2 : UpperHalfPlane.ofComplex w = F (E.symm ((s27v_a_chart E F).symm w)) := by
+    have h := UpperHalfPlane.ofComplex_apply (F (E.symm ((s27v_a_chart E F).symm w)))
+    rw [h1] at h
+    exact h
+  refine ⟨by rw [← h1]; exact UpperHalfPlane.coe_im_pos _, ?_⟩
+  rw [h2, F.symm_apply_apply, E.right_inv hy]
+
+/-- **The transition function of `X^μ`.**  In the setting of `s27v_xmu_exists`, for a local branch `E` of `p₀`
+(`⇑E = p₀`), the map `v ↦ F (E⁻¹ (p₀ (F⁻¹ v)))` is complex differentiable at every `v₀ ∈ ℍ` with `p₀ (F⁻¹ v₀)` in the
+target of `E`: near `v₀` it is `v ↦ γ' • v` (the local deck step `s27v_a_deck` gives `E⁻¹ ∘ p₀ = γ`, and U6
+`s27u_conj_mobius` gives `F γ = γ' F`). -/
+theorem s27v_a_phi {Y : Type*} [TopologicalSpace Y] {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → Y} (hcont : Continuous p₀)
+    (hfib : ∀ τ₁ τ₂ : UpperHalfPlane, p₀ τ₁ = p₀ τ₂ ↔ ∃ γ ∈ Γ₀, γ • τ₁ = τ₂) {μ : ℂ → ℂ} {k : ℝ} (hk₀ : 0 ≤ k)
+    (hk : k < 1) (hμ : IsBeltramiCoeff μ upperHalf k) (hΓ : IsGammaCompatible Γ₀ μ)
+    {F : UpperHalfPlane ≃ₜ UpperHalfPlane} (hF : ∀ τ, (F τ : ℂ) = s27u_fSym μ τ)
+    (E : OpenPartialHomeomorph UpperHalfPlane Y) (hE : ⇑E = p₀) {v₀ : ℂ} (hv₀ : 0 < v₀.im)
+    (hmem : p₀ (F.symm (UpperHalfPlane.ofComplex v₀)) ∈ E.target) :
+    DifferentiableAt ℂ (fun v => ((F (E.symm (p₀ (F.symm (UpperHalfPlane.ofComplex v)))) : UpperHalfPlane) : ℂ))
+      v₀ := by
+  obtain ⟨γ, hγ, hev⟩ := s27v_a_deck hcont hfib E hE hmem
+  obtain ⟨γ', hγ'⟩ := s27u_conj_mobius hk₀ hk hμ hΓ hF hγ
+  have ht : Tendsto (fun v => F.symm (UpperHalfPlane.ofComplex v)) (𝓝 v₀)
+      (𝓝 (F.symm (UpperHalfPlane.ofComplex v₀))) :=
+    (F.symm.continuous.continuousAt.comp (UpperHalfPlane.mdifferentiableAt_ofComplex hv₀).continuousAt).tendsto
+  have hd : DifferentiableAt ℂ
+      ((UpperHalfPlane.coe ∘ fun τ : UpperHalfPlane => γ' • τ) ∘ UpperHalfPlane.ofComplex) v₀ :=
+    UpperHalfPlane.mdifferentiableAt_iff.1
+      ((UpperHalfPlane.mdifferentiable_coe.comp (s27t_mdifferentiable_smul γ')) ⟨v₀, hv₀⟩)
+  refine hd.congr_of_eventuallyEq ?_
+  filter_upwards [ht.eventually hev] with v hv
+  simp only [Function.comp_apply]
+  rw [hv, hγ', Homeomorph.apply_symm_apply]
+
+/-- **[A1, stub] The Beltrami-deformed complex structure `X^μ`.**  For a `Γ₀`-compatible Beltrami coefficient `μ` on
+`ℍ` (`‖μ‖∞ ≤ k < 1`) and `F = f^μ|ℍ`, there is a closed Riemann surface `X` and a homeomorphism `e : S₀ → X` for which
+the transported projection `e ∘ p₀ ∘ F⁻¹ : ℍ → X` is holomorphic.  (`X = ℍ/G^μ`, `G^μ = F Γ₀ F⁻¹`, realized on the
+point set of `S₀`; `e` is the identity of points.)
+
+*Why true.*  Write `w = f^μ`.
+- *Charts.*  For `p ∈ S₀` pick `τ_p ∈ p₀⁻¹(p)` and a local inverse `s_p` of the covering `p₀` near `p`
+  (`hp₀.1.isLocalHomeomorph τ_p`).  Put `ψ_p = w ∘ s_p`, an open partial homeomorphism `S₀ → ℂ` (`w|ℍ = F` is an open
+  embedding `ℍ → ℂ`).
+- *Holomorphic transitions.*  On an overlap, `s_p ∘ p₀ = γ` near each point for one `γ ∈ Γ₀` (both are continuous lifts
+  of `p₀` agreeing at a point, fibres of `p₀` = `Γ₀`-orbits; uniqueness of lifts on a small ball).  So
+  `ψ_p ∘ ψ_{p'}⁻¹ = F γ F⁻¹` there, which is Möbius (U6, `s27u_conj_mobius`), hence holomorphic.
+- *Package.*  `s26d_a_package` (with `Q = 0`) turns the atlas into a closed Riemann surface `X` on the point set of
+  `S₀` (T2, connected, compact are inherited), with `e` the identity of points and `chartAt (e p) (e x) = ψ_p x`.
+- *Holomorphy of `e ∘ p₀ ∘ F⁻¹`.*  At `τ₁` with `p = p₀(F⁻¹ τ₁)`, in the chart `ψ_p`:
+  `ψ_p(p₀(F⁻¹ τ)) = F(s_p(p₀(F⁻¹ τ))) = F(γ F⁻¹ τ) = γ' • τ` near `τ₁` (the local deck step again, and U6).
+
+*Route.*  The atlas as in `s26d_a_exists` (S26 l.1561) + `s26d_a_package` (S26 l.1528); `ClosedRS` bundling as in
+`exists_teichDeformation` (S26 l.1678).  The local deck step from `IsCoveringMap.eq_of_comp_eq` (Mathlib) and the fibre
+clause `hp₀.2.2.2`; the prover may split it out as a helper.  `MDifferentiable` as in `s27u_proj_mdifferentiable`
+(S27 l.3687, `s23_mdifferentiableAt_iff` S23 l.196, `UpperHalfPlane.mdifferentiableAt_iff`).
+
+*Reuse.*  S27 `s27u_conj_mobius` (l.3620), `s27u_fSym_upperHalf` (l.3525), `s27u_homeo_upper` (l.3548),
+`s27t_mdifferentiable_smul` (l.163); S23 `h23l_b_coe_smul` (l.845); Mathlib
+`Topology.IsOpenEmbedding.toOpenPartialHomeomorph`, `UpperHalfPlane.isOpenEmbedding_coe`.
+
+*Walls.*  None: `X` is built from `p₀` and `μ` together with its uniformization (no W-UC); nothing about homotopy
+classes, `π₁`, dimensions or invariance of domain.
+
+*Estimate.*  0.45–0.9k lines. -/
+theorem s27v_xmu_exists [T2Space S₀] [ConnectedSpace S₀] [CompactSpace S₀]
+    {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀)
+    {μ : ℂ → ℂ} {k : ℝ} (hk₀ : 0 ≤ k) (hk : k < 1) (hμ : IsBeltramiCoeff μ upperHalf k)
+    (hΓ : IsGammaCompatible Γ₀ μ) {F : UpperHalfPlane ≃ₜ UpperHalfPlane} (hF : ∀ τ, (F τ : ℂ) = s27u_fSym μ τ) :
+    ∃ (X : ClosedRS.{u}) (e : S₀ ≃ₜ X.carrier), MDifferentiable 𝓘(ℂ) 𝓘(ℂ) (s27u_proj p₀ e F) := by
+  have hcont : Continuous p₀ := hp₀.1.continuous
+  have hEx : ∀ x : S₀, ∃ E : OpenPartialHomeomorph UpperHalfPlane S₀, x ∈ E.target ∧ ⇑E = p₀ := by
+    intro x
+    obtain ⟨τ, rfl⟩ := hp₀.2.2.1 x
+    obtain ⟨E, hτE, hpE⟩ := hp₀.1.isLocalHomeomorph τ
+    refine ⟨E, ?_, hpE.symm⟩
+    rw [hpE]
+    exact E.map_source hτE
+  choose E hEmem hEp using hEx
+  have hΦ : ∀ (x : S₀) (v₀ : ℂ), 0 < v₀.im → p₀ (F.symm (UpperHalfPlane.ofComplex v₀)) ∈ (E x).target →
+      DifferentiableAt ℂ (fun v => ((F ((E x).symm (p₀ (F.symm (UpperHalfPlane.ofComplex v)))) : UpperHalfPlane) : ℂ))
+        v₀ :=
+    fun x _ hv₀ hm => s27v_a_phi hcont hp₀.2.2.2 hk₀ hk hμ hΓ hF (E x) (hEp x) hv₀ hm
+  have hcompat : ∀ x x' : S₀, ∀ w ∈ (s27v_a_chart (E x') F).target,
+      (s27v_a_chart (E x') F).symm w ∈ (s27v_a_chart (E x) F).source →
+      DifferentiableAt ℂ (fun w => s27v_a_chart (E x) F ((s27v_a_chart (E x') F).symm w)) w := by
+    intro x x' w hw hwx
+    obtain ⟨hwim, hsw⟩ := s27v_a_chart_symm (E x') F hw
+    rw [s27v_a_chart_source, hsw, hEp x'] at hwx
+    refine (hΦ x w hwim hwx).congr_of_eventuallyEq ?_
+    filter_upwards [(s27v_a_chart (E x') F).open_target.mem_nhds hw] with v hv
+    rw [s27v_a_chart_apply, (s27v_a_chart_symm (E x') F hv).2, hEp x']
+  obtain ⟨X, τX, cs, h2, hc, hcp, hman, e, _q', -, hX⟩ := s26d_a_package (fun x => s27v_a_chart (E x) F)
+    (fun x => by rw [s27v_a_chart_source]; exact hEmem x) hcompat (fun _ _ => 0) (fun _ _ _ => rfl)
+    (fun _ => differentiableOn_const 0) (fun _ _ _ _ _ => (zero_mul _).symm)
+  have hhol : MDifferentiable 𝓘(ℂ) 𝓘(ℂ) (fun τ => e (p₀ (F.symm τ))) := by
+    intro τ₁
+    have hkey : ∀ τ, chartAt ℂ (e (p₀ (F.symm τ₁))) (e (p₀ (F.symm τ))) =
+        ((F ((E (p₀ (F.symm τ₁))).symm (p₀ (F.symm τ))) : UpperHalfPlane) : ℂ) := fun τ => (hX _).1 _
+    have hd : DifferentiableAt ℂ
+        ((fun τ => chartAt ℂ (e (p₀ (F.symm τ₁))) (e (p₀ (F.symm τ)))) ∘ UpperHalfPlane.ofComplex) (τ₁ : ℂ) := by
+      have h := hΦ (p₀ (F.symm τ₁)) τ₁ τ₁.coe_im_pos (by
+        rw [UpperHalfPlane.ofComplex_apply]
+        exact hEmem _)
+      refine h.congr_of_eventuallyEq (Eventually.of_forall fun v => ?_)
+      simp only [Function.comp_apply]
+      exact hkey _
+    have hm1 : MDifferentiableAt 𝓘(ℂ) 𝓘(ℂ) (fun τ => chartAt ℂ (e (p₀ (F.symm τ₁))) (e (p₀ (F.symm τ)))) τ₁ :=
+      UpperHalfPlane.mdifferentiableAt_iff.2 hd
+    have hsrc : e (p₀ (F.symm τ₁)) ∈ (chartAt ℂ (e (p₀ (F.symm τ₁)))).source := mem_chart_source ℂ _
+    have hcp' : Continuous (fun τ => e (p₀ (F.symm τ))) := e.continuous.comp (hcont.comp F.symm.continuous)
+    have hm2 : MDifferentiableAt 𝓘(ℂ) 𝓘(ℂ) (chartAt ℂ (e (p₀ (F.symm τ₁)))).symm
+        (chartAt ℂ (e (p₀ (F.symm τ₁))) (e (p₀ (F.symm τ₁)))) :=
+      mdifferentiableAt_atlas_symm (chart_mem_atlas ℂ _) ((chartAt ℂ _).map_source hsrc)
+    have hev : (fun τ => e (p₀ (F.symm τ))) =ᶠ[𝓝 τ₁]
+        (chartAt ℂ (e (p₀ (F.symm τ₁)))).symm ∘ fun τ => chartAt ℂ (e (p₀ (F.symm τ₁))) (e (p₀ (F.symm τ))) := by
+      filter_upwards [hcp'.continuousAt.preimage_mem_nhds ((chartAt ℂ _).open_source.mem_nhds hsrc)] with τ hτ
+      exact ((chartAt ℂ _).left_inv hτ).symm
+    exact (hm2.comp τ₁ hm1).congr_of_eventuallyEq hev
+  exact ⟨⟨X⟩, e, hhol⟩
+
+
+/-- **[A2, stub] A homeomorphism with a `K`-q.c. lift is `K`-q.c.** (the converse of `h23l_lift_isKQC`, S23 l.980).  If
+`p₀`, `p` uniformize `S₀`, `S` and `F` is a lift of `f : S₀ → S` (`p ∘ F = f ∘ p₀`) with `liftToC F` `K`-q.c. on `ℍ`,
+then every local expression of `f` is `K`-q.c.
+
+*Why true.*  Fix `x ∈ S₀` and `z₀` in the domain of `L = localMapExpr f x`; pick `τ₀` over `y₀ = φ_x⁻¹ z₀`.  Near `τ₀`,
+`ψ₀ = φ_x ∘ p₀ ∘ ofComplex` is conformal (holomorphic and locally injective: `p₀` is a local homeomorphism and the
+chart `φ_x` contains `y₀`), and near `F τ₀`, `ψ₁ = φ_{f x} ∘ p ∘ ofComplex` is conformal (`f y₀ ∈` source of `φ_{f x}`).
+On a neighbourhood of `z₀`, `L = ψ₁ ∘ liftToC F ∘ ψ₀⁻¹` (`p ∘ F = f ∘ p₀`), which is `K`-q.c. (`thm7_1_comp` twice,
+`thm7_2_inv`, `1 · K · 1 = K`); `L` is injective on its domain (`s23_c1_injOn_localMapExpr`), so `s23_lg` globalizes.
+
+*Route/reuse.*  The template is `h23l_lift_isKQC` (S23 l.980) read backwards.  Conformality of `φ_x ∘ p₀` in a chart
+at `x` (not only at `p₀ τ₀`): `h23l_chart_proj` (S23 l.810) plus the holomorphic transition (`s23_transition`, S23
+l.105), or the pattern of UTM `utm_liftQD_local` (l.468).  S23 `s23_lg` (l.206), `s23_localMapDomain_isOpen` (l.215),
+`s23_c1_injOn_localMapExpr` (l.448); S07 `thm7_1_comp` (l.181), `thm7_2_inv` (l.310), `isKQC_one_of_conformal`
+(l.171); S09 `ac_t_isKQC_restrict` (l.6555); S13 `ad_isKQC_congr` (l.5796).
+
+*Walls.*  None (a chart computation with given uniformizations).
+
+*Estimate.*  0.15–0.3k lines. -/
+theorem s27v_isKQCRS_of_lift [IsManifold 𝓘(ℂ) ω S₀] {S : Type*} [TopologicalSpace S] [ChartedSpace ℂ S]
+    [IsManifold 𝓘(ℂ) ω S] {Γ₀ Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀}
+    {p : UpperHalfPlane → S} (hp₀ : IsUniformization Γ₀ p₀) (hp : IsUniformization Γ p) {f : S₀ ≃ₜ S}
+    {F : UpperHalfPlane ≃ₜ UpperHalfPlane} (hF : IsLift p₀ p f F) {K : ℝ} (hK : IsKQC (liftToC F) upperHalf K) :
+    IsKQCRS f K := by
+  have hK1 : (1 : ℝ) ≤ K := hK.2.1
+  refine ⟨hK1, fun x => s23_lg (s23_localMapDomain_isOpen f.continuous x) hK1
+    (s23_c1_injOn_localMapExpr f.injective x) fun z₀ hz₀ => ?_⟩
+  obtain ⟨τ₀, hτ₀⟩ := hp₀.2.2.1 ((chartAt ℂ x).symm z₀)
+  have hy₀ : p₀ τ₀ ∈ (chartAt ℂ x).source := by
+    rw [hτ₀]
+    exact (chartAt ℂ x).map_target hz₀.1
+  have hfy : p (F τ₀) ∈ (chartAt ℂ (f x)).source := by
+    rw [hF τ₀, hτ₀]
+    exact hz₀.2
+  obtain ⟨U₀, hU₀o, hτU₀, hU₀H, hU₀s, hψ₀⟩ := h23l_chart_proj hp₀.1 hp₀.2.1 x hy₀
+  obtain ⟨U₁, hU₁o, hτU₁, -, -, hψ₁⟩ := h23l_chart_proj hp.1 hp.2.1 (f x) hfy
+  set ψ₀ : ℂ → ℂ := fun z => chartAt ℂ x (p₀ (UpperHalfPlane.ofComplex z)) with hψ₀def
+  set V : Set ℂ := U₀ ∩ liftToC F ⁻¹' U₁ with hVdef
+  have hVo : IsOpen V :=
+    ((h23l_liftToC_continuousOn F.continuous).mono hU₀H).isOpen_inter_preimage hU₀o hU₁o
+  have hτV : (τ₀ : ℂ) ∈ V := by
+    refine ⟨hτU₀, ?_⟩
+    show liftToC F (τ₀ : ℂ) ∈ U₁
+    rw [h23l_liftToC_coe]
+    exact hτU₁
+  have h1 := thm7_2_inv (ac_t_isKQC_restrict hψ₀ hVo inter_subset_left)
+  have hinvV : ∀ w ∈ ψ₀ '' V, Function.invFunOn ψ₀ V w ∈ V ∧ ψ₀ (Function.invFunOn ψ₀ V w) = w := by
+    rintro w ⟨v, hv, rfl⟩
+    exact ⟨Function.invFunOn_mem ⟨v, hv, rfl⟩, Function.invFunOn_eq ⟨v, hv, rfl⟩⟩
+  have h2 := thm7_1_comp h1 hK (by
+    rintro _ ⟨w, hw, rfl⟩
+    exact hU₀H (hinvV w hw).1.1)
+  have h3 := thm7_1_comp h2 hψ₁ (by
+    rintro _ ⟨w, hw, rfl⟩
+    exact (hinvV w hw).1.2)
+  rw [one_mul, mul_one] at h3
+  set W : Set ℂ := ψ₀ '' V ∩ localMapDomain f x with hWdef
+  have hWo : IsOpen W := h1.1.inter (s23_localMapDomain_isOpen f.continuous x)
+  have hz₀W : z₀ ∈ W := by
+    refine ⟨⟨(τ₀ : ℂ), hτV, ?_⟩, hz₀⟩
+    show chartAt ℂ x (p₀ (UpperHalfPlane.ofComplex (τ₀ : ℂ))) = z₀
+    rw [UpperHalfPlane.ofComplex_apply, hτ₀, (chartAt ℂ x).right_inv hz₀.1]
+  refine ⟨W, hWo, hz₀W, inter_subset_right,
+    ad_isKQC_congr (ac_t_isKQC_restrict h3 hWo inter_subset_left) fun w hw => ?_⟩
+  obtain ⟨hvV, hvw⟩ := hinvV w hw.1
+  set v := Function.invFunOn ψ₀ V w
+  have hvH : 0 < v.im := hU₀H hvV.1
+  simp only [Function.comp_apply]
+  rw [h23l_liftToC_eq F hvH, UpperHalfPlane.ofComplex_apply, hF, ← hvw]
+  unfold localMapExpr
+  rw [(chartAt ℂ x).left_inv (hU₀s v hvV.1)]
+
+/-- **`(ℍ, e ∘ p₀ ∘ F⁻¹)` uniformizes the target** as soon as it is holomorphic (proved; the proof of
+`s27u_isUniformization` with the holomorphy as a hypothesis instead of U7).  Covering and surjectivity are formal; the
+fibres are the orbits of `F Γ₀ F⁻¹` because `F γ F⁻¹` is Möbius (U6). -/
+theorem s27v_isUniformization {S : Type*} [TopologicalSpace S] [ChartedSpace ℂ S]
+    {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀)
+    {μ : ℂ → ℂ} {k : ℝ} (hk₀ : 0 ≤ k) (hk : k < 1) (hμ : IsBeltramiCoeff μ upperHalf k)
+    (hΓ : IsGammaCompatible Γ₀ μ) {F : UpperHalfPlane ≃ₜ UpperHalfPlane} (hF : ∀ τ, (F τ : ℂ) = s27u_fSym μ τ)
+    (f : S₀ ≃ₜ S) (hhol : MDifferentiable 𝓘(ℂ) 𝓘(ℂ) (s27u_proj p₀ f F)) :
+    IsUniformization (s27u_conjGroup Γ₀ F) (s27u_proj p₀ f F) := by
+  have hconj : ∀ γ ∈ Γ₀, ∃ γ' : Matrix.SpecialLinearGroup (Fin 2) ℝ, ∀ τ, F (γ • τ) = γ' • F τ :=
+    fun _ hγ => s27u_conj_mobius hk₀ hk hμ hΓ hF hγ
+  refine ⟨(hp₀.1.comp_homeomorph F.symm).homeomorph_comp f, hhol, fun y => ?_, fun τ₁ τ₂ => ?_⟩
+  · obtain ⟨τ, hτ⟩ := hp₀.2.2.1 (f.symm y)
+    refine ⟨F τ, ?_⟩
+    show f (p₀ (F.symm (F τ))) = y
+    rw [F.symm_apply_apply, hτ, f.apply_symm_apply]
+  · show f (p₀ (F.symm τ₁)) = f (p₀ (F.symm τ₂)) ↔ _
+    rw [f.injective.eq_iff, hp₀.2.2.2]
+    constructor
+    · rintro ⟨γ, hγ, h⟩
+      obtain ⟨γ', hγ'⟩ := hconj γ hγ
+      refine ⟨γ', ⟨γ, hγ, hγ'⟩, ?_⟩
+      have h1 := hγ' (F.symm τ₁)
+      rw [h, F.apply_symm_apply, F.apply_symm_apply] at h1
+      exact h1.symm
+    · rintro ⟨γ', ⟨γ, hγ, hγ'⟩, h⟩
+      refine ⟨γ, hγ, ?_⟩
+      have h1 := hγ' (F.symm τ₁)
+      rw [F.apply_symm_apply, h] at h1
+      rw [← h1, F.symm_apply_apply]
+
+/-- **`X^μ` as a marked surface** (proved from [A1], [A2], U4', U5, U6, U10): for `μ ∈ M(Γ₀)` there is a marked surface
+of `S₀` whose lifted coefficient is `μ` a.e. on `ℍ`. -/
+theorem s27v_exists_marked [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀)
+    {μ : ℂ → ℂ} {k : ℝ} (hk₀ : 0 ≤ k) (hk : k < 1) (hμ : IsBeltramiCoeff μ upperHalf k)
+    (hΓ : IsGammaCompatible Γ₀ μ) :
+    ∃ m : MarkedRS S₀, ∀ᵐ z ∂(volume.restrict upperHalf), s27u_liftCoeff p₀ m.marking z = μ z := by
+  obtain ⟨-, hN, hwK, -⟩ := s27u_sym_spec hk₀ hk hμ
+  obtain ⟨hwU, -, -, hwKU, hwd⟩ := s27u_fSym_upperHalf hk₀ hk hμ
+  obtain ⟨F, hF⟩ := s27u_homeo_upper hwK hN.2.1 hwU
+  obtain ⟨X, e, hhol⟩ := s27v_xmu_exists hp₀ hk₀ hk hμ hΓ hF
+  have hU := s27v_isUniformization hp₀ hk₀ hk hμ hΓ hF e hhol
+  have hL : IsLift p₀ (s27u_proj p₀ e F) e F := fun τ => by
+    show e (p₀ (F.symm (F τ))) = e (p₀ τ)
+    rw [F.symm_apply_apply]
+  have hFeq : EqOn (liftToC F) (s27u_fSym μ) upperHalf := fun z hz => by
+    rw [h23l_liftToC_eq F hz, UpperHalfPlane.ofComplex_apply_of_im_pos (show 0 < z.im from hz)]
+    exact hF _
+  have hFK : IsKQC (liftToC F) upperHalf ((1 + k) / (1 - k)) := ad_isKQC_congr hwKU hFeq
+  refine ⟨⟨X, e, ⟨_, s27v_isKQCRS_of_lift hp₀ hU hL hFK⟩⟩, ?_⟩
+  filter_upwards [hwd, ae_restrict_mem isOpen_upperHalf.measurableSet] with z h1 hz
+  show s27u_liftCoeff p₀ e z = μ z
+  rw [← s27u_liftCoeff_eq_dilatation hp₀ hU hL hz, ← h1]
+  exact abR_t_complexDilatation_congr isOpen_upperHalf hFeq hz
+
+/-- The Möbius map `D z = (i - z)/(i + z) = -C(z)` (`C` the Cayley map), which maps `ℍ` onto `Δ` and `0, 1, ∞` to
+`1, i, -1` (the three points fixed by the disc normalization of `IsDiscNormalizedSolution`). -/
+def s27v_dmap (z : ℂ) : ℂ := -cayley z
+
+/-- The inverse `D⁻¹ w = C⁻¹(-w) = i(1 - w)/(1 + w)` of `s27v_dmap`, mapping `Δ` onto `ℍ`. -/
+def s27v_dinv (w : ℂ) : ℂ := cayleyInv (-w)
+
+/-- The Beltrami coefficient on `Δ` of `D ∘ f^μ ∘ D⁻¹`: `μ(D⁻¹ w) · conj(D⁻¹'(w))/D⁻¹'(w)`, where
+`D⁻¹'(w) = -2i/(1 + w)²`, so the factor is `-(1 + w)²/conj((1 + w)²)` (modulus `1`). -/
+def s27v_discCoeff (μ : ℂ → ℂ) (w : ℂ) : ℂ := -(μ (s27v_dinv w) * ((1 + w) ^ 2 / conj ((1 + w) ^ 2)))
+
+/-- `D` maps `ℍ` into `Δ`. -/
+theorem s27v_dmap_mem {z : ℂ} (hz : 0 < z.im) : s27v_dmap z ∈ unitDisc := by
+  have h := cayley_mem_unitDisc hz
+  rw [unitDisc, mem_ball_zero_iff] at h ⊢
+  rwa [s27v_dmap, norm_neg]
+
+/-- `D⁻¹ (D z) = z` on `ℍ`. -/
+theorem s27v_dinv_dmap {z : ℂ} (hz : 0 < z.im) : s27v_dinv (s27v_dmap z) = z := by
+  rw [s27v_dinv, s27v_dmap, neg_neg, cayleyInv_cayley hz]
+
+/-- `D⁻¹` maps `Δ` conformally onto `ℍ` (`w ↦ -w`, then the inverse Cayley map). -/
+theorem s27v_dinv_conformal : IsConformalOnto s27v_dinv unitDisc upperHalf := by
+  have hneg : IsConformalOnto (fun w : ℂ => -w) unitDisc unitDisc := by
+    refine ⟨differentiable_neg.differentiableOn, fun a _ b _ h => neg_injective h, ?_⟩
+    ext w
+    simp only [mem_image, unitDisc, mem_ball_zero_iff]
+    exact ⟨fun ⟨v, hv, hvw⟩ => by rw [← hvw, norm_neg]; exact hv, fun hw => ⟨-w, by rwa [norm_neg], neg_neg w⟩⟩
+  exact s35a_x_isConformalOnto_cayleyInv.comp hneg
+
+/-- **[B1, stub] Theorem 13.8, sequential form with a.e. convergence** (disc normalization).  If the Beltrami
+coefficients `μₙ → μ` a.e. on `Δ` with a common bound `k < 1`, the normalized self-maps of `Δ` (fixing `1, i, -1`)
+converge pointwise on `Δ`.
+
+*Why true.*  This is `abT_seq` (S13 l.8134) with the hypothesis "`μ(tₙ, z) → μ(t₀, z)` for every `z`" weakened to a.e.
+convergence: that proof uses the pointwise convergence of the coefficients exactly once, inside `hgood`, where it only
+needs it for a.e. `z` (it concludes an a.e. statement).  Everything else (the quotients `hₙ = fₙ ∘ f⁻¹`,
+`ab_quotient`; the disc normalization `ab_normalize`; the reflection `ab_reflect`; `ab_tendsto_id`; `ab_mob_tendsto`,
+`ab_mob_near_id`) is unchanged.
+
+*Route.*  Copy the proof of `abT_seq` (S13 l.8134–8258) with `u n`, `t₀` replaced by `n`, the limit, and `hgood` taken
+from `hconv` (`filter_upwards [ae_all_iff.2 hbd, hconv, ...]`).
+
+*Reuse.*  S13 `ab_quotient` (l.6217), `ab_normalize` (l.6383), `ab_reflect` (l.7297), `ab_tendsto_id` (l.7979),
+`ab_mob_tendsto` (l.8008), `ab_mob_near_id` (l.8080), `abT_abMob_one` (l.8091), `abT_ae_conj_inv` (l.8105),
+`abT_dilatation_congr` (l.8109), `abT_ae_image` (l.8115).
+
+*Walls.*  None (Theorem 13.8 is installed and clean).
+
+*Estimate.*  0.12–0.2k lines. -/
+theorem s27v_disc_seq {μn : ℕ → ℂ → ℂ} {μ : ℂ → ℂ} {k : ℝ} (hk₀ : 0 ≤ k) (hk : k < 1)
+    (hμn : ∀ n, IsBeltramiCoeff (μn n) unitDisc k) (hμ : IsBeltramiCoeff μ unitDisc k)
+    (hconv : ∀ᵐ z ∂(volume.restrict unitDisc), Tendsto (fun n => μn n z) atTop (𝓝 (μ z)))
+    {fn : ℕ → ℂ → ℂ} {f : ℂ → ℂ} (hfn : ∀ n, IsDiscNormalizedSolution (fn n) (μn n))
+    (hf : IsDiscNormalizedSolution f μ) : ∀ z ∈ unitDisc, Tendsto (fun n => fn n z) atTop (𝓝 (f z)) := by
+  -- adapted from the proof of S13 `abT_seq` (`u n ↦ n`, `t₀ ↦` the limit); only `hgood` changes
+  intro z hz
+  have hΔo : IsOpen unitDisc := isOpen_ball
+  have h0Δ : (0 : ℂ) ∈ unitDisc := mem_ball_self one_pos
+  have h1k : 0 < 1 - k := by linarith
+  obtain ⟨K₁, hf₀K⟩ := hf.1
+  have hf₀img : f '' unitDisc = unitDisc := hf.2.1
+  -- the quotients `hₙ = fₙ ∘ f⁻¹` (piece Q)
+  set h : ℕ → ℂ → ℂ := fun n => fn n ∘ Function.invFunOn f unitDisc with hdef
+  have hQ : ∀ n, ∃ H : ExtPlane → ExtPlane, IsKQC (h n) unitDisc (((1 + k) / (1 - k)) ^ 2) ∧
+      h n '' unitDisc = unitDisc ∧ IsHomeoExtension (h n) unitDisc unitDisc H ∧
+      H ((1 : ℂ) : ExtPlane) = ((1 : ℂ) : ExtPlane) ∧ H (I : ExtPlane) = (I : ExtPlane) ∧
+      H ((-1 : ℂ) : ExtPlane) = ((-1 : ℂ) : ExtPlane) ∧
+      ∀ᵐ z ∂(volume.restrict unitDisc),
+        ‖complexDilatation (h n) (f z)‖ * (1 - k) ≤ ‖μn n z - μ z‖ := by
+    intro n
+    obtain ⟨h1, h2, ⟨H, hH, hH1, hHI, hHm⟩, h4⟩ := ab_quotient hk₀ hk (hμn n) hμ (hfn n) hf
+    exact ⟨H, h1, h2, hH, hH1, hHI, hHm, h4⟩
+  choose H hhK hhimg hH hH1 hHI hHm hbd using hQ
+  -- the centres `aₙ = hₙ 0` and the normalized maps (piece N)
+  set a : ℕ → ℂ := fun n => h n 0 with hadef
+  have haΔ : ∀ n, a n ∈ unitDisc := fun n => by
+    rw [← hhimg n]
+    exact mem_image_of_mem _ h0Δ
+  set Gd : ℕ → ℂ → ℂ := fun n z => abMob (h n 0) (h n z) with hGddef
+  have hN : ∀ n, ∃ G : ExtPlane → ExtPlane, IsKQC (Gd n) unitDisc (((1 + k) / (1 - k)) ^ 2) ∧
+      Gd n '' unitDisc = unitDisc ∧ Gd n 0 = 0 ∧ IsHomeoExtension (Gd n) unitDisc unitDisc G ∧
+      (∀ z : ℂ, ‖z‖ = 1 → G (z : ExtPlane) = OnePoint.map (abMob (a n)) (H n (z : ExtPlane))) ∧
+      ∀ᵐ z ∂(volume.restrict unitDisc), complexDilatation (Gd n) z = complexDilatation (h n) z := by
+    intro n
+    obtain ⟨h1, h2, h3, ⟨G, hG, hGb⟩, h5⟩ := ab_normalize (hhK n) (hhimg n) (hH n)
+    exact ⟨G, h1, h2, h3, hG, hGb, h5⟩
+  choose G hGdK hGdimg hGd0 hG hGb hGdμ using hN
+  -- the reflected maps (piece R)
+  have hR := fun n => ab_reflect (hGdK n) (hGdimg n) (hGd0 n) (hG n)
+  choose g hgK hgs hgeq hgb hgsym hgμ using hR
+  -- boundary values of `gₙ`
+  have hgbd : ∀ n (w : ℂ), ‖w‖ = 1 → H n (w : ExtPlane) = (w : ExtPlane) →
+      g n w = abMob (a n) w := by
+    intro n w hw hHw
+    apply OnePoint.coe_injective
+    rw [hgb n w hw, hGb n w hw, hHw]
+    rfl
+  have hg1 : ∀ n, g n 1 = 1 := fun n => by
+    rw [hgbd n 1 (by simp) (hH1 n), abT_abMob_one (haΔ n)]
+  have hg0 : ∀ n, g n 0 = 0 := fun n => (hgeq n h0Δ).trans (hGd0 n)
+  have hgΔ : ∀ n, g n '' unitDisc = unitDisc := fun n => (image_congr (hgeq n)).trans (hGdimg n)
+  -- the dilatations of `hₙ` tend to `0` a.e. in `Δ` (piece Q's bound, the a.e. convergence, property (N)):
+  -- the only step that differs from `abT_seq`
+  have hgood : ∀ᵐ z ∂(volume.restrict unitDisc),
+      Tendsto (fun n => complexDilatation (h n) (f z)) atTop (𝓝 0) := by
+    filter_upwards [ae_all_iff.2 hbd, hconv] with z hzb hc
+    have hc' : Tendsto (fun n => ‖μn n z - μ z‖ / (1 - k)) atTop (𝓝 0) := by
+      have h1 : Tendsto (fun n => μn n z - μ z) atTop (𝓝 0) := by
+        simpa using hc.sub_const (μ z)
+      simpa using h1.norm.div_const (1 - k)
+    refine squeeze_zero_norm (fun n => ?_) hc'
+    rw [le_div_iff₀ h1k]
+    exact hzb n
+  have hin : ∀ᵐ w ∂(volume.restrict unitDisc),
+      Tendsto (fun n => complexDilatation (h n) w) atTop (𝓝 0) := by
+    have h1 := abT_ae_image (p := fun w => Tendsto (fun n => complexDilatation (h n) w) atTop (𝓝 0))
+      hf₀K hgood
+    rwa [hf₀img] at h1
+  have hGdin : ∀ᵐ w, w ∈ unitDisc → Tendsto (fun n => complexDilatation (Gd n) w) atTop (𝓝 0) := by
+    have h1 := (ae_restrict_iff' hΔo.measurableSet).1 (hin.and (ae_all_iff.2 hGdμ))
+    filter_upwards [h1] with w hw hwΔ
+    obtain ⟨ht, heq⟩ := hw hwΔ
+    exact ht.congr fun n => (heq n).symm
+  have hout := abT_ae_conj_inv hGdin
+  have hsph : ∀ᵐ w : ℂ, ‖w‖ ≠ 1 := by
+    have h1 : volume (sphere (0 : ℂ) 1) = 0 := Measure.addHaar_sphere volume 0 1
+    filter_upwards [measure_eq_zero_iff_ae_notMem.1 h1] with w hw
+    simpa [mem_sphere_zero_iff_norm] using hw
+  have hμL : ∀ᵐ w, Tendsto (fun n => complexDilatation (g n) w) atTop (𝓝 0) := by
+    filter_upwards [hGdin, hout, hsph, ae_all_iff.2 hgμ] with w hw1 hw2 hw3 hw4
+    rcases lt_trichotomy ‖w‖ 1 with hlt | heq | hgt
+    · have hwΔ : w ∈ unitDisc := mem_ball_zero_iff.2 hlt
+      exact (hw1 hwΔ).congr fun n => (abT_dilatation_congr hΔo (hgeq n) hwΔ).symm
+    · exact absurd heq hw3
+    · have hwi : (conj w)⁻¹ ∈ unitDisc := by
+        refine mem_ball_zero_iff.2 ?_
+        rw [norm_inv, Complex.norm_conj]
+        exact inv_lt_one_of_one_lt₀ hgt
+      rw [tendsto_zero_iff_norm_tendsto_zero]
+      have h2 := (hw2 hwi).norm
+      rw [norm_zero] at h2
+      exact h2.congr fun n => (hw4 n hgt).symm
+  -- the symmetric normalized maps tend to the identity (piece L)
+  have hL := ab_tendsto_id hgK hgs hgΔ hg0 hg1 hgsym hμL
+  -- so the Möbius normalizations tend to the identity (piece M)
+  have hgI : ∀ n, g n I = abMob (a n) I := fun n => hgbd n I (by simp) (hHI n)
+  have hgm : ∀ n, g n (-1) = abMob (a n) (-1) := fun n => hgbd n (-1) (by simp) (hHm n)
+  have ha0 : Tendsto a atTop (𝓝 0) := by
+    refine ab_mob_tendsto haΔ ?_ ?_
+    · exact (hL I (by simp)).congr fun n => hgI n
+    · exact (hL (-1) (by norm_num)).congr fun n => hgm n
+  -- conclusion: `fₙ z = hₙ (f z) → f z`
+  have hw₀ : f z ∈ unitDisc := by
+    rw [← hf₀img]
+    exact mem_image_of_mem _ hz
+  have hleft : Function.invFunOn f unitDisc (f z) = z := hf₀K.2.2.1.2.1.leftInvOn_invFunOn hz
+  have hfz : ∀ n, fn n z = h n (f z) := fun n => by
+    simp only [hdef, Function.comp_apply, hleft]
+  have hhw : ∀ n, ‖h n (f z)‖ ≤ 1 := fun n => by
+    have : h n (f z) ∈ unitDisc := by
+      rw [← hhimg n]
+      exact mem_image_of_mem _ hw₀
+    exact (mem_ball_zero_iff.1 this).le
+  have hconv' : Tendsto (fun n => abMob (a n) (h n (f z))) atTop (𝓝 (f z)) :=
+    (hL (f z) (by linarith [mem_ball_zero_iff.1 hw₀])).congr fun n => hgeq n hw₀
+  have hnear := ab_mob_near_id ha0 hhw
+  have hlim : Tendsto (fun n => h n (f z)) atTop (𝓝 (f z)) := by
+    have h1 := hconv'.sub hnear
+    rw [sub_zero] at h1
+    exact h1.congr fun n => by ring
+  exact hlim.congr fun n => (hfz n).symm
+
+/-- A homeomorphism of `ℂ̄` which agrees with `φ` on `U`, where `φ(U) = V`, is a homeomorphic extension of
+`φ : U → V`. -/
+theorem s27v_b_isHomeoExtension_of_homeomorph {φ : ℂ → ℂ} {U V : Set ℂ} (E : ExtPlane ≃ₜ ExtPlane)
+    (hE : ∀ z ∈ U, E (z : ExtPlane) = ((φ z : ℂ) : ExtPlane)) (himg : φ '' U = V) :
+    IsHomeoExtension φ U V E := by
+  have h1 : E '' toExt U = toExt V := by
+    rw [← himg, toExt, toExt, image_image, image_image]
+    exact image_congr hE
+  refine ⟨hE, E.continuous.continuousOn, E.injective.injOn, ?_⟩
+  rw [E.image_closure, h1]
+
+/-- `D = s27v_dmap` maps `ℍ` conformally onto `Δ` (the Cayley map, then `w ↦ -w`). -/
+theorem s27v_b_dmap_conformal : IsConformalOnto s27v_dmap upperHalf unitDisc := by
+  have hneg : IsConformalOnto (fun w : ℂ => -w) unitDisc unitDisc := by
+    refine ⟨differentiable_neg.differentiableOn, fun a _ b _ h => neg_injective h, ?_⟩
+    ext w
+    simp only [mem_image, unitDisc, mem_ball_zero_iff]
+    exact ⟨fun ⟨v, hv, hvw⟩ => by rw [← hvw, norm_neg]; exact hv, fun hw => ⟨-w, by rwa [norm_neg], neg_neg w⟩⟩
+  exact hneg.comp isConformalOnto_cayley
+
+/-- `D (D⁻¹ w) = w` on `Δ`. -/
+theorem s27v_b_dmap_dinv {w : ℂ} (hw : w ∈ unitDisc) : s27v_dmap (s27v_dinv w) = w := by
+  have hw' : ‖-w‖ < 1 := by rw [norm_neg]; exact mem_ball_zero_iff.1 hw
+  rw [s27v_dmap, s27v_dinv, cayley_cayleyInv hw', neg_neg]
+
+/-- The derivative of `D⁻¹ w = i(1 - w)/(1 + w)`: `D⁻¹'(w) = -2i/(1 + w)²` for `w ≠ -1`. -/
+theorem s27v_b_hasDerivAt_dinv {w : ℂ} (hw : 1 + w ≠ 0) :
+    HasDerivAt s27v_dinv (-2 * I / (1 + w) ^ 2) w := by
+  have e : s27v_dinv = fun v => I * (1 - v) / (1 + v) := funext fun v => by
+    simp only [s27v_dinv, cayleyInv]
+    ring
+  rw [e]
+  have h := (((hasDerivAt_id' w).const_sub 1).const_mul I).div ((hasDerivAt_id' w).const_add 1) hw
+  convert h using 1
+  ring
+
+/-- The determinant of `D`, `z ↦ (-z + i)/(z + i)`, is `-2i ≠ 0`. -/
+theorem s27v_b_dext_det : (-1 : ℂ) * I - I * 1 ≠ 0 := by
+  rw [show (-1 : ℂ) * I - I * 1 = -2 * I by ring]
+  exact mul_ne_zero (by norm_num) I_ne_zero
+
+/-- The Möbius homeomorphism `z ↦ (-z + i)/(z + i)` of `ℂ̄` agrees with `D = s27v_dmap` off the pole `-i`. -/
+theorem s27v_b_dext_coe {z : ℂ} (hz : z + I ≠ 0) :
+    mobiusHomeomorph (-1) I 1 I s27v_b_dext_det (z : ExtPlane) = ((s27v_dmap z : ℂ) : ExtPlane) := by
+  rw [mobiusHomeomorph_apply, mobiusExt_coe (by rwa [one_mul])]
+  congr 1
+  simp only [mobiusFn, s27v_dmap, cayley, one_mul]
+  rw [← neg_div]
+  congr 1
+  ring
+
+/-- The Möbius homeomorphism `z ↦ (-z + i)/(z + i)` of `ℂ̄` sends `∞` to `-1`. -/
+theorem s27v_b_dext_infty :
+    mobiusHomeomorph (-1) I 1 I s27v_b_dext_det extInf = (((-1 : ℂ) : ℂ) : ExtPlane) := by
+  rw [mobiusHomeomorph_apply, mobiusExt_infty_of_ne one_ne_zero, div_one]
+
+/-- The dilatation factor of `D⁻¹`: `conj(D⁻¹'(w))/D⁻¹'(w) = -(1 + w)²/conj((1 + w)²)`. -/
+theorem s27v_b_factor {w : ℂ} (hw : 1 + w ≠ 0) :
+    conj (-2 * I / (1 + w) ^ 2) / (-2 * I / (1 + w) ^ 2) = -((1 + w) ^ 2 / conj ((1 + w) ^ 2)) := by
+  have hq : (1 + w) ^ 2 ≠ 0 := pow_ne_zero 2 hw
+  have hq' : conj ((1 + w) ^ 2) ≠ 0 := (map_ne_zero _).2 hq
+  rw [map_div₀, map_mul, map_neg, Complex.conj_I, map_ofNat]
+  field_simp
+
+/-- **[B2, stub] The Cayley transport of `f^μ`.**  For a Beltrami coefficient `μ` on `ℍ` (`‖μ‖∞ ≤ k < 1`), the
+conjugate `D ∘ f^μ ∘ D⁻¹` (`D = s27v_dmap`) is the disc-normalized solution for `s27v_discCoeff μ`, which is a Beltrami
+coefficient on `Δ` bounded by `k`.
+
+*Why true.*
+- `f^μ` maps `ℍ` onto `ℍ` and is `K`-q.c. there (U4', `s27u_fSym_upperHalf`); `D⁻¹ : Δ → ℍ` and `D : ℍ → Δ` are
+  conformal; so `D ∘ f^μ ∘ D⁻¹` is a `K`-q.c. self-map of `Δ` (`thm7_1_comp`, `isKQC_one_of_conformal`).
+- Dilatation: `μ_{D ∘ h} = μ_h` (`s23_dilatation_comp_left`) and `μ_{W ∘ D⁻¹}(w) = μ_W(D⁻¹ w) conj(D⁻¹')/D⁻¹'`
+  (`s23_dilatation_comp_right`), with `D⁻¹'(w) = -2i/(1 + w)²`; `μ_W = μ` a.e. on `ℍ`, pulled back by the conformal
+  `D⁻¹` (`s23_c2_ae_pullback`).  `|s27v_discCoeff μ| = |μ ∘ D⁻¹|`, measurable, `≤ k` a.e. on `Δ` (same pullback).
+- Boundary map: `F = D̂ ∘ OnePoint.map (f^μ) ∘ D̂⁻¹` (Möbius extensions to `ℂ̄`, `t1_homeomorph`); it extends the map to
+  `Δ̄`, maps `Δ̄` onto `Δ̄`, and fixes `1 = D 0`, `i = D 1`, `-1 = D ∞` because `f^μ` fixes `0, 1, ∞`.
+
+*Route/reuse.*  S05 `cayley` (l.6177), `cayleyInv` (l.6180), `isConformalOnto_cayley` (l.6249), `cayley_image_disc`
+(l.6139, the `ℂ̄` form); S23 `s35a_x_isConformalOnto_cayleyInv` (l.1596), `s23_dilatation_comp_left/right` (l.154/162),
+`s23_c2_ae_pullback` (l.578); S13 `s13x_th_cayleyExt_coe`, `s13x_th_cayleyExt_image` (l.11142/11152, the Cayley map on
+`ℂ̄`), `t1_homeomorph` (l.4730); `Lemmas/Mobius` `IsConformalOnto.comp` (l.356), `IsHomeoExtension.comp` (l.362); here
+`s27v_dinv_conformal`, `s27v_dmap_mem`, `s27v_dinv_dmap`.
+
+*Walls.*  None.
+
+*Estimate.*  0.3–0.55k lines. -/
+theorem s27v_fSym_disc {μ : ℂ → ℂ} {k : ℝ} (hk₀ : 0 ≤ k) (hk : k < 1) (hμ : IsBeltramiCoeff μ upperHalf k) :
+    IsBeltramiCoeff (s27v_discCoeff μ) unitDisc k ∧
+      IsDiscNormalizedSolution (fun w => s27v_dmap (s27u_fSym μ (s27v_dinv w))) (s27v_discCoeff μ) := by
+  obtain ⟨-, hN, hgK, -⟩ := s27u_sym_spec hk₀ hk hμ
+  obtain ⟨hgU, -, -, hgKU, hgd⟩ := s27u_fSym_upperHalf hk₀ hk hμ
+  set g := s27u_fSym μ with hgdef
+  set Φ : ℂ → ℂ := fun w => s27v_dmap (g (s27v_dinv w)) with hΦ
+  have hD := s27v_b_dmap_conformal
+  have hDi := s27v_dinv_conformal
+  have hΔo : IsOpen unitDisc := isOpen_ball
+  have hdinvK : IsKQC s27v_dinv unitDisc 1 := isKQC_one_of_conformal hΔo hDi
+  have hDK : IsKQC s27v_dmap upperHalf 1 := isKQC_one_of_conformal isOpen_upperHalf hD
+  have hdinvU : ∀ w ∈ unitDisc, s27v_dinv w ∈ upperHalf := fun w hw => hDi.mapsTo hw
+  have hgU' : ∀ z ∈ upperHalf, g z ∈ upperHalf := fun z hz => by
+    rw [← hgU]
+    exact mem_image_of_mem _ hz
+  have h1w : ∀ w ∈ unitDisc, (1 : ℂ) + w ≠ 0 := fun w hw h0 => by
+    have hn : ‖w‖ < 1 := mem_ball_zero_iff.1 hw
+    rw [show w = -1 by linear_combination h0, norm_neg, norm_one] at hn
+    exact lt_irrefl _ hn
+  have hgc : Continuous g := continuousOn_univ.1 hgK.2.2.1.1
+  -- the image
+  have himg : Φ '' unitDisc = unitDisc := by
+    have e : Φ '' unitDisc = s27v_dmap '' (g '' (s27v_dinv '' unitDisc)) := by
+      simp only [hΦ, image_image]
+    rw [e, hDi.2.2, hgU, hD.2.2]
+  -- the dilatation
+  have hdil : ∀ᵐ w ∂(volume.restrict unitDisc), complexDilatation Φ w = s27v_discCoeff μ w := by
+    filter_upwards [s23_c2_ae_pullback hdinvK hDi.2.2.subset hgd,
+      ae_restrict_mem hΔo.measurableSet] with w hw hwΔ
+    have hz := hdinvU w hwΔ
+    have hgz := hgU' _ hz
+    have hderiv := s27v_b_hasDerivAt_dinv (h1w w hwΔ)
+    have hDat : ∀ u ∈ upperHalf, DifferentiableAt ℂ s27v_dmap u := fun u hu =>
+      hD.1.differentiableAt (isOpen_upperHalf.mem_nhds hu)
+    have hDiat : ∀ u ∈ unitDisc, DifferentiableAt ℂ s27v_dinv u := fun u hu =>
+      hDi.1.differentiableAt (hΔo.mem_nhds hu)
+    have hST : ∀ᶠ v in 𝓝 w, s27v_dmap (s27v_dinv v) = v :=
+      Filter.eventually_of_mem (hΔo.mem_nhds hwΔ) fun v hv => s27v_b_dmap_dinv hv
+    have hTS : ∀ᶠ u in 𝓝 (s27v_dinv w), s27v_dinv (s27v_dmap u) = u :=
+      Filter.eventually_of_mem (isOpen_upperHalf.mem_nhds hz) fun u hu => s27v_dinv_dmap hu
+    have hTS' : ∀ᶠ u in 𝓝 (g (s27v_dinv w)), s27v_dinv (s27v_dmap u) = u :=
+      Filter.eventually_of_mem (isOpen_upperHalf.mem_nhds hgz) fun u hu => s27v_dinv_dmap hu
+    have hR := s23_dilatation_comp_right (g := s27v_dmap ∘ g) hderiv.differentiableAt (hDat _ hz) hST hTS
+    have hL := s23_dilatation_comp_left hgc.continuousAt (hDat _ hgz)
+      (hDiat _ (hD.mapsTo hgz)) hTS'
+    have hΦe : Φ = (s27v_dmap ∘ g) ∘ s27v_dinv := rfl
+    rw [hΦe, hR, hL, hw, hderiv.deriv, s27v_b_factor (h1w w hwΔ), s27v_discCoeff, neg_mul_eq_mul_neg]
+  -- quasiconformality
+  have hs1 : s27v_dinv '' unitDisc ⊆ upperHalf := hDi.2.2.subset
+  have hs2 : (g ∘ s27v_dinv) '' unitDisc ⊆ upperHalf := by
+    rintro _ ⟨w, hw, rfl⟩
+    exact hgU' _ (hdinvU w hw)
+  have hΦK : IsKQC Φ unitDisc (1 * ((1 + k) / (1 - k)) * 1) :=
+    thm7_1_comp (f₂ := s27v_dmap) (thm7_1_comp hdinvK hgKU hs1) hDK hs2
+  refine ⟨⟨((measurable_dzbar Φ).div (measurable_dz Φ)).aestronglyMeasurable.congr hdil, ?_⟩,
+    ⟨⟨_, hΦK⟩, himg, hdil, ?_⟩⟩
+  · -- the bound
+    filter_upwards [s23_c2_ae_pullback hdinvK hDi.2.2.subset hμ.2,
+      ae_restrict_mem hΔo.measurableSet] with w hw hwΔ
+    have hq : (1 + w) ^ 2 ≠ 0 := pow_ne_zero 2 (h1w w hwΔ)
+    rw [s27v_discCoeff, norm_neg, norm_mul, norm_div, Complex.norm_conj, div_self (norm_ne_zero_iff.2 hq), mul_one]
+    exact hw
+  · -- the boundary map `D̂ ∘ ĝ ∘ D̂⁻¹`
+    obtain ⟨e, he⟩ := t1_homeomorph hgK hN.2.1
+    set Dx := mobiusHomeomorph (-1) I 1 I s27v_b_dext_det with hDx
+    have hD0 : Dx ((0 : ℂ) : ExtPlane) = ((1 : ℂ) : ExtPlane) := by
+      rw [hDx, s27v_b_dext_coe (by rw [zero_add]; exact I_ne_zero)]
+      congr 1
+      rw [s27v_dmap, cayley, zero_sub, zero_add, neg_div, div_self I_ne_zero, neg_neg]
+    have h1I : (1 : ℂ) + I ≠ 0 := fun h0 => by
+      have := congrArg Complex.re h0
+      simp at this
+    have hD1 : Dx ((1 : ℂ) : ExtPlane) = (I : ExtPlane) := by
+      rw [hDx, s27v_b_dext_coe h1I]
+      congr 1
+      rw [s27v_dmap, cayley, ← neg_div, div_eq_iff h1I]
+      linear_combination (-1 : ℂ) * I_sq
+    set E : ExtPlane ≃ₜ ExtPlane := Dx.symm.trans (e.onePointCongr.trans Dx) with hEdef
+    have hEa : ∀ p, E p = Dx (OnePoint.map e (Dx.symm p)) := fun p => rfl
+    have hEc : ∀ z : ℂ, E (Dx (z : ExtPlane)) = Dx ((g z : ℂ) : ExtPlane) := fun z => by
+      rw [hEa, Dx.symm_apply_apply, OnePoint.map_some, he]
+    refine ⟨E, s27v_b_isHomeoExtension_of_homeomorph E (fun w hw => ?_) himg, ?_, ?_, ?_⟩
+    · have hz := hdinvU w hw
+      have h1 := hEc (s27v_dinv w)
+      rw [hDx, s27v_b_dext_coe (cayley_den_ne_zero hz), s27v_b_dext_coe (cayley_den_ne_zero (hgU' _ hz)),
+        s27v_b_dmap_dinv hw] at h1
+      exact h1
+    · rw [← hD0, hEc 0, hN.2.2.1]
+    · rw [← hD1, hEc 1, hN.2.2.2.1]
+    · rw [← s27v_b_dext_infty, hEa, ← hDx, Dx.symm_apply_apply, OnePoint.map_infty]
+
+/-- **Theorem 13.8 for the symmetric plane solutions** (proved from [B1], [B2]): if `μₙ → μ` a.e. on `ℍ` with a common
+bound `k < 1`, then `f^{μₙ} → f^μ` pointwise on `ℍ`. -/
+theorem s27v_fSym_tendsto {μn : ℕ → ℂ → ℂ} {μ : ℂ → ℂ} {k : ℝ} (hk₀ : 0 ≤ k) (hk : k < 1)
+    (hμn : ∀ n, IsBeltramiCoeff (μn n) upperHalf k) (hμ : IsBeltramiCoeff μ upperHalf k)
+    (hconv : ∀ᵐ z ∂(volume.restrict upperHalf), Tendsto (fun n => μn n z) atTop (𝓝 (μ z))) :
+    ∀ z ∈ upperHalf, Tendsto (fun n => s27u_fSym (μn n) z) atTop (𝓝 (s27u_fSym μ z)) := by
+  intro z hz
+  have hz' : 0 < z.im := hz
+  have hB := fun n => s27v_fSym_disc hk₀ hk (hμn n)
+  have hB0 := s27v_fSym_disc hk₀ hk hμ
+  -- the disc coefficients converge a.e. on `Δ` (pulled back through the conformal `D⁻¹`)
+  have hdinv : IsKQC s27v_dinv unitDisc 1 := isKQC_one_of_conformal isOpen_ball s27v_dinv_conformal
+  have hpb := s23_c2_ae_pullback hdinv s27v_dinv_conformal.2.2.subset hconv
+  have hνconv : ∀ᵐ w ∂(volume.restrict unitDisc),
+      Tendsto (fun n => s27v_discCoeff (μn n) w) atTop (𝓝 (s27v_discCoeff μ w)) := by
+    filter_upwards [hpb] with w hw
+    exact (hw.mul_const _).neg
+  have h1 := s27v_disc_seq hk₀ hk (fun n => (hB n).1) hB0.1 hνconv (fun n => (hB n).2) hB0.2 _
+    (s27v_dmap_mem hz')
+  simp only [s27v_dinv_dmap hz'] at h1
+  -- apply `D⁻¹`, continuous on `Δ`, and use `f^ν(ℍ) = ℍ`
+  have hmem : ∀ ν : ℂ → ℂ, IsBeltramiCoeff ν upperHalf k → 0 < (s27u_fSym ν z).im := fun ν hν => by
+    have h := (s27u_fSym_upperHalf hk₀ hk hν).1
+    have hm : s27u_fSym ν z ∈ s27u_fSym ν '' upperHalf := mem_image_of_mem _ hz
+    rw [h] at hm
+    exact hm
+  have hc : ContinuousAt s27v_dinv (s27v_dmap (s27u_fSym μ z)) :=
+    (s27v_dinv_conformal.1.differentiableAt (isOpen_ball.mem_nhds (s27v_dmap_mem (hmem μ hμ)))).continuousAt
+  have h2 := hc.tendsto.comp h1
+  rw [s27v_dinv_dmap (hmem μ hμ)] at h2
+  exact h2.congr fun n => s27v_dinv_dmap (hmem _ (hμn n))
+
+/-- `-g` acts on `ℍ` as `g` does (`-1` acts trivially, `s27g_neg_one_smul`). -/
+theorem s27v_c_neg_smul (g : Matrix.SpecialLinearGroup (Fin 2) ℝ) (τ : UpperHalfPlane) : (-g) • τ = g • τ := by
+  rw [← neg_one_mul, mul_smul, s27g_neg_one_smul]
+
+/-- The entries of `-g ∈ SL(2, ℝ)` are the negated entries of `g`. -/
+theorem s27v_c_neg_apply (g : Matrix.SpecialLinearGroup (Fin 2) ℝ) (i j : Fin 2) : (-g) i j = -g i j := by
+  simp [Matrix.SpecialLinearGroup.coe_neg]
+
+/-- **[B3, stub] Convergence of the conjugated generators, up to sign.**  If the homeomorphisms `Fₙ → F` pointwise on
+`ℍ` and `δₙ`, `δ` represent `Fₙ γ Fₙ⁻¹`, `F γ F⁻¹`, then suitable signs `εₙ = ±δₙ` converge to `δ` in `SL(2, ℝ)`.
+
+*Why true.*  `δₙ (Fₙ τ) = Fₙ (γ τ)` for all `τ`.  Take `τ₁ ≠ τ₂`: `aᵢₙ = Fₙ τᵢ → F τᵢ = aᵢ` (distinct) and
+`δₙ aᵢₙ = Fₙ(γ τᵢ) → F(γ τᵢ) = δ aᵢ`.  The action of `SL(2, ℝ)` on `ℍ` is proper (Mathlib `ProperSMul SL(2, ℝ) ℍ`), so
+`(δₙ)` is relatively compact, and every cluster point `δ*` satisfies `δ* aᵢ = δ aᵢ` (`ContinuousSMul`); an element of
+`SL(2, ℝ)` fixing two points of `ℍ` is `±1` (fixed points of a non-scalar real Möbius map in `ℍ` are unique:
+`γ₁₀ z² + (γ₁₁ - γ₀₀) z - γ₀₁ = 0` has conjugate roots), so `δ* = ±δ`.  Choosing `εₙ` as the sign closer to `δ`, every
+subsequence of `(εₙ)` has a further subsequence converging to `δ`.
+
+*Reuse.*  Mathlib `UpperHalfPlane.instProperSMul` (ProperAction.lean l.122), `instContinuousSMulSL2R` (l.42),
+`isProperMap_smul_I` (l.98); S27 `s27g_eq_one_of_smul_eq` (l.2447), `s27g_rep_unique` (l.2474), `s27g_neg_one_smul`
+(l.986); S23 `h23l_b_coe_smul` (l.845).
+
+*Walls.*  None (`SL(2, ℝ)` algebra and topology).
+
+*Estimate.*  0.15–0.3k lines. -/
+theorem s27v_rep_tendsto {Fn : ℕ → UpperHalfPlane ≃ₜ UpperHalfPlane} {F : UpperHalfPlane ≃ₜ UpperHalfPlane}
+    (hconv : ∀ τ, Tendsto (fun n => Fn n τ) atTop (𝓝 (F τ))) {γ δ : Matrix.SpecialLinearGroup (Fin 2) ℝ}
+    {δn : ℕ → Matrix.SpecialLinearGroup (Fin 2) ℝ} (hRn : ∀ n, RepresentsConj (Fn n) γ (δn n))
+    (hR : RepresentsConj F γ δ) :
+    ∃ ε : ℕ → Matrix.SpecialLinearGroup (Fin 2) ℝ, (∀ n, ε n = δn n ∨ ε n = -δn n) ∧ Tendsto ε atTop (𝓝 δ) := by
+  -- the pairing `P g = Σ δᵢⱼ gᵢⱼ` separates `δ` from `-δ`
+  set P : Matrix.SpecialLinearGroup (Fin 2) ℝ → ℝ := fun g =>
+    δ 0 0 * g 0 0 + δ 0 1 * g 0 1 + δ 1 0 * g 1 0 + δ 1 1 * g 1 1 with hP
+  have hPc : Continuous P := by
+    simp only [hP]
+    fun_prop
+  have hPneg : ∀ g, P (-g) = -P g := fun g => by
+    simp only [hP, s27v_c_neg_apply]
+    ring
+  have hPδ : 0 < P δ := by
+    have hdet := hnf_sl2_det δ
+    simp only [hP]
+    nlinarith [sq_nonneg (δ 0 0 - δ 1 1), sq_nonneg (δ 0 1 + δ 1 0)]
+  -- choose the sign with `P ≥ 0`
+  obtain ⟨ε, hεpm, hεP⟩ : ∃ ε : ℕ → Matrix.SpecialLinearGroup (Fin 2) ℝ,
+      (∀ n, ε n = δn n ∨ ε n = -δn n) ∧ ∀ n, 0 ≤ P (ε n) := by
+    refine ⟨fun n => if 0 ≤ P (δn n) then δn n else -δn n, fun n => ?_, fun n => ?_⟩
+    · dsimp only
+      split_ifs
+      · exact Or.inl rfl
+      · exact Or.inr rfl
+    · dsimp only
+      split_ifs with h
+      · exact h
+      · rw [hPneg]
+        linarith
+  refine ⟨ε, hεpm, ?_⟩
+  have hkey : ∀ n σ, ε n • Fn n σ = Fn n (γ • σ) := fun n σ => by
+    have e : ε n • Fn n σ = δn n • Fn n σ := by
+      rcases hεpm n with h | h
+      · rw [h]
+      · rw [h, s27v_c_neg_smul]
+    rw [e, hRn n, (Fn n).symm_apply_apply]
+  have hkey0 : ∀ σ, δ • F σ = F (γ • σ) := fun σ => by rw [hR, F.symm_apply_apply]
+  -- properness: all `ε n` lie in one compact set
+  set a : ℕ → UpperHalfPlane × UpperHalfPlane := fun n => (Fn n (γ • UpperHalfPlane.I), Fn n UpperHalfPlane.I)
+    with ha_def
+  have ha : Tendsto a atTop (𝓝 (F (γ • UpperHalfPlane.I), F UpperHalfPlane.I)) :=
+    (hconv _).prodMk_nhds (hconv _)
+  have hC := ((ProperSMul.isProperMap_smul_pair (G := Matrix.SpecialLinearGroup (Fin 2) ℝ)
+    (X := UpperHalfPlane)).isCompact_preimage ha.isCompact_insert_range).image continuous_fst
+  have hεC : ∀ n, ε n ∈ Prod.fst '' ((fun gx : Matrix.SpecialLinearGroup (Fin 2) ℝ × UpperHalfPlane =>
+      (gx.1 • gx.2, gx.2)) ⁻¹' insert (F (γ • UpperHalfPlane.I), F UpperHalfPlane.I) (range a)) := fun n =>
+    ⟨(ε n, Fn n UpperHalfPlane.I), Or.inr ⟨n, by simp only [ha_def, hkey]⟩, rfl⟩
+  have _ : FirstCountableTopology (Matrix (Fin 2) (Fin 2) ℝ) :=
+    inferInstanceAs (FirstCountableTopology (Fin 2 → Fin 2 → ℝ))
+  have _ : FirstCountableTopology (Matrix.SpecialLinearGroup (Fin 2) ℝ) :=
+    Matrix.SpecialLinearGroup.isClosedEmbedding_val.isInducing.firstCountableTopology
+  refine tendsto_of_subseq_tendsto fun ns hns => ?_
+  obtain ⟨x, -, φ, hφ, hx⟩ := hC.tendsto_subseq (fun n => hεC (ns n))
+  refine ⟨φ, ?_⟩
+  have hnsφ : Tendsto (fun n => ns (φ n)) atTop atTop := hns.comp hφ.tendsto_atTop
+  have hx' : Tendsto (fun n => ε (ns (φ n))) atTop (𝓝 x) := hx
+  -- every such limit acts as `δ`
+  have hxs : ∀ w : UpperHalfPlane, x • w = δ • w := by
+    intro w
+    obtain ⟨σ, rfl⟩ := F.surjective w
+    have h1 : Tendsto (fun n => ε (ns (φ n)) • Fn (ns (φ n)) σ) atTop (𝓝 (x • F σ)) :=
+      hx'.smul ((hconv σ).comp hnsφ)
+    have h2 : Tendsto (fun n => ε (ns (φ n)) • Fn (ns (φ n)) σ) atTop (𝓝 (δ • F σ)) := by
+      simp only [hkey, hkey0]
+      exact (hconv _).comp hnsφ
+    exact tendsto_nhds_unique h1 h2
+  rcases s27g_rep_unique (F := Homeomorph.refl _) (γ := δ) (fun _ => rfl) (fun τ => hxs τ) with hxδ | hxδ
+  · rwa [hxδ] at hx'
+  · exfalso
+    have h0 : 0 ≤ P x := ge_of_tendsto (hPc.continuousAt.tendsto.comp hx') (Eventually.of_forall fun n => hεP _)
+    rw [hxδ, hPneg] at h0
+    linarith
+
+/-- **[B4, stub] Continuity of `frickeTriple` at a hyperbolic element, within its regime.**  If `εₙ → δ` in `SL(2, ℝ)`,
+`δ` is hyperbolic, and every `εₙ` is in the regime of `δ` (`(εₙ)₁₀ = 0 ↔ δ₁₀ = 0`), then
+`frickeTriple εₙ → frickeTriple δ`.
+
+*Why true.*  The multiplier is a continuous function of the trace.  For `δ₁₀ ≠ 0` all `εₙ` use the branch
+`((a - d) ± sgn(a + d) √((a + d)² - 4))/(2c)`, continuous at `δ` because `c ≠ 0` and `sgn(a + d)` is locally constant
+near `|a + d| > 2`.  For `δ₁₀ = 0` all `εₙ` are upper triangular; `ad = 1`, `|a + d| > 2` give `|a| ≠ 1`, so eventually
+`|(εₙ)₀₀| > 1` iff `|a| > 1`, and the fixed points are `∞` (whose junk value `extToC ∞ = 0` is constant) and
+`b/(d - a)` with `d - a ≠ 0`, continuous at `δ`.
+
+*Reuse.*  S27 `attractingFixedPoint` (l.529), `repellingFixedPoint` (l.535), `multiplier` (l.542), `hnf_sign_sqrt`
+(l.546), `hnf_fixed_of_eq_zero` (l.645), `hnf_core_eq` (l.657), `hnf_sl2_det` (l.563); Mathlib
+`Matrix.SpecialLinearGroup.continuous_apply`, `Real.continuous_sqrt`.
+
+*Walls.*  None (real algebra).
+
+*Estimate.*  0.12–0.25k lines. -/
+theorem s27v_frickeTriple_tendsto {ε : ℕ → Matrix.SpecialLinearGroup (Fin 2) ℝ}
+    {δ : Matrix.SpecialLinearGroup (Fin 2) ℝ} (h : Tendsto ε atTop (𝓝 δ)) (hδ : 2 < |δ 0 0 + δ 1 1|)
+    (hreg : ∀ n, ε n 1 0 = 0 ↔ δ 1 0 = 0) :
+    Tendsto (fun n => frickeTriple (ε n)) atTop (𝓝 (frickeTriple δ)) := by
+  -- the entries, the trace and `√(tr² - 4)` converge; hence so does the multiplier
+  have he : ∀ i j : Fin 2, Tendsto (fun n => ε n i j) atTop (𝓝 (δ i j)) := fun i j =>
+    ((by fun_prop : Continuous fun g : Matrix.SpecialLinearGroup (Fin 2) ℝ => g i j).tendsto δ).comp h
+  have ht : Tendsto (fun n => ε n 0 0 + ε n 1 1) atTop (𝓝 (δ 0 0 + δ 1 1)) := (he 0 0).add (he 1 1)
+  have hsq : Tendsto (fun n => Real.sqrt ((ε n 0 0 + ε n 1 1) ^ 2 - 4)) atTop
+      (𝓝 (Real.sqrt ((δ 0 0 + δ 1 1) ^ 2 - 4))) := ((ht.pow 2).sub_const 4).sqrt
+  have hmul : Tendsto (fun n => multiplier (ε n)) atTop (𝓝 (multiplier δ)) :=
+    ((ht.abs.add hsq).div_const 2).pow 2
+  have hre : ∀ r : ℝ, (extToC ((r : ℂ) : ExtPlane)).re = r := fun _ => rfl
+  suffices H : Tendsto (fun n => (extToC (attractingFixedPoint (ε n))).re) atTop
+      (𝓝 (extToC (attractingFixedPoint δ)).re) ∧
+      Tendsto (fun n => (extToC (repellingFixedPoint (ε n))).re) atTop
+      (𝓝 (extToC (repellingFixedPoint δ)).re) from
+    H.1.prodMk_nhds (H.2.prodMk_nhds hmul)
+  by_cases hc : δ 1 0 = 0
+  · -- `c = 0`: the fixed points are `∞` (junk value `0`) and `b/(d - a)`, in an eventually constant order
+    have hcn : ∀ n, ε n 1 0 = 0 := fun n => (hreg n).2 hc
+    have had : δ 0 0 * δ 1 1 = 1 := by
+      have e := hnf_sl2_det δ
+      rwa [hc, mul_zero, sub_zero] at e
+    obtain ⟨hda, -, -⟩ := hnf_core_eq had hδ
+    have hq : Tendsto (fun n => ε n 0 1 / (ε n 1 1 - ε n 0 0)) atTop (𝓝 (δ 0 1 / (δ 1 1 - δ 0 0))) :=
+      (he 0 1).div ((he 1 1).sub (he 0 0)) hda
+    by_cases ha : 1 < |δ 0 0|
+    · have hev : ∀ᶠ n in atTop, 1 < |ε n 0 0| := (he 0 0).abs.eventually_const_lt ha
+      obtain ⟨h1, h2⟩ := (hnf_fixed_of_eq_zero hc).1 ha
+      rw [h1, h2, hre]
+      refine ⟨tendsto_const_nhds.congr' ?_, hq.congr' ?_⟩
+      · filter_upwards [hev] with n hn
+        rw [((hnf_fixed_of_eq_zero (hcn n)).1 hn).1]
+      · filter_upwards [hev] with n hn
+        rw [((hnf_fixed_of_eq_zero (hcn n)).1 hn).2, hre]
+    · have ha1 : |δ 0 0| < 1 := by
+        rcases lt_or_eq_of_le (not_lt.1 ha) with h' | h'
+        · exact h'
+        · exfalso
+          apply hda
+          have h2 : δ 0 0 ^ 2 = 1 := by rw [← sq_abs, h']; norm_num
+          linear_combination (-δ 1 1) * h2 + δ 0 0 * had
+      have hev : ∀ᶠ n in atTop, ¬ 1 < |ε n 0 0| :=
+        ((he 0 0).abs.eventually_lt_const ha1).mono fun n hn => not_lt.2 hn.le
+      obtain ⟨h1, h2⟩ := (hnf_fixed_of_eq_zero hc).2 ha
+      rw [h1, h2, hre]
+      refine ⟨hq.congr' ?_, tendsto_const_nhds.congr' ?_⟩
+      · filter_upwards [hev] with n hn
+        rw [((hnf_fixed_of_eq_zero (hcn n)).2 hn).1, hre]
+      · filter_upwards [hev] with n hn
+        rw [((hnf_fixed_of_eq_zero (hcn n)).2 hn).2]
+  · -- `c ≠ 0`: the explicit formulas, with `sgn(a + d)` eventually constant
+    have hcn : ∀ n, ε n 1 0 ≠ 0 := fun n h0 => hc ((hreg n).1 h0)
+    have ht0 : δ 0 0 + δ 1 1 ≠ 0 := fun h0 => by
+      rw [h0, abs_zero] at hδ
+      linarith
+    have hsg : Tendsto (fun n => Real.sign (ε n 0 0 + ε n 1 1)) atTop (𝓝 (Real.sign (δ 0 0 + δ 1 1))) := by
+      refine tendsto_const_nhds.congr' ?_
+      rcases lt_or_gt_of_ne ht0 with hneg | hpos
+      · filter_upwards [ht.eventually_lt_const hneg] with n hn
+        rw [Real.sign_of_neg hneg, Real.sign_of_neg hn]
+      · filter_upwards [ht.eventually_const_lt hpos] with n hn
+        rw [Real.sign_of_pos hpos, Real.sign_of_pos hn]
+    have hden : Tendsto (fun n => 2 * ε n 1 0) atTop (𝓝 (2 * δ 1 0)) := (he 1 0).const_mul 2
+    have h2c : 2 * δ 1 0 ≠ 0 := mul_ne_zero two_ne_zero hc
+    have hA : ∀ γ : Matrix.SpecialLinearGroup (Fin 2) ℝ, γ 1 0 ≠ 0 → (extToC (attractingFixedPoint γ)).re =
+        (γ 0 0 - γ 1 1 + Real.sign (γ 0 0 + γ 1 1) * Real.sqrt ((γ 0 0 + γ 1 1) ^ 2 - 4)) / (2 * γ 1 0) :=
+      fun γ hγ => by rw [attractingFixedPoint, ite_eq_right hγ, hre]
+    have hR : ∀ γ : Matrix.SpecialLinearGroup (Fin 2) ℝ, γ 1 0 ≠ 0 → (extToC (repellingFixedPoint γ)).re =
+        (γ 0 0 - γ 1 1 - Real.sign (γ 0 0 + γ 1 1) * Real.sqrt ((γ 0 0 + γ 1 1) ^ 2 - 4)) / (2 * γ 1 0) :=
+      fun γ hγ => by rw [repellingFixedPoint, ite_eq_right hγ, hre]
+    rw [hA δ hc, hR δ hc]
+    refine ⟨?_, ?_⟩
+    · simp only [hA _ (hcn _)]
+      exact (((he 0 0).sub (he 1 1)).add (hsg.mul hsq)).div hden h2c
+    · simp only [hR _ (hcn _)]
+      exact (((he 0 0).sub (he 1 1)).sub (hsg.mul hsq)).div hden h2c
+
+/-- **Convergence of one Fricke triple** (proved from [B3], [B4]): with `Fₙ → F` pointwise on `ℍ` (all normalized, with
+boundary maps fixing `∞`), the representatives `δₙ` of `Fₙ γ Fₙ⁻¹` have `frickeTriple δₙ → frickeTriple δ`.  If `δ` is
+`±1` so is every `δₙ` (`γ` acts trivially); otherwise `δ` is hyperbolic (`s27f_hyp`), the regime is that of `γ`
+(`s27f_fix_infty`), and `frickeTriple` does not see the sign (`s27f_frickeTriple_neg`). -/
+theorem s27v_triple_tendsto {S : Type*} [TopologicalSpace S] [ChartedSpace ℂ S] [CompactSpace S]
+    {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p : UpperHalfPlane → S} (hp : IsUniformization Γ p)
+    {Fn : ℕ → UpperHalfPlane ≃ₜ UpperHalfPlane} {F : UpperHalfPlane ≃ₜ UpperHalfPlane}
+    {Gbn : ℕ → ExtPlane → ExtPlane} {Gb : ExtPlane → ExtPlane}
+    (hGn : ∀ n, IsHomeoExtension (liftToC (Fn n)) upperHalf upperHalf (Gbn n)) (hGninf : ∀ n, Gbn n extInf = extInf)
+    (hG : IsHomeoExtension (liftToC F) upperHalf upperHalf Gb) (hGinf : Gb extInf = extInf)
+    (hconv : ∀ τ, Tendsto (fun n => Fn n τ) atTop (𝓝 (F τ))) {γ δ : Matrix.SpecialLinearGroup (Fin 2) ℝ}
+    {δn : ℕ → Matrix.SpecialLinearGroup (Fin 2) ℝ} (hδ : δ ∈ Γ) (hRn : ∀ n, RepresentsConj (Fn n) γ (δn n))
+    (hR : RepresentsConj F γ δ) : Tendsto (fun n => frickeTriple (δn n)) atTop (𝓝 (frickeTriple δ)) := by
+  by_cases h₁ : δ = 1 ∨ δ = -1
+  · -- `γ` acts trivially, so every `δₙ` is `±1`
+    have hδτ : ∀ τ : UpperHalfPlane, δ • τ = τ := fun τ => by
+      rcases h₁ with rfl | rfl
+      · exact one_smul _ _
+      · exact s27g_neg_one_smul τ
+    have hγ : ∀ σ : UpperHalfPlane, γ • σ = σ := fun σ => by
+      have e := hR (F σ)
+      rw [hδτ, F.symm_apply_apply] at e
+      exact F.injective e.symm
+    have hconst : ∀ n, frickeTriple (δn n) = frickeTriple δ := fun n => by
+      have hτ : ∀ τ : UpperHalfPlane, δn n • τ = τ := fun τ => by
+        rw [hRn n τ, hγ, (Fn n).apply_symm_apply]
+      have hpm : ∀ ρ : Matrix.SpecialLinearGroup (Fin 2) ℝ, (ρ = 1 ∨ ρ = -1) → frickeTriple ρ = frickeTriple 1 := by
+        rintro ρ (rfl | rfl)
+        · rfl
+        · exact s27f_frickeTriple_neg 1
+      rw [hpm _ (s27g_eq_one_of_smul_eq hτ), hpm _ h₁]
+    simp only [hconst]
+    exact tendsto_const_nhds
+  · push Not at h₁
+    have hhyp := s27f_hyp hp hδ h₁.1 h₁.2
+    obtain ⟨ε, hε, hεt⟩ := s27v_rep_tendsto hconv hRn hR
+    have hreg : ∀ n, ε n 1 0 = 0 ↔ δ 1 0 = 0 := fun n => by
+      have h1 := s27f_fix_infty (hGn n) (hGninf n) (hRn n)
+      have h2 := s27f_fix_infty hG hGinf hR
+      rcases hε n with h | h
+      · rw [h]
+        exact h1.symm.trans h2
+      · rw [h, s27t_neg_apply, neg_eq_zero]
+        exact h1.symm.trans h2
+    refine (s27v_frickeTriple_tendsto hεt hhyp hreg).congr fun n => ?_
+    rcases hε n with h | h
+    · rw [h]
+    · rw [h, s27f_frickeTriple_neg]
+
+/-- **Continuity of the Fricke coordinates in the lifted coefficient** (proved from [B1]–[B4] and the installed UT and
+Fricke bijection).  If the lifted coefficients of `mₙ` converge a.e. on `ℍ` to that of `m`, with a common bound `k < 1`,
+then any Fricke coordinates of `mₙ` converge to any Fricke coordinates of `m`: by uniqueness they are the coordinates of
+the systems induced by the UT lifts `f^{μₙ}|ℍ`, and these converge generator by generator. -/
+theorem s27v_fricke_tendsto [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (G : StandardGenerators Γ₀ g)
+    {mn : ℕ → MarkedRS S₀} {m : MarkedRS S₀} {k : ℝ} (hk₀ : 0 ≤ k) (hk : k < 1)
+    (hμn : ∀ n, IsBeltramiCoeff (s27u_liftCoeff p₀ (mn n).marking) upperHalf k)
+    (hμ : IsBeltramiCoeff (s27u_liftCoeff p₀ m.marking) upperHalf k)
+    (hconv : ∀ᵐ z ∂(volume.restrict upperHalf),
+      Tendsto (fun n => s27u_liftCoeff p₀ (mn n).marking z) atTop (𝓝 (s27u_liftCoeff p₀ m.marking z)))
+    {cn : ℕ → Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ)} {c : Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ)}
+    (hcn : ∀ n, IsFrickeCoords p₀ G (mn n) (cn n)) (hc : IsFrickeCoords p₀ G m c) : Tendsto cn atTop (𝓝 c) := by
+  -- UT for every `mₙ` and for `m`, and the induced systems
+  choose Fn hFn using fun n => s27u_uniformization_transport hp₀ (mn n).marking (mn n).qc
+  obtain ⟨F, hF, hU, hN, -, -⟩ := s27u_uniformization_transport hp₀ m.marking m.qc
+  choose G' hG' using fun n => exists_inducedGenerators hg hS hp₀ G (mn n) (hFn n).2.1 (hFn n).2.2.1
+  obtain ⟨G₀', hG₀'⟩ := exists_inducedGenerators hg hS hp₀ G m hU hN
+  -- the given coordinates are those of the induced systems (Fricke coordinates are unique)
+  have hbij := thm27_fricke_bijection hg hS hp₀ G
+  have hcn' : ∀ n, cn n = frickeCoordinates (G' n) := fun n =>
+    (hbij.2 (mn n) (mn n) _ _ (hcn n) ⟨_, _, Fn n, _, G' n, (hFn n).2.1, (hFn n).2.2.1, hG' n, rfl⟩).1
+      (markedRS_equiv_equivalence.refl _)
+  have hc' : c = frickeCoordinates G₀' :=
+    (hbij.2 m m _ _ hc ⟨_, _, F, _, G₀', hU, hN, hG₀', rfl⟩).1 (markedRS_equiv_equivalence.refl _)
+  -- `Fₙ → F` pointwise on `ℍ`
+  have hpt := s27v_fSym_tendsto hk₀ hk hμn hμ hconv
+  have hFconv : ∀ τ, Tendsto (fun n => Fn n τ) atTop (𝓝 (F τ)) := fun τ => by
+    have h := hpt τ τ.coe_im_pos
+    rw [← hF τ] at h
+    exact UpperHalfPlane.isEmbedding_coe.tendsto_nhds_iff.2 (h.congr fun n => ((hFn n).1 τ).symm)
+  rw [hc']
+  refine (tendsto_pi_nhds.2 fun j => ?_).congr fun n => (hcn' n).symm
+  exact Tendsto.prodMk_nhds
+    (s27v_triple_tendsto hU (fun n => (hFn n).2.2.1.2.1) (fun n => (hFn n).2.2.1.2.2.2.2) hN.2.1 hN.2.2.2.2 hFconv
+      (G₀'.first_mem j).1 (fun n => ((hG' n).1 j).1) (hG₀'.1 j).1)
+    (s27v_triple_tendsto hU (fun n => (hFn n).2.2.1.2.1) (fun n => (hFn n).2.2.1.2.2.2.2) hN.2.1 hN.2.2.2.2 hFconv
+      (G₀'.first_mem j).2 (fun n => ((hG' n).1 j).2) (hG₀'.1 j).2)
+
+/-- `IsBeltramiCoeff` is monotone in the bound. -/
+theorem s27v_isBeltramiCoeff_mono {μ : ℂ → ℂ} {D : Set ℂ} {k k' : ℝ} (h : IsBeltramiCoeff μ D k) (hkk : k ≤ k') :
+    IsBeltramiCoeff μ D k' := by
+  exact ⟨h.1, h.2.mono fun _ hz => hz.trans hkk⟩
+
+/-- A marked surface's lifted coefficient is a Beltrami coefficient on `ℍ` with some bound `k < 1` (U3). -/
+theorem s27v_liftCoeff_bound [IsManifold 𝓘(ℂ) ω S₀] {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (m : MarkedRS S₀) :
+    ∃ k : ℝ, 0 ≤ k ∧ k < 1 ∧ IsBeltramiCoeff (s27u_liftCoeff p₀ m.marking) upperHalf k := by
+  obtain ⟨K, hK⟩ := m.qc
+  have hK1 : (1 : ℝ) ≤ K := hK.1
+  exact ⟨(K - 1) / (K + 1), div_nonneg (by linarith) (by linarith), (div_lt_one (by linarith)).2 (by linarith),
+    s27u_liftCoeff_isBeltramiCoeff hp₀ hK⟩
+
+/-- **Theorem 27.1 through UT**: two marked surfaces are equivalent iff the symmetric solutions of their lifted
+coefficients agree on `ℝ` (`s27u_exists_uniformization` gives normalized lifts with boundary values `f^μ` on `ℝ`). -/
+theorem s27v_equiv_iff_fSym [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀] {g : ℕ}
+    (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (m₁ m₂ : MarkedRS S₀) :
+    m₁.Equiv m₂ ↔ ∀ x : ℝ, s27u_fSym (s27u_liftCoeff p₀ m₁.marking) x = s27u_fSym (s27u_liftCoeff p₀ m₂.marking) x := by
+  obtain ⟨Γ₁, p₁, F₁, G₁, hp₁, hN₁, -, hG₁⟩ := s27u_exists_uniformization hp₀ m₁
+  obtain ⟨Γ₂, p₂, F₂, G₂, hp₂, hN₂, -, hG₂⟩ := s27u_exists_uniformization hp₀ m₂
+  rw [thm27_1 hg hS hp₀ m₁ m₂ hp₁ hp₂ hN₁ hN₂]
+  refine ⟨fun h x => ?_, fun h x => ?_⟩
+  · have e := h x
+    rw [hG₁, hG₂] at e
+    exact OnePoint.coe_injective e
+  · rw [hG₁, hG₂, h x]
+
+/-- **Equal lifted coefficients give equivalent marked surfaces** (U11 + `s27v_equiv_iff_fSym`). -/
+theorem s27v_equiv_of_liftCoeff [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀] {g : ℕ}
+    (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) {m₁ m₂ : MarkedRS S₀}
+    (h : ∀ᵐ z ∂(volume.restrict upperHalf), s27u_liftCoeff p₀ m₁.marking z = s27u_liftCoeff p₀ m₂.marking z) :
+    m₁.Equiv m₂ := by
+  obtain ⟨k₁, hk₁0, hk₁1, hμ₁⟩ := s27v_liftCoeff_bound hp₀ m₁
+  obtain ⟨k₂, hk₂0, hk₂1, hμ₂⟩ := s27v_liftCoeff_bound hp₀ m₂
+  refine (s27v_equiv_iff_fSym hg hS hp₀ m₁ m₂).2 fun x => ?_
+  rw [s27u_fSym_congr_ae hk₁0 hk₁1 hμ₁ hk₂0 hk₂1 hμ₂ h]
+
+/-- **Fricke coordinates are class invariants** (from `thm27_fricke_bijection`, ⇒). -/
+theorem s27v_fricke_eq_of_equiv [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (G : StandardGenerators Γ₀ g) {m₁ m₂ : MarkedRS S₀}
+    (h : m₁.Equiv m₂) {c₁ c₂ : Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ)} (hc₁ : IsFrickeCoords p₀ G m₁ c₁)
+    (hc₂ : IsFrickeCoords p₀ G m₂ c₂) : c₁ = c₂ := by
+  exact ((thm27_fricke_bijection hg hS hp₀ G).2 m₁ m₂ c₁ c₂ hc₁ hc₂).1 h
+
+/-- **The base point `[S₀, id]`**: its Fricke coordinates are those of `G` (normalized lift `id`, induced system `G`;
+a copy of scout E's probe `h27e_base_isFrickeCoords`), and its lifted coefficient vanishes a.e. on `ℍ` (U3 with `K = 1`,
+the identity being biholomorphic). -/
+theorem s27v_base [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀)
+    {g : ℕ} (G : StandardGenerators Γ₀ g) :
+    IsFrickeCoords p₀ G ⟨⟨S₀⟩, Homeomorph.refl S₀, isQCRS_refl⟩ (frickeCoordinates G) ∧
+      ∀ᵐ z ∂(volume.restrict upperHalf), s27u_liftCoeff p₀ (Homeomorph.refl S₀) z = 0 := by
+  refine ⟨⟨Γ₀, p₀, Homeomorph.refl _, id, G, hp₀, ⟨fun τ => rfl, ⟨fun z hz => ?_, continuousOn_id,
+    injOn_id _, image_id _⟩, rfl, rfl, rfl⟩, ⟨fun j => ⟨fun τ => rfl, fun τ => rfl⟩, fun τ => rfl,
+    fun τ => rfl⟩, rfl⟩, ?_⟩
+  · have hz' : 0 < z.im := hz
+    simp [liftToC, hz']
+  · have h1 : IsKQCRS (Homeomorph.refl S₀) 1 := (isKQCRS_one_iff _).2 isBiholomorphic_id
+    have h2 := (s27u_liftCoeff_isBeltramiCoeff hp₀ h1).2
+    filter_upwards [h2] with z hz
+    rw [show ((1 : ℝ) - 1) / (1 + 1) = 0 by norm_num] at hz
+    exact norm_le_zero_iff.1 hz
+
+/-- **The path of Lemma 27.2** (proved glue; the statement of `lemma27_2_path`).  With `μ` the lifted coefficient of
+`m`, `t ↦ [X^{t̄ μ}]` (`t̄ = max 0 (min t 1)`, [A1]/[A2] via `s27v_exists_marked`) is a family of marked surfaces whose
+lifted coefficients depend continuously (pointwise, with the bound of `μ`) on `t`; its Fricke coordinates are
+continuous (`s27v_fricke_tendsto`, sequentially), equal to those of `[S₀, id]` at `0` and of `m` at `1`
+(`s27v_equiv_of_liftCoeff`, `s27v_base`). -/
+theorem s27v_lemma27_2_path [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (G : StandardGenerators Γ₀ g)
+    (m : MarkedRS S₀) {c : Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ)} (hc : IsFrickeCoords p₀ G m c) :
+    ∃ path : ℝ → Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ), ContinuousOn path (Icc 0 1) ∧
+      path 1 = c ∧ path 0 = frickeCoordinates G ∧ ∀ t ∈ Icc (0 : ℝ) 1, path t ∈ frickeSpace p₀ G := by
+  obtain ⟨k₀, hk0, hk1, hμ⟩ := s27v_liftCoeff_bound hp₀ m
+  have hΓ := s27u_liftCoeff_isGammaCompatible hp₀ m.marking
+  set μ : ℂ → ℂ := s27u_liftCoeff p₀ m.marking with hμdef
+  -- the clamped parameter
+  set cl : ℝ → ℝ := fun t => max 0 (min t 1) with hcldef
+  have hcl0 : ∀ t, 0 ≤ cl t := fun t => le_max_left _ _
+  have hcl1 : ∀ t, cl t ≤ 1 := fun t => max_le zero_le_one (min_le_right _ _)
+  have hclc : Continuous cl := continuous_const.max (continuous_id.min continuous_const)
+  -- the family `t̄ μ` in `M(Γ₀)`
+  have hμt : ∀ t, IsBeltramiCoeff (fun z => (cl t : ℂ) * μ z) upperHalf k₀ := fun t => by
+    refine ⟨aestronglyMeasurable_const.mul hμ.1, ?_⟩
+    filter_upwards [hμ.2] with z hz
+    rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (hcl0 t)]
+    calc cl t * ‖μ z‖ ≤ 1 * k₀ := mul_le_mul (hcl1 t) hz (norm_nonneg _) zero_le_one
+      _ = k₀ := one_mul k₀
+  have hΓt : ∀ t, IsGammaCompatible Γ₀ (fun z => (cl t : ℂ) * μ z) := fun t γ hγ => by
+    filter_upwards [hΓ γ hγ] with z hz
+    rw [hz, mul_assoc]
+  choose M hM using fun t => s27v_exists_marked hp₀ hk0 hk1 (hμt t) (hΓt t)
+  choose P hP using fun t => (thm27_fricke_bijection hg hS hp₀ G).1 (M t)
+  have hMμ : ∀ t, IsBeltramiCoeff (s27u_liftCoeff p₀ (M t).marking) upperHalf k₀ := fun t => by
+    refine ⟨(hμt t).1.congr ((ae_eq_comm).1 (hM t)), ?_⟩
+    filter_upwards [(hμt t).2, hM t] with z h1 h2
+    rw [h2]
+    exact h1
+  refine ⟨P, ?_, ?_, ?_, fun t _ => ⟨M t, hP t⟩⟩
+  · -- continuity, sequentially (`s27v_fricke_tendsto`)
+    refine (continuous_iff_seqContinuous.2 fun {u t₀} hu => ?_).continuousOn
+    refine s27v_fricke_tendsto hg hS hp₀ G hk0 hk1 (fun n => hMμ (u n)) (hMμ t₀) ?_ (fun n => hP (u n)) (hP t₀)
+    filter_upwards [ae_all_iff.2 fun n => hM (u n), hM t₀] with z h1 h2
+    rw [h2]
+    simp only [h1]
+    have hcu : Tendsto (fun n => cl (u n)) atTop (𝓝 (cl t₀)) := (hclc.tendsto t₀).comp hu
+    exact ((Complex.continuous_ofReal.tendsto _).comp hcu).mul_const _
+  · -- `path 1 = c`: `M 1` has the lifted coefficient of `m`
+    have hcl : cl 1 = 1 := by simp [hcldef]
+    have hE : (M 1).Equiv m := s27v_equiv_of_liftCoeff hg hS hp₀ (by
+      filter_upwards [hM 1] with z hz
+      rw [hz, hcl, Complex.ofReal_one, one_mul])
+    exact s27v_fricke_eq_of_equiv hg hS hp₀ G hE (hP 1) hc
+  · -- `path 0 = frickeCoordinates G`: `M 0` has the lifted coefficient `0` of the base point
+    have hcl : cl 0 = 0 := by simp [hcldef]
+    obtain ⟨hb, hb0⟩ := s27v_base hp₀ G
+    have hE : (M 0).Equiv ⟨⟨S₀⟩, Homeomorph.refl S₀, isQCRS_refl⟩ := s27v_equiv_of_liftCoeff hg hS hp₀ (by
+      filter_upwards [hM 0, hb0] with z hz hz0
+      rw [hz, hcl, Complex.ofReal_zero, zero_mul]
+      exact hz0.symm)
+    exact s27v_fricke_eq_of_equiv hg hS hp₀ G hE (hP 0) hb
+
+/-- **Lemma 27.2** (proved glue; the statement of `lemma27_2_connected`): `F(S₀)` is path connected, every point being
+joined to the base point `frickeCoordinates G` by the path of `s27v_lemma27_2_path` (`JoinedIn.ofLine`). -/
+theorem s27v_lemma27_2_connected [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (G : StandardGenerators Γ₀ g) :
+    IsPathConnected (frickeSpace p₀ G) := by
+  refine ⟨frickeCoordinates G, ⟨_, (s27v_base hp₀ G).1⟩, fun {c} hc => ?_⟩
+  obtain ⟨m, hm⟩ := hc
+  obtain ⟨path, hcont, h1, h0, hmem⟩ := s27v_lemma27_2_path hg hS hp₀ G m hm
+  exact JoinedIn.ofLine hcont h0 h1 (by rintro _ ⟨t, ht, rfl⟩; exact hmem t ht)
+
+/-- **[C1, stub] The lifted coefficient of a Teichmüller map is `k ψ̄/|ψ|`** (E2's S3,
+`utm_x_liftCoeff_teichmullerMap`, UTM l.2953, restated on `s27u_liftCoeff`), with `ψ = utm_liftQD q p₀ ≠ 0` a.e.
+
+*Why true.*  Proved in UTM (axiom-clean): `utm_x1_lift_pointwise` (UTM l.2901) gives, at `z ∈ ℍ` with `ψ(z) ≠ 0`, the
+chart-read dilatation `k ψ̄(z)/|ψ(z)|` (near `z` the map is `L_f ∘ h`, `h = φ_x ∘ p̂₀` a local biholomorphism,
+`s23_dilatation_comp_right`, `s26b_pointwise`, `utm_liftQD_local`), which is `s27u_liftCoeff p₀ f z`
+(`s27u_liftCoeff_of_mem`); the zeros of `ψ` in `ℍ` are countable (`utm_x1_liftQD_zeros_countable`, UTM l.2878: `ψ` is
+holomorphic on `ℍ` and `≢ 0`).  The truth probe `T3_truth_probe.lean` derives this exact statement from the installed
+UTM.
+
+*Route.*  Either (MOVE, see `T3_AUDIT.md`) move `utm_pext`, `utm_liftQD`, `utm_a_*`, `utm_liftQD_local`,
+`utm_liftQD_differentiableOn`, `utm_liftQD_ne`, `utm_x1_liftQD_zeros_countable`, `utm_x1_lift_pointwise`,
+`utm_x_tcoeff` (UTM l.423–582, 2715, 2878–2951, ≈ 0.25k lines, inputs S23/S26 only) above this block and prove the stub
+in ≈ 20 lines; or copy them here under the prefix `s27v_`.
+
+*Walls.*  None (a local computation in charts).
+
+*Estimate.*  0.02–0.05k after the MOVE; 0.25–0.4k as a copy. -/
+theorem s27v_liftCoeff_teichmullerMap [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] {S : Type*}
+    [TopologicalSpace S] [ChartedSpace ℂ S] {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) {f : S₀ ≃ₜ S} {q : S₀ → ℂ → ℂ} {q' : S → ℂ → ℂ}
+    {k : ℝ} (hf : IsTeichmullerMap f q q' k) :
+    ∀ᵐ z ∂(volume.restrict upperHalf), utm_liftQD q p₀ z ≠ 0 ∧
+      s27u_liftCoeff p₀ f z = (k : ℂ) * conj (utm_liftQD q p₀ z) / (‖utm_liftQD q p₀ z‖ : ℂ) := by
+  have hZ0 : volume {τ | τ ∈ upperHalf ∧ utm_liftQD q p₀ τ = 0} = 0 :=
+    (utm_x1_liftQD_zeros_countable hf.initial hf.initial_ne hp₀).measure_zero _
+  filter_upwards [ae_restrict_mem isOpen_upperHalf.measurableSet,
+    ae_restrict_of_ae (measure_eq_zero_iff_ae_notMem.1 hZ0)] with τ hτ hτZ
+  have hψ : utm_liftQD q p₀ τ ≠ 0 := fun h0 => hτZ ⟨hτ, h0⟩
+  refine ⟨hψ, ?_⟩
+  rw [s27u_liftCoeff_of_mem p₀ f hτ]
+  exact (utm_x1_lift_pointwise hp₀ hf hτ hψ).symm
+
+/-- The lifted coefficient of a Teichmüller deformation with constant `k` is bounded by `k`
+(U3 with `K = (1 + k)/(1 - k)`, `s26u_isKQCRS`). -/
+theorem s27v_liftCoeff_deformation_bound [IsManifold 𝓘(ℂ) ω S₀]
+    {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀)
+    {q : S₀ → ℂ → ℂ} {k : ℝ} {X : ClosedRS.{u}} {e : S₀ ≃ₜ X.carrier} {q' : X.carrier → ℂ → ℂ}
+    (hT : IsTeichDeformation q k X e q') : IsBeltramiCoeff (s27u_liftCoeff p₀ e) upperHalf k := by
+  have h := s27u_liftCoeff_isBeltramiCoeff hp₀ (s26u_isKQCRS hT)
+  have h1 : 0 < 1 - k := by linarith [hT.k_lt_one]
+  have e1 : ((1 + k) / (1 - k) - 1) / ((1 + k) / (1 - k) + 1) = k := by
+    field_simp
+    ring
+  rwa [e1] at h
+
+/-- **(27.16)–(27.17)** (proved glue; the statement of `eq27_17_lifts_converge`).  The deformation surfaces `S_{qₙ,kₙ}`,
+`S_{q,k}` are equivalent to `mₙ`, `m` (same Fricke coordinates, `thm27_fricke_bijection`); their lifted coefficients
+are `kₙ ψ̄ₙ/|ψₙ|`, `k ψ̄/|ψ|` a.e. ([C1]), and `ψₙ → ψ` pointwise (`qₙ → q` pointwise, same charts), so they converge
+a.e. (`ψ ≠ 0` a.e.), with the common bound `(1 + k)/2` along a tail (`kₙ → k < 1`); `s27v_fricke_tendsto` concludes. -/
+theorem s27v_eq27_17 [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
+    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (G : StandardGenerators Γ₀ g)
+    {qn : ℕ → S₀ → ℂ → ℂ} {q : S₀ → ℂ → ℂ} (hqn : ∀ n, IsHolQuadDiff (qn n)) (hq : IsHolQuadDiff q)
+    (hne : q ≠ 0) (hconv : ∀ x z, Tendsto (fun n => qn n x z) atTop (𝓝 (q x z))) {kn : ℕ → ℝ} {k : ℝ}
+    (hkn : ∀ n, 0 ≤ kn n ∧ kn n < 1) (hk : 0 < k) (hk' : k < 1) (hkconv : Tendsto kn atTop (𝓝 k))
+    {mn : ℕ → MarkedRS S₀} {m : MarkedRS S₀} (hmn : ∀ n, IsDeformationPoint (qn n) (kn n) (Quot.mk _ (mn n)))
+    (hm : IsDeformationPoint q k (Quot.mk _ m)) {cn : ℕ → Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ)}
+    {c : Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ)} (hcn : ∀ n, IsFrickeCoords p₀ G (mn n) (cn n))
+    (hc : IsFrickeCoords p₀ G m c) : Tendsto cn atTop (𝓝 c) := by
+  have _ := hqn
+  have _ := hq
+  have _ := hne
+  have _ := hkn
+  have _ := hk
+  choose X e hqc q' hT hpn using hmn
+  obtain ⟨X₀, e₀, hqc₀, q'₀, hT₀, hp⟩ := hm
+  -- the deformation surfaces have the Fricke coordinates of `mₙ`, `m`
+  have hbij := thm27_fricke_bijection hg hS hp₀ G
+  choose c' hc' using fun n => hbij.1 ⟨X n, e n, hqc n⟩
+  obtain ⟨c'₀, hc'₀⟩ := hbij.1 ⟨X₀, e₀, hqc₀⟩
+  have hcn' : ∀ n, cn n = c' n := fun n => s27v_fricke_eq_of_equiv hg hS hp₀ G
+    (markedRS_equiv_equivalence.eqvGen_iff.1 (Quot.eqvGen_exact (hpn n))) (hcn n) (hc' n)
+  have hc0 : c = c'₀ := s27v_fricke_eq_of_equiv hg hS hp₀ G
+    (markedRS_equiv_equivalence.eqvGen_iff.1 (Quot.eqvGen_exact hp)) hc hc'₀
+  -- a tail on which `kₙ < (1 + k)/2`
+  obtain ⟨N, hN⟩ := eventually_atTop.1 (hkconv.eventually (gt_mem_nhds (show k < (1 + k) / 2 by linarith)))
+  have hk2 : (1 + k) / 2 < 1 := by linarith
+  have hk20 : 0 ≤ (1 + k) / 2 := by linarith
+  -- the lifted differentials converge pointwise
+  have hψ : ∀ z, Tendsto (fun n => utm_liftQD (qn n) p₀ z) atTop (𝓝 (utm_liftQD q p₀ z)) := fun z =>
+    (hconv _ _).mul_const _
+  have htail : Tendsto (fun n => c' (n + N)) atTop (𝓝 c'₀) := by
+    refine s27v_fricke_tendsto hg hS hp₀ G (mn := fun n => ⟨X (n + N), e (n + N), hqc (n + N)⟩)
+      (m := ⟨X₀, e₀, hqc₀⟩) hk20 hk2 (fun n => ?_) ?_ ?_ (fun n => hc' (n + N)) hc'₀
+    · exact s27v_isBeltramiCoeff_mono (s27v_liftCoeff_deformation_bound hp₀ (hT (n + N)))
+        (hN (n + N) (Nat.le_add_left N n)).le
+    · exact s27v_isBeltramiCoeff_mono (s27v_liftCoeff_deformation_bound hp₀ hT₀) (by linarith)
+    · filter_upwards [ae_all_iff.2 fun n => s27v_liftCoeff_teichmullerMap hp₀
+          (teichDeformation_isTeichmullerMap (hT (n + N))),
+        s27v_liftCoeff_teichmullerMap hp₀ (teichDeformation_isTeichmullerMap hT₀)] with z hzn hz
+      show Tendsto (fun n => s27u_liftCoeff p₀ (e (n + N)) z) atTop (𝓝 (s27u_liftCoeff p₀ e₀ z))
+      rw [hz.2]
+      refine Tendsto.congr (fun n => ((hzn n).2).symm) ?_
+      have hψN : Tendsto (fun n => utm_liftQD (qn (n + N)) p₀ z) atTop (𝓝 (utm_liftQD q p₀ z)) :=
+        (hψ z).comp (tendsto_add_atTop_nat N)
+      have hkN : Tendsto (fun n => kn (n + N)) atTop (𝓝 k) := hkconv.comp (tendsto_add_atTop_nat N)
+      refine (((Complex.continuous_ofReal.tendsto k).comp hkN).mul
+        ((Complex.continuous_conj.tendsto _).comp hψN)).div
+        ((Complex.continuous_ofReal.tendsto _).comp hψN.norm) ?_
+      exact Complex.ofReal_ne_zero.2 (norm_ne_zero_iff.2 hz.1)
+  rw [hc0]
+  exact ((tendsto_add_atTop_iff_nat N).1 htail).congr fun n => (hcn' n).symm
 
 /-- (27.16)–(27.17): if `qₙ → q` and `kₙ → k` (`k ∈ (0, 1)`), the normalized lifts `f̃ₙ` of the
 deformation maps `fₙ : S₀ → S_{qₙ,kₙ}`, whose complex dilatations are `kₙ φ̄ₙ/|φₙ|`, converge to the
@@ -4668,7 +5921,45 @@ theorem eq27_17_lifts_converge [T2Space S₀] [ConnectedSpace S₀] [IsManifold 
     (hm : IsDeformationPoint q k (Quot.mk _ m)) {cn : ℕ → Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ)}
     {c : Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ)} (hcn : ∀ n, IsFrickeCoords p₀ G (mn n) (cn n))
     (hc : IsFrickeCoords p₀ G m c) : Tendsto cn atTop (𝓝 c) := by
-  sorry
+  exact s27v_eq27_17 hg hS hp₀ G hqn hq hne hconv hkn hk hk' hkconv hmn hm hcn hc
+
+/-- **The base point is no deformation point with `k > 0`** (the case `Ψ(0) = Ψ(v)`, `v ≠ 0`, of the injectivity
+in Lemma 27.1).  If a biholomorphic `c : S₀ → X` is homotopic to the Teichmüller deformation map
+`e' : S₀ → S_{q,k}`, then `k > 0` is impossible: `e'⁻¹` is a Teichmüller map with constant `k` ([S7a],
+`utm_x_teichmullerMap_symm`) homotopic to the conformal `c⁻¹`, so `thm26_2_uniqueness_of_uniformization` on the
+uniformized target `S₀ = ℍ/Γ₀` gives `(1 + k)/(1 - k) ≤ K[c⁻¹] ≤ 1`. -/
+theorem s27w_not_base_equiv [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {q : S₀ → ℂ → ℂ} {k : ℝ} {X : ClosedRS.{u}}
+    {e' : S₀ ≃ₜ X.carrier} {q' : X.carrier → ℂ → ℂ} (hT : IsTeichDeformation q k X e' q') (hk : 0 < k)
+    {c : S₀ ≃ₜ X.carrier} (hc : IsBiholomorphic c)
+    (hhom : ContinuousMap.Homotopic (c : C(S₀, X.carrier)) (e' : C(S₀, X.carrier)))
+    {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀}
+    (hp₀ : IsUniformization Γ₀ p₀) : False := by
+  have hX : HasGenus X.carrier g := hasGenus_of_homeomorph hS e'
+  have hi := utm_x_teichmullerMap_symm (teichDeformation_isTeichmullerMap hT)
+  have hc1 : IsKQCRS c.symm 1 := (isKQCRS_one_iff c.symm).2 hc.homeomorph_symm
+  have hhom' : ContinuousMap.Homotopic ((e'.symm : X.carrier ≃ₜ S₀) : C(X.carrier, S₀))
+      ((c.symm : X.carrier ≃ₜ S₀) : C(X.carrier, S₀)) := by
+    have h1 := ContinuousMap.Homotopic.comp
+      (ContinuousMap.Homotopic.comp (ContinuousMap.Homotopic.refl (c.symm : C(X.carrier, S₀))) hhom)
+      (ContinuousMap.Homotopic.refl (e'.symm : C(X.carrier, S₀)))
+    have ea : ((c.symm : C(X.carrier, S₀)).comp (c : C(S₀, X.carrier))).comp (e'.symm : C(X.carrier, S₀)) =
+        (e'.symm : C(X.carrier, S₀)) := by
+      ext x
+      simp
+    have eb : ((c.symm : C(X.carrier, S₀)).comp (e' : C(S₀, X.carrier))).comp (e'.symm : C(X.carrier, S₀)) =
+        (c.symm : C(X.carrier, S₀)) := by
+      ext x
+      simp
+    rw [ea, eb] at h1
+    exact h1
+  obtain ⟨hineq, -⟩ := thm26_2_uniqueness_of_uniformization hg hX hS hi ⟨1, hc1⟩ hhom' hp₀
+  have hle : maxDilatationRS c.symm ≤ 1 := by simpa using maxDilatationRS_le hc1
+  have h1k : 0 < 1 - k := by linarith [hT.k_lt_one]
+  have hK : 1 < (1 + k) / (1 - k) := (one_lt_div h1k).2 (by linarith)
+  have h2 := hineq.trans hle
+  rw [← ENNReal.ofReal_one, ENNReal.ofReal_le_ofReal_iff zero_le_one] at h2
+  linarith
 
 /-- **Lemma 27.1**: the composite `Ψ ∘ Φ : T̃(S₀) → F(S₀)` is a continuous injective map (with
 `T̃(S₀)` the open unit ball of `ℝ^{6g-6}` via `(q, k) ↦ k · e(q)`, `‖e(q)‖ = 1`). -/
@@ -4681,7 +5972,139 @@ theorem lemma27_1_continuous_injective [T2Space S₀] [ConnectedSpace S₀] [IsM
       ContinuousOn Ψ (ball 0 1) ∧ InjOn Ψ (ball 0 1) ∧
       ∀ (q : (holQuadDiffSubmodule S₀).restrictScalars ℝ) (k : ℝ), ‖e q‖ = 1 → 0 < k → k < 1 →
         ∀ m : MarkedRS S₀, IsDeformationPoint q k (Quot.mk _ m) → IsFrickeCoords p₀ G m (Ψ (k • e q)) := by
-  sorry
+  have hbij := thm27_fricke_bijection hg hS hp₀ G
+  -- a marked surface for every `v`: the deformation `S_{e⁻¹(v/‖v‖), ‖v‖}` for `0 < ‖v‖ < 1`, `[S₀, id]` at `0`
+  have hMex : ∀ v : EuclideanSpace ℝ (Fin (6 * g - 6)), ∃ m : MarkedRS S₀,
+      (v = 0 → m = ⟨⟨S₀⟩, Homeomorph.refl S₀, isQCRS_refl⟩) ∧
+      (v ≠ 0 → ‖v‖ < 1 → ∃ q' : m.X.carrier → ℂ → ℂ,
+        IsTeichDeformation (e.symm (‖v‖⁻¹ • v) : S₀ → ℂ → ℂ) ‖v‖ m.X m.marking q') := by
+    intro v
+    by_cases hv : v ≠ 0 ∧ ‖v‖ < 1
+    · have hq0 : (e.symm (‖v‖⁻¹ • v) : S₀ → ℂ → ℂ) ≠ 0 := by
+        intro h0
+        have h1 : e.symm (‖v‖⁻¹ • v) = 0 := Submodule.coe_eq_zero.1 h0
+        rw [LinearEquiv.map_eq_zero_iff] at h1
+        exact hv.1 ((smul_eq_zero.1 h1).resolve_left (inv_ne_zero (norm_ne_zero_iff.2 hv.1)))
+      obtain ⟨X, e', q', hT⟩ := exists_teichDeformation (q := (e.symm (‖v‖⁻¹ • v) : S₀ → ℂ → ℂ))
+        (e.symm (‖v‖⁻¹ • v)).2 hq0 (norm_nonneg v) hv.2
+      exact ⟨⟨X, e', (teichDeformation_isTeichmullerMap hT).qc⟩, fun h => absurd h hv.1, fun _ _ => ⟨q', hT⟩⟩
+    · exact ⟨⟨⟨S₀⟩, Homeomorph.refl S₀, isQCRS_refl⟩, fun _ => rfl, fun h1 h2 => absurd ⟨h1, h2⟩ hv⟩
+  choose M hM0 hMd using hMex
+  choose Ψ hΨ using fun v => hbij.1 (M v)
+  -- the lifted coefficient of `M v` is bounded by `‖v‖`
+  have hbd : ∀ v : EuclideanSpace ℝ (Fin (6 * g - 6)), ‖v‖ < 1 →
+      IsBeltramiCoeff (s27u_liftCoeff p₀ (M v).marking) upperHalf ‖v‖ := by
+    intro v hv1
+    by_cases hv0 : v = 0
+    · subst hv0
+      rw [hM0 0 rfl]
+      have h1 : IsKQCRS (Homeomorph.refl S₀) 1 := (isKQCRS_one_iff _).2 isBiholomorphic_id
+      exact s27v_isBeltramiCoeff_mono (s27u_liftCoeff_isBeltramiCoeff hp₀ h1) (by rw [norm_zero]; norm_num)
+    · obtain ⟨q', hT⟩ := hMd v hv0 hv1
+      exact s27v_liftCoeff_deformation_bound hp₀ hT
+  -- `v` is recovered from `e⁻¹(v/‖v‖)` and `‖v‖`
+  have hrec : ∀ w : EuclideanSpace ℝ (Fin (6 * g - 6)), w ≠ 0 →
+      ‖e (e.symm (‖w‖⁻¹ • w))‖ = 1 ∧ ‖w‖ • e (e.symm (‖w‖⁻¹ • w)) = w := by
+    intro w hw
+    have hw' : ‖w‖ ≠ 0 := norm_ne_zero_iff.2 hw
+    rw [LinearEquiv.apply_symm_apply, norm_smul, norm_inv, norm_norm, inv_mul_cancel₀ hw', smul_smul,
+      mul_inv_cancel₀ hw', one_smul]
+    exact ⟨rfl, rfl⟩
+  refine ⟨Ψ, ?_, ?_, ?_⟩
+  · -- continuity, sequentially
+    intro v hv
+    have hv1 : ‖v‖ < 1 := mem_ball_zero_iff.1 hv
+    refine ContinuousAt.continuousWithinAt ?_
+    refine tendsto_nhds_iff_seq_tendsto.2 fun u hu => ?_
+    by_cases hv0 : v = 0
+    · -- at `0`: the lifted coefficients are bounded by `‖u n‖ → 0` (`s27v_fricke_tendsto`)
+      subst hv0
+      obtain ⟨N, hN⟩ := eventually_atTop.1
+        (hu.eventually_mem (isOpen_ball.mem_nhds (mem_ball_self (by norm_num : (0 : ℝ) < 1 / 2))))
+      have hN' : ∀ n, ‖u (n + N)‖ < 1 / 2 := fun n => mem_ball_zero_iff.1 (hN (n + N) (Nat.le_add_left N n))
+      have hb0 : ∀ᵐ z ∂(volume.restrict upperHalf), s27u_liftCoeff p₀ (M 0).marking z = 0 := by
+        rw [hM0 0 rfl]
+        exact (s27v_base hp₀ G).2
+      have hae : ∀ᵐ z ∂(volume.restrict upperHalf), ∀ n,
+          ‖s27u_liftCoeff p₀ (M (u (n + N))).marking z‖ ≤ ‖u (n + N)‖ :=
+        ae_all_iff.2 fun n => (hbd _ (by linarith [hN' n])).2
+      have htail : Tendsto (fun n => Ψ (u (n + N))) atTop (𝓝 (Ψ 0)) := by
+        refine s27v_fricke_tendsto hg hS hp₀ G (mn := fun n => M (u (n + N))) (m := M 0) (k := 1 / 2)
+          (by norm_num) (by norm_num)
+          (fun n => s27v_isBeltramiCoeff_mono (hbd _ (by linarith [hN' n])) (hN' n).le)
+          (s27v_isBeltramiCoeff_mono (hbd 0 (by rw [norm_zero]; norm_num)) (by rw [norm_zero]; norm_num)) ?_
+          (fun n => hΨ (u (n + N))) (hΨ 0)
+        filter_upwards [hae, hb0] with z hz hz0
+        rw [hz0]
+        have hn := (hu.comp (tendsto_add_atTop_nat N)).norm
+        rw [norm_zero] at hn
+        exact squeeze_zero_norm hz hn
+      exact (tendsto_add_atTop_iff_nat N).1 htail
+    · -- at `v ≠ 0`: (27.16)–(27.17), `eq27_17_lifts_converge`
+      obtain ⟨N, hN⟩ := eventually_atTop.1 ((hu.eventually_ne hv0).and (hu.eventually_mem (isOpen_ball.mem_nhds hv)))
+      have hN' : ∀ n, u (n + N) ≠ 0 ∧ ‖u (n + N)‖ < 1 := fun n =>
+        ⟨(hN (n + N) (Nat.le_add_left N n)).1, mem_ball_zero_iff.1 (hN (n + N) (Nat.le_add_left N n)).2⟩
+      have huN : Tendsto (fun n => u (n + N)) atTop (𝓝 v) := hu.comp (tendsto_add_atTop_nat N)
+      choose q'n hTn using fun n => hMd (u (n + N)) (hN' n).1 (hN' n).2
+      obtain ⟨q'v, hTv⟩ := hMd v hv0 hv1
+      have hdir : Tendsto (fun n => ‖u (n + N)‖⁻¹ • u (n + N)) atTop (𝓝 (‖v‖⁻¹ • v)) :=
+        (huN.norm.inv₀ (norm_ne_zero_iff.2 hv0)).smul huN
+      have hconv : ∀ x z, Tendsto (fun n => (e.symm (‖u (n + N)‖⁻¹ • u (n + N)) : S₀ → ℂ → ℂ) x z) atTop
+          (𝓝 ((e.symm (‖v‖⁻¹ • v) : S₀ → ℂ → ℂ) x z)) := by
+        intro x z
+        let L : EuclideanSpace ℝ (Fin (6 * g - 6)) →ₗ[ℝ] ℂ :=
+          (LinearMap.proj z).comp ((LinearMap.proj x).comp
+            (((holQuadDiffSubmodule S₀).restrictScalars ℝ).subtype.comp e.symm.toLinearMap))
+        exact (L.continuous_of_finiteDimensional.tendsto _).comp hdir
+      have htail := eq27_17_lifts_converge hg hS hp₀ G
+        (qn := fun n => (e.symm (‖u (n + N)‖⁻¹ • u (n + N)) : S₀ → ℂ → ℂ))
+        (q := (e.symm (‖v‖⁻¹ • v) : S₀ → ℂ → ℂ)) (kn := fun n => ‖u (n + N)‖) (k := ‖v‖)
+        (mn := fun n => M (u (n + N))) (m := M v)
+        (fun n => (e.symm (‖u (n + N)‖⁻¹ • u (n + N))).2) (e.symm (‖v‖⁻¹ • v)).2 hTv.initial_ne hconv
+        (fun n => ⟨norm_nonneg _, (hN' n).2⟩) (norm_pos_iff.2 hv0) hv1 huN.norm
+        (fun n => ⟨(M (u (n + N))).X, (M (u (n + N))).marking, (M (u (n + N))).qc, q'n n, hTn n, rfl⟩)
+        ⟨(M v).X, (M v).marking, (M v).qc, q'v, hTv, rfl⟩ (fun n => hΨ (u (n + N))) (hΨ v)
+      exact (tendsto_add_atTop_iff_nat N).1 htail
+  · -- injectivity: equal coordinates give equivalent marked surfaces (`thm27_fricke_bijection`)
+    intro v hv v' hv' hΨv
+    have hE : (M v).Equiv (M v') := (hbij.2 (M v) (M v') (Ψ v) (Ψ v') (hΨ v) (hΨ v')).2 hΨv
+    have hv1 : ‖v‖ < 1 := mem_ball_zero_iff.1 hv
+    have hv1' : ‖v'‖ < 1 := mem_ball_zero_iff.1 hv'
+    by_cases hv0 : v = 0 <;> by_cases hv0' : v' = 0
+    · rw [hv0, hv0']
+    · exfalso
+      rw [hv0, hM0 0 rfl] at hE
+      obtain ⟨q', hT⟩ := hMd v' hv0' hv1'
+      obtain ⟨c, hc, hhom⟩ := hE
+      exact s27w_not_base_equiv hg hS hT (norm_pos_iff.2 hv0') (hc.comp isBiholomorphic_id) hhom hp₀
+    · exfalso
+      rw [hv0', hM0 0 rfl] at hE
+      obtain ⟨q', hT⟩ := hMd v hv0 hv1
+      obtain ⟨c, hc, hhom⟩ := markedRS_equiv_equivalence.symm hE
+      exact s27w_not_base_equiv hg hS hT (norm_pos_iff.2 hv0) (hc.comp isBiholomorphic_id) hhom hp₀
+    · obtain ⟨q', hT⟩ := hMd v hv0 hv1
+      obtain ⟨q'', hT'⟩ := hMd v' hv0' hv1'
+      obtain ⟨hk, hq⟩ := s27w_injective_core hg hS e (hrec v hv0).1 (hrec v' hv0').1 (norm_pos_iff.2 hv0) hv1
+        (norm_pos_iff.2 hv0') hv1' ⟨(M v).X, (M v).marking, (M v).qc, q', hT, rfl⟩
+        ⟨(M v').X, (M v').marking, (M v').qc, q'', hT', Quot.sound hE⟩ hp₀
+      calc v = ‖v‖ • e (e.symm (‖v‖⁻¹ • v)) := (hrec v hv0).2.symm
+        _ = ‖v'‖ • e (e.symm (‖v'‖⁻¹ • v')) := by rw [hq, hk]
+        _ = v' := (hrec v' hv0').2
+  · -- the coordinate clause: `Φ` is well defined (`isDeformationPoint_unique`) and Fricke coordinates are class
+    -- invariants
+    intro q k hq hk hk1 m hm
+    set v := k • e q with hvdef
+    have hvn : ‖v‖ = k := by rw [hvdef, norm_smul, Real.norm_eq_abs, abs_of_pos hk, hq, mul_one]
+    have hv0 : v ≠ 0 := fun h => by rw [h, norm_zero] at hvn; linarith
+    have hvq : e.symm (‖v‖⁻¹ • v) = q := by
+      rw [hvn, hvdef, smul_smul, inv_mul_cancel₀ hk.ne', one_smul, LinearEquiv.symm_apply_apply]
+    obtain ⟨q', hT⟩ := hMd v hv0 (by rw [hvn]; exact hk1)
+    rw [hvq, hvn] at hT
+    have hp : (Quot.mk _ (M v) : TeichSpace S₀) = Quot.mk _ m :=
+      isDeformationPoint_unique hg hS ⟨(M v).X, (M v).marking, (M v).qc, q', hT, rfl⟩ hm
+    have hE : (M v).Equiv m := markedRS_equiv_equivalence.eqvGen_iff.1 (Quot.eqvGen_exact hp)
+    obtain ⟨c, hc⟩ := hbij.1 m
+    rwa [s27v_fricke_eq_of_equiv hg hS hp₀ G hE (hΨ v) hc]
 
 /-- §27.2 (the proof of Lemma 27.2): the Beltrami coefficient `μ` of a normalized lift `f̃`
 satisfies `μ(z) = μ(γ(z)) conj γ'(z)/γ'(z)` for `γ ∈ G₀`, and so does `μ_t = tμ`; the normalized
@@ -4694,14 +6117,14 @@ theorem lemma27_2_path [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ
     (m : MarkedRS S₀) {c : Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ)} (hc : IsFrickeCoords p₀ G m c) :
     ∃ path : ℝ → Fin (g - 1) → (ℝ × ℝ × ℝ) × (ℝ × ℝ × ℝ), ContinuousOn path (Icc 0 1) ∧
       path 1 = c ∧ path 0 = frickeCoordinates G ∧ ∀ t ∈ Icc (0 : ℝ) 1, path t ∈ frickeSpace p₀ G := by
-  sorry
+  exact s27v_lemma27_2_path hg hS hp₀ G m hc
 
 /-- **Lemma 27.2**: `F(S₀)` is (path) connected. -/
 theorem lemma27_2_connected [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
     {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
     {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (G : StandardGenerators Γ₀ g) :
     IsPathConnected (frickeSpace p₀ G) := by
-  sorry
+  exact s27v_lemma27_2_connected hg hS hp₀ G
 
 /-- The image `Ψ ∘ Φ(T̃(S₀)) ⊆ F(S₀)`: the Fricke coordinates of the Teichmüller deformations. -/
 def deformationImage {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {g : ℕ} (p₀ : UpperHalfPlane → S₀)
@@ -4709,23 +6132,9 @@ def deformationImage {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} 
   {c | ∃ (m : MarkedRS S₀) (q : S₀ → ℂ → ℂ) (k : ℝ), IsDeformationPoint q k (Quot.mk _ m) ∧
     IsFrickeCoords p₀ G m c}
 
-/-- §27.2: by Lemma 27.1 and Brouwer's invariance of domain, `Ψ ∘ Φ(T̃(S₀))` is open. -/
-theorem deformationImage_isOpen [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
-    {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
-    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (G : StandardGenerators Γ₀ g) :
-    IsOpen (deformationImage p₀ G) := by
-  sorry
 
-/-- **Lemma 27.3**: no boundary point of `Ψ ∘ Φ(T̃(S₀))` lies in `F(S₀)`.  (Along the path
-`t ↦ Ψ([S_t, f_t])` from `χ₀ = Ψ([S₀, id])` the first point `t*` outside the image would be a boundary
-point; but for `tₙ → t*` the deformations `S_{qₙ,kₙ}` representing `[S_{tₙ}, f_{tₙ}]` have
-`kₙ ≤ (K[f] - 1)/(K[f] + 1) < 1`, so they stay in a smaller ball and cannot approach the boundary
-of `T̃(S₀)`.) -/
-theorem lemma27_3_boundary [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
-    {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
-    {p₀ : UpperHalfPlane → S₀} (hp₀ : IsUniformization Γ₀ p₀) (G : StandardGenerators Γ₀ g) :
-    ∀ c ∈ frontier (deformationImage p₀ G), c ∉ frickeSpace p₀ G := by
-  sorry
+
+
 
 /-- §27.2: the dilatation bound in the proof of Lemma 27.3: `K[f_t] ≤ (1 + t‖μ‖_∞)/(1 - t‖μ‖_∞) ≤ K[f]`
 for `t ∈ [0, 1]`, so the Teichmüller deformation in the class of `(S_t, f_t)` has `k ≤ (K[f]-1)/(K[f]+1)`. -/
@@ -4733,44 +6142,81 @@ theorem lemma27_3_dilatation_bound [T2Space S₀] [ConnectedSpace S₀] [IsManif
     {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) (m : MarkedRS S₀) {q : S₀ → ℂ → ℂ} {k : ℝ}
     (h : IsDeformationPoint q k (Quot.mk _ m)) :
     ENNReal.ofReal ((1 + k) / (1 - k)) ≤ maxDilatationRS m.marking := by
-  sorry
+  -- UTM's companion `lemma27_3_dilatation_bound_of_uniformization`, with the uniformization of the deformation
+  -- surface `S_{q,k}` supplied by S22 (`s29_m_equiv_of_eq` inlined)
+  obtain ⟨X, e, _hqc, _q', hT, hp⟩ := h
+  obtain ⟨c, hc, hhom⟩ := (Equivalence.eqvGen_iff markedRS_equiv_equivalence).1 (Quot.eqvGen_exact hp)
+  obtain ⟨hqcf, hle⟩ := s29_m_maxDil_conj_biholo m.qc (c₁ := Homeomorph.refl S₀) isBiholomorphic_id hc
+  have h₁ : HasGenus X.carrier g := hasGenus_of_homeomorph hS e
+  obtain ⟨Γ₁, p₁, -, -, hp₁⟩ := s22hg_exists_fuchsian_uniformization hg h₁
+  have hhom' : ContinuousMap.Homotopic (e : C(S₀, X.carrier))
+      (((Homeomorph.refl S₀).trans (m.marking.trans c) : S₀ ≃ₜ X.carrier) : C(S₀, X.carrier)) :=
+    hhom.symm
+  exact (thm26_2_uniqueness_of_uniformization hg hS h₁ (teichDeformation_isTeichmullerMap hT) hqcf hhom'
+    hp₁).1.trans hle
 
-/-- §27.2: `Ψ ∘ Φ` maps `T̃(S₀)` homeomorphically onto `F(S₀)`: the image is a connected open subset
-of the connected set `F(S₀)` without boundary points in `F(S₀)`, hence all of `F(S₀)`; the
-continuity of the inverse follows from continuity and injectivity on the ball (Brouwer). -/
-theorem deformationImage_eq_frickeSpace [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
-    [CompactSpace S₀] {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g)
-    {Γ₀ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p₀ : UpperHalfPlane → S₀}
-    (hp₀ : IsUniformization Γ₀ p₀) (G : StandardGenerators Γ₀ g) :
-    deformationImage p₀ G = frickeSpace p₀ G ∧ IsOpen (frickeSpace p₀ G) := by
-  sorry
 
-/-- **Theorem 27.2 (Teichmüller 存在性定理).**  Let `S₀`, `S` be closed Riemann surfaces of genus `g > 1`
-and `f : S₀ → S` an orientation preserving homeomorphism.  Then there is a Teichmüller map
-`f₀ : S₀ → S` homotopic to `f` (`f₀ = h ∘ f₁` with `f₁` a Teichmüller deformation map and `h`
-conformal; its initial differential is `q` and its terminal differential is the transport of `q₁`
-by `h`).  Together with Theorem 26.2: the extremal map in every homotopy class exists, is unique,
-and is a Teichmüller map (or conformal). -/
-theorem thm27_2_existence [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
-    {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S] [ConnectedSpace S]
-    [IsManifold 𝓘(ℂ) ω S] {g : ℕ} (hg : 1 < g) (h₀ : HasGenus S₀ g) (h₁ : HasGenus S g)
-    (f : S₀ ≃ₜ S) (hf : IsOrientationPreservingRS f) :
-    ∃ f₀ : S₀ ≃ₜ S, ContinuousMap.Homotopic (f : C(S₀, S)) (f₀ : C(S₀, S)) ∧
-      (IsBiholomorphic f₀ ∨ ∃ (q : S₀ → ℂ → ℂ) (q' : S → ℂ → ℂ) (k : ℝ), IsTeichmullerMap f₀ q q' k) ∧
-      IsExtremalInHomotopyClass f₀ ∧
-      ∀ h : S₀ ≃ₜ S, IsExtremalInHomotopyClass h → ContinuousMap.Homotopic (f : C(S₀, S)) (h : C(S₀, S)) →
-        ⇑h = ⇑f₀ := by
-  sorry
 
-/-- §27.2: every point of `T(S₀)` is `[S_{q,k}, f]` for a unique `(q, k)` with `‖e(q)‖ = 1`
-(`q` irrelevant when `k = 0`): `Φ : T̃(S₀) → T(S₀)` is a bijection, so `T(S₀)` is described by
-`6g - 6` real parameters. -/
-theorem teichSpace_deformation_bijection [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
-    [CompactSpace S₀] {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g)
-    (e : (holQuadDiffSubmodule S₀).restrictScalars ℝ ≃ₗ[ℝ] EuclideanSpace ℝ (Fin (6 * g - 6))) :
-    ∀ p : TeichSpace S₀, (∃ m : MarkedRS S₀, p = Quot.mk _ m ∧ IsBiholomorphic m.marking) ∨
-      ∃! qk : (holQuadDiffSubmodule S₀).restrictScalars ℝ × ℝ,
-        ‖e qk.1‖ = 1 ∧ 0 < qk.2 ∧ qk.2 < 1 ∧ IsDeformationPoint qk.1 qk.2 p := by
-  sorry
+/-! ### Helper moved up from `Lemmas/UniformizedTeichmuller` (s30t stage 0, leader decision): a uniformizing
+group is Fuchsian (`utm_x2_isFuchsian`) -/
+
+/-- **Proper discontinuity** (the content of [S6], placed before [S5], which uses it): for a uniformization `p` of
+a Hausdorff surface and a compact `C ⊆ ℍ`, only finitely many `γ ∈ Γ` have `γ C ∩ C ≠ ∅`.  An injective sequence
+`γₙ` with `γₙ cₙ ∈ C` has a subsequence with `cₙ → c`, `γₙ cₙ → c'`; `p c = p c'` gives `c' = g c`, and for large
+`n` the points `cₙ`, `g⁻¹ γₙ cₙ` of one fibre lie in a sheet around `c`, so `g⁻¹ γₙ = ±1` (`ActsFreely`). -/
+theorem utm_x2_isFuchsian {S : Type*} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
+    {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} {p : UpperHalfPlane → S} (hp : IsUniformization Γ p) :
+    IsFuchsian Γ := by
+  intro C hC
+  by_contra hinf
+  have hfree := s27g_actsFreely hp
+  let e := Set.Infinite.natEmbedding _ hinf
+  set γs : ℕ → Matrix.SpecialLinearGroup (Fin 2) ℝ := fun n => (e n : Matrix.SpecialLinearGroup (Fin 2) ℝ)
+    with hγs
+  have hγinj : Function.Injective γs := fun m n h => e.injective (Subtype.ext h)
+  have hγΓ : ∀ n, γs n ∈ Γ := fun n => (e n).2.1
+  have hex : ∀ n, ∃ c ∈ C, γs n • c ∈ C := by
+    intro n
+    obtain ⟨_, ⟨c, hc, rfl⟩, hy⟩ := (e n).2.2
+    exact ⟨c, hc, hy⟩
+  choose c hcC hγcC using hex
+  have hpair : ∀ n, (c n, γs n • c n) ∈ C ×ˢ C := fun n => ⟨hcC n, hγcC n⟩
+  obtain ⟨⟨a, a'⟩, -, φ, hφ, hlim⟩ := (hC.prod hC).tendsto_subseq hpair
+  have h1 : Tendsto (fun k => c (φ k)) atTop (𝓝 a) := (continuous_fst.tendsto _).comp hlim
+  have h2 : Tendsto (fun k => γs (φ k) • c (φ k)) atTop (𝓝 a') := (continuous_snd.tendsto _).comp hlim
+  have hpfib : ∀ n, p (γs n • c n) = p (c n) := fun n =>
+    ((hp.2.2.2 (c n) (γs n • c n)).2 ⟨γs n, hγΓ n, rfl⟩).symm
+  have hpa : p a = p a' := by
+    have t1 : Tendsto (fun k => p (c (φ k))) atTop (𝓝 (p a)) := (hp.1.continuous.tendsto a).comp h1
+    have t2 : Tendsto (fun k => p (γs (φ k) • c (φ k))) atTop (𝓝 (p a')) :=
+      (hp.1.continuous.tendsto a').comp h2
+    simp only [hpfib] at t2
+    exact tendsto_nhds_unique t1 t2
+  obtain ⟨g, hgΓ, hga⟩ := (hp.2.2.2 a a').1 hpa
+  have h3 : Tendsto (fun k => (g⁻¹ * γs (φ k)) • c (φ k)) atTop (𝓝 a) := by
+    have h := ((continuous_const_smul g⁻¹).tendsto a').comp h2
+    rw [← hga, inv_smul_smul] at h
+    refine h.congr fun k => ?_
+    simp only [Function.comp_apply, mul_smul]
+  obtain ⟨E, haE, hpE⟩ := hp.1.isLocalHomeomorph a
+  have hEn : E.source ∈ 𝓝 a := E.open_source.mem_nhds haE
+  have hev : ∀ᶠ k in atTop, γs (φ k) = g ∨ γs (φ k) = g * -1 := by
+    filter_upwards [h1 hEn, h3 hEn] with k hk1 hk3
+    have hmem : g⁻¹ * γs (φ k) ∈ Γ := Γ.mul_mem (Γ.inv_mem hgΓ) (hγΓ _)
+    have hpeq : p ((g⁻¹ * γs (φ k)) • c (φ k)) = p (c (φ k)) :=
+      ((hp.2.2.2 (c (φ k)) _).2 ⟨_, hmem, rfl⟩).symm
+    rw [hpE] at hpeq
+    have hfix : (g⁻¹ * γs (φ k)) • c (φ k) = c (φ k) := E.injOn hk3 hk1 hpeq
+    rcases hfree _ hmem _ hfix with h | h
+    · exact Or.inl (inv_mul_eq_one.1 h).symm
+    · exact Or.inr (inv_mul_eq_iff_eq_mul.1 h)
+  obtain ⟨N, hN⟩ := eventually_atTop.1 hev
+  have hinj : Function.Injective fun k => γs (φ (k + N)) := fun m n h =>
+    add_right_cancel (hφ.injective (hγinj h))
+  have hmem : ∀ k, γs (φ (k + N)) ∈ ({g, g * -1} : Set (Matrix.SpecialLinearGroup (Fin 2) ℝ)) := fun k => by
+    rcases hN (k + N) (Nat.le_add_left N k) with h | h
+    · exact Or.inl h
+    · exact Or.inr h
+  exact Set.infinite_of_injective_forall_mem hinj hmem (Set.toFinite _)
 
 end LiZhongQC

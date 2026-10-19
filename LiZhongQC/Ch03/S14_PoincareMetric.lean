@@ -35,7 +35,11 @@ a period box), the holomorphy of `e_j` in `w`, a row / `q`-series expansion of `
 `∂A`, cusp limits, asymptotics at `∞`), and a properness/degree argument (`mphi_isConformalOnto_of_W3`).  The
 book's route through `v = Λ(ρ)` is not used.
 
-The rest of §§14.2–14.3 is kept as `sorry`: the product expansions (14.23), (14.24).
+Also proved (2026-09-27): the product expansions (14.23), (14.24), so all of §14 is now proved.  They go through
+the σ-product `F(z) = sin(πz) ∏ (1 - q^{2n} e^{2πiz})(1 - q^{2n} e^{-2πiz})` of the lattice `ℤ + τℤ`
+(`q = e^{iπτ}`; block `s14w_`, just before `eq14_23`).  Liouville's theorem for elliptic functions gives the
+addition formula `℘(z) - ℘(u) = -F'(0)² F(z + u) F(z - u) / (F(z)² F(u)²)`; at the half periods, with (14.21), it
+gives (14.23) and (14.24).  The Jacobi triple product is not needed.
 Also proved (2026-09-25): the covering property of `φ` and (14.6), at the end of the file: `φ` is
 `Γ(2)`-invariant, open, onto `ℂ ∖ {0, 1}`, and its fibers are the `Γ(2)`-orbits (every point is
 `Γ(2)`-equivalent to one of `F = {|Re w| ≤ 1, |w ∓ 1/2| ≥ 1/2}`, `F = A ∪ (A - 1) ∪ sides`, `φ` is
@@ -3327,19 +3331,980 @@ theorem eq14_21 {v : ℝ} (hv : 0 < v) :
       (weierstrassE (v * I) 2 - weierstrassE (v * I) 1) := by
   exact rect_eq14_21_aux hv
 
+/-! ### (14.23)–(14.24) through a σ-product (`s14w_`)
+
+For `Im τ > 0` let `q = e^{iπτ}` and `F(z) = sin(πz) ∏_{n ≥ 1} (1 - q^{2n} e^{2πiz}) (1 - q^{2n} e^{-2πiz})`.
+Then `F` is entire and odd, `F(z + 1) = -F(z)`, `F(z + τ) = -q⁻¹ e^{-2πiz} F(z)`, and `F` has no zeros off
+the lattice `L = ℤ + τℤ`.  Comparing the double poles at `0` and applying Liouville for elliptic functions
+gives the addition formula `℘(z) - ℘(u) = -F'(0)² F(z + u) F(z - u) / (F(z)² F(u)²)`.  At the half periods,
+with `eq14_21`, it gives `λ = q F(τ/2)⁴ / F(1/2)⁴` and `λ + 1 = q F((1 + τ)/2)⁴ / F(1/2)⁴`, and the
+half-period values of `F` are explicit products.  This is the book's argument (pp. 93–94) in σ-product form;
+the Jacobi triple product is not needed. -/
+
+/-- The nome `q = e^{iπτ}` of the period `τ`. -/
+def s14w_nome (τ : ℂ) : ℂ := cexp (π * I * τ)
+
+/-- `q^{1/2} = e^{iπτ/2}`, written as an exponential so that no branch is chosen. -/
+def s14w_sqrtNome (τ : ℂ) : ℂ := cexp (π * I * τ / 2)
+
+/-- The σ-product of the lattice `ℤ + τℤ` (`q = e^{iπτ}`):
+`F(z) = sin(πz) ∏_{n ≥ 1} (1 - q^{2n} e^{2πiz}) ∏_{n ≥ 1} (1 - q^{2n} e^{-2πiz})`. -/
+def s14w_F (τ z : ℂ) : ℂ :=
+  Complex.sin (π * z) * (∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * cexp (2 * π * I * z))) *
+    ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * cexp (-(2 * π * I * z)))
+
+/-- SP1a. `‖q‖ < 1` on the upper half-plane.
+Truth: `‖e^{iπτ}‖ = e^{Re (iπτ)} = e^{-π Im τ} < 1`.
+Orientation: `Re (iπτ) = -π Im τ`; the nome is `e^{iπτ}`, not `e^{2πiτ}`, so `q² = e^{2πiτ}`. -/
+theorem s14w_norm_nome_lt_one {τ : ℂ} (hτ : 0 < τ.im) : ‖s14w_nome τ‖ < 1 := by
+  have hre : (↑π * I * τ).re = -(π * τ.im) := by
+    simp [Complex.mul_re, Complex.mul_im]
+  rw [s14w_nome, Complex.norm_exp, hre]
+  calc Real.exp (-(π * τ.im)) < Real.exp 0 := Real.exp_lt_exp.mpr (by nlinarith [Real.pi_pos])
+    _ = 1 := Real.exp_zero
+
+/-- For `‖q‖ < 1`, the norms `‖q^{2(n+1)} w‖ = (‖q‖²)^{n+1} ‖w‖` are summable. -/
+theorem s14w_summable_norm {q : ℂ} (hq : ‖q‖ < 1) (w : ℂ) :
+    Summable fun n : ℕ => ‖q ^ (2 * (n + 1)) * w‖ := by
+  have hq2 : ‖q‖ ^ 2 < 1 := by
+    have := norm_nonneg q
+    nlinarith
+  have hg : Summable fun n : ℕ => (‖q‖ ^ 2) ^ (n + 1) * ‖w‖ :=
+    ((summable_geometric_of_lt_one (by positivity) hq2).comp_injective
+      (add_left_injective 1)).mul_right _
+  refine hg.congr fun n => ?_
+  rw [norm_mul, norm_pow, ← pow_mul]
+
+/-- SP1b. The factors of both products of `F` form a multipliable sequence, for every `w`.
+Truth: `‖q^{2(n+1)} w‖ = (‖q‖²)^{n+1} ‖w‖` is summable by SP1a, then `multipliable_one_add_of_summable`
+(the s21r probe `h21r4_multipliable`).  Orientation: none. -/
+theorem s14w_multipliable {τ : ℂ} (hτ : 0 < τ.im) (w : ℂ) :
+    Multipliable fun n : ℕ => 1 - s14w_nome τ ^ (2 * (n + 1)) * w := by
+  have hs : Summable fun n : ℕ => ‖-(s14w_nome τ ^ (2 * (n + 1)) * w)‖ := by
+    simpa only [norm_neg] using s14w_summable_norm (s14w_norm_nome_lt_one hτ) w
+  simpa [sub_eq_add_neg] using multipliable_one_add_of_summable hs
+
+/-- For `‖q‖ < 1` and an entire `g`, the product `z ↦ ∏' n, (1 - q^{2(n+1)} g(z))` is entire: on each ball it
+converges locally uniformly (`hasProdLocallyUniformlyOn_nat_one_add`), as in `DedekindEta`. -/
+theorem s14w_differentiable_tprod {q : ℂ} (hq : ‖q‖ < 1) {g : ℂ → ℂ} (hg : Differentiable ℂ g) :
+    Differentiable ℂ fun z => ∏' n : ℕ, (1 - q ^ (2 * (n + 1)) * g z) := by
+  intro z₀
+  obtain ⟨M, hM⟩ := (isCompact_closedBall (0 : ℂ) (‖z₀‖ + 1)).exists_bound_of_continuousOn
+    hg.continuous.continuousOn
+  have hu : Summable fun n : ℕ => ‖q ^ (2 * (n + 1))‖ * M := by
+    simpa using (s14w_summable_norm hq 1).mul_right M
+  have hloc := Summable.hasProdLocallyUniformlyOn_nat_one_add (K := ball (0 : ℂ) (‖z₀‖ + 1))
+    (f := fun n z => -(q ^ (2 * (n + 1)) * g z)) isOpen_ball hu
+    (Eventually.of_forall fun n z hz => by
+      rw [norm_neg, norm_mul]
+      exact mul_le_mul_of_nonneg_left (hM z (ball_subset_closedBall hz)) (norm_nonneg _))
+    (fun n => (continuous_const.mul hg.continuous).neg.continuousOn)
+  have hd := hloc.differentiableOn (Eventually.of_forall fun s => by
+    simpa [Finset.prod_fn] using DifferentiableOn.finsetProd (fun i _ => by fun_prop)) isOpen_ball
+  have hz₀ : ball (0 : ℂ) (‖z₀‖ + 1) ∈ 𝓝 z₀ := isOpen_ball.mem_nhds (by simp)
+  simpa [sub_eq_add_neg] using hd.differentiableAt hz₀
+
+/-- SP1c. `F` is entire.
+Truth: on `{|Im z| < R}` the terms are bounded by `(‖q‖²)^{n+1} e^{2πR}`, so both products converge locally
+uniformly (`Summable.hasProdLocallyUniformlyOn_nat_one_add`) to differentiable limits
+(`TendstoLocallyUniformlyOn.differentiableOn`, the `DedekindEta` pattern); `sin` is entire.
+Orientation: none. -/
+theorem s14w_F_differentiable {τ : ℂ} (hτ : 0 < τ.im) : Differentiable ℂ (s14w_F τ) := by
+  have hq := s14w_norm_nome_lt_one hτ
+  have h1 := s14w_differentiable_tprod hq (g := fun z => cexp (2 * π * I * z)) (by fun_prop)
+  have h2 := s14w_differentiable_tprod hq (g := fun z => cexp (-(2 * π * I * z))) (by fun_prop)
+  have h0 : Differentiable ℂ fun z : ℂ => Complex.sin (π * z) := by fun_prop
+  exact (h0.mul h1).mul h2
+
+/-- SP2a. `F(z + 1) = -F(z)`, for every `τ`.
+Truth: `sin(π(z + 1)) = -sin(πz)` and `e^{±2πi(z + 1)} = e^{±2πiz}`, so both products are literally unchanged
+(no convergence is needed).  Orientation: the factor is `-1`, not `1`. -/
+theorem s14w_F_add_one (τ z : ℂ) : s14w_F τ (z + 1) = -s14w_F τ z := by
+  have e1 : cexp (2 * π * I * (z + 1)) = cexp (2 * π * I * z) := by
+    rw [show 2 * π * I * (z + 1) = 2 * π * I * z + 2 * π * I by ring, Complex.exp_add,
+      Complex.exp_two_pi_mul_I, mul_one]
+  have e2 : cexp (-(2 * π * I * (z + 1))) = cexp (-(2 * π * I * z)) := by
+    rw [show -(2 * π * I * (z + 1)) = -(2 * π * I * z) + -(2 * π * I) by ring, Complex.exp_add,
+      Complex.exp_neg (2 * π * I), Complex.exp_two_pi_mul_I, inv_one, mul_one]
+  have e3 : Complex.sin (π * (z + 1)) = -Complex.sin (π * z) := by
+    rw [show (π : ℂ) * (z + 1) = π * z + π by ring, Complex.sin_add_pi]
+  simp only [s14w_F, e1, e2, e3]
+  ring
+
+/-- SP2b. `F` is odd, for every `τ`.
+Truth: `sin` is odd and `z ↦ -z` swaps the two products (literally equal factor sequences).
+Orientation: none. -/
+theorem s14w_F_neg (τ z : ℂ) : s14w_F τ (-z) = -s14w_F τ z := by
+  have e1 : cexp (2 * π * I * -z) = cexp (-(2 * π * I * z)) := by
+    congr 1
+    ring
+  have e2 : cexp (-(2 * π * I * -z)) = cexp (2 * π * I * z) := by
+    congr 1
+    ring
+  have e3 : Complex.sin (π * -z) = -Complex.sin (π * z) := by rw [mul_neg, Complex.sin_neg]
+  simp only [s14w_F, e1, e2, e3]
+  ring
+
+/-- SP2c. `F(z + τ) = -q⁻¹ e^{-2πiz} F(z)`.
+Truth: `e^{2πi(z + τ)} = q² e^{2πiz}`.  Splitting off the `n = 0` factors (`tprod_eq_zero_mul'`, SP1b),
+`F(z) = sin(πz) (1 - q² e^{2πiz}) A B` and `F(z + τ) = sin(π(z + τ)) A (1 - e^{-2πiz}) B` with the same tails
+`A`, `B`, so no division is needed.  What remains is the Laurent identity
+`sin(π(z + τ)) (1 - e^{-2πiz}) = -q⁻¹ e^{-2πiz} sin(πz) (1 - q² e^{2πiz})` in `e^{iπz}` and `q`.
+Orientation: the factor is `-q⁻¹ e^{-2πiz}`, not `-q e^{2πiz}`. -/
+theorem s14w_F_add_tau {τ : ℂ} (hτ : 0 < τ.im) (z : ℂ) :
+    s14w_F τ (z + τ) = -(s14w_nome τ)⁻¹ * cexp (-(2 * π * I * z)) * s14w_F τ z := by
+  obtain ⟨X, hX⟩ : ∃ X, X = cexp (π * I * z) := ⟨_, rfl⟩
+  have hX0 : X ≠ 0 := hX ▸ Complex.exp_ne_zero _
+  have hq0 : s14w_nome τ ≠ 0 := Complex.exp_ne_zero _
+  have hE : cexp (2 * π * I * z) = X ^ 2 := by
+    rw [hX, ← Complex.exp_nat_mul]
+    congr 1
+    push_cast
+    ring
+  have hEτ : cexp (2 * π * I * (z + τ)) = X ^ 2 * s14w_nome τ ^ 2 := by
+    rw [hX, s14w_nome, ← Complex.exp_nat_mul, ← Complex.exp_nat_mul, ← Complex.exp_add]
+    congr 1
+    push_cast
+    ring
+  have hEm : cexp (-(2 * π * I * z)) = (X ^ 2)⁻¹ := by rw [Complex.exp_neg, hE]
+  have hEmτ : cexp (-(2 * π * I * (z + τ))) = (X ^ 2 * s14w_nome τ ^ 2)⁻¹ := by
+    rw [Complex.exp_neg, hEτ]
+  have hS : Complex.sin (π * z) = (X⁻¹ - X) * I / 2 := by
+    have e1 : cexp (-(↑π * z) * I) = X⁻¹ := by
+      rw [hX, ← Complex.exp_neg]
+      congr 1
+      ring
+    have e2 : cexp (↑π * z * I) = X := by
+      rw [hX]
+      congr 1
+      ring
+    rw [Complex.sin, e1, e2]
+  have hSτ : Complex.sin (π * (z + τ)) = ((X * s14w_nome τ)⁻¹ - X * s14w_nome τ) * I / 2 := by
+    have e2 : cexp (↑π * (z + τ) * I) = X * s14w_nome τ := by
+      rw [hX, s14w_nome, ← Complex.exp_add]
+      congr 1
+      ring
+    have e1 : cexp (-(↑π * (z + τ)) * I) = (X * s14w_nome τ)⁻¹ := by
+      rw [← e2, ← Complex.exp_neg]
+      congr 1
+      ring
+    rw [Complex.sin, e1, e2]
+  have hA : ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * X ^ 2) =
+      (1 - s14w_nome τ ^ 2 * X ^ 2) *
+        ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * (X ^ 2 * s14w_nome τ ^ 2)) := by
+    have hm : Multipliable fun n : ℕ => 1 - s14w_nome τ ^ (2 * (n + 1 + 1)) * X ^ 2 :=
+      (s14w_multipliable hτ (X ^ 2 * s14w_nome τ ^ 2)).congr fun n => by ring
+    rw [tprod_eq_zero_mul' (f := fun n : ℕ => 1 - s14w_nome τ ^ (2 * (n + 1)) * X ^ 2) hm]
+    congr 1
+    exact tprod_congr fun n => by ring
+  have hB : ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * (X ^ 2 * s14w_nome τ ^ 2)⁻¹) =
+      (1 - (X ^ 2)⁻¹) * ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * (X ^ 2)⁻¹) := by
+    have hm : Multipliable fun n : ℕ =>
+        1 - s14w_nome τ ^ (2 * (n + 1 + 1)) * (X ^ 2 * s14w_nome τ ^ 2)⁻¹ :=
+      (s14w_multipliable hτ (X ^ 2)⁻¹).congr fun n => by
+        field_simp
+        ring
+    rw [tprod_eq_zero_mul'
+      (f := fun n : ℕ => 1 - s14w_nome τ ^ (2 * (n + 1)) * (X ^ 2 * s14w_nome τ ^ 2)⁻¹) hm]
+    congr 1
+    · field_simp
+      ring
+    · exact tprod_congr fun n => by
+        field_simp
+        ring
+  simp only [s14w_F]
+  rw [hEτ, hEmτ, hE, hEm, hSτ, hS, hA, hB]
+  field_simp
+  ring
+
+/-- A function with period `p` is invariant under every integer multiple of `p`. -/
+theorem s14w_add_int_mul {G : ℂ → ℂ} {p : ℂ} (h : ∀ z, G (z + p) = G z) (k : ℤ) :
+    ∀ z, G (z + k * p) = G z := by
+  refine Int.induction_on k (fun z => by simp) (fun n ih z => ?_) (fun n ih z => ?_)
+  · calc G (z + ((n + 1 : ℤ) : ℂ) * p) = G ((z + ((n : ℤ) : ℂ) * p) + p) := by
+          congr 1
+          push_cast
+          ring
+      _ = G z := by rw [h, ih]
+  · calc G (z + ((-(n : ℤ) - 1 : ℤ) : ℂ) * p) = G ((z + ((-(n : ℤ) - 1 : ℤ) : ℂ) * p) + p) := (h _).symm
+      _ = G z := by
+          rw [← ih z]
+          congr 1
+          push_cast
+          ring
+
+/-- A function with periods `1` and `τ` is invariant under every translation of the lattice `ℤ + τℤ`.
+Truth: `l = m + kτ` (`wv_mem_lattice_one`), then induction on `m, k ∈ ℤ` in both directions (`G (z - 1) = G z`
+is `h1` at `z - 1`).  Orientation: none. -/
+theorem s14w_sub_lattice {τ : ℂ} (hτ : 0 < τ.im) {G : ℂ → ℂ} (h1 : ∀ z, G (z + 1) = G z)
+    (h2 : ∀ z, G (z + τ) = G z) (z : ℂ) {l : ℂ} (hl : l ∈ (periodPairOf τ hτ).lattice) :
+    G (z - l) = G z := by
+  obtain ⟨m, n, rfl⟩ := (wv_mem_lattice_one (L := periodPairOf τ hτ) rfl).1 hl
+  have hω : (periodPairOf τ hτ).ω₂ = τ := rfl
+  have e : z - ((m : ℂ) + n * (periodPairOf τ hτ).ω₂) = z + ((-n : ℤ) : ℂ) * τ + ((-m : ℤ) : ℂ) * 1 := by
+    rw [hω]
+    push_cast
+    ring
+  have h1' : ∀ z, G (z + 1) = G z := h1
+  rw [e, s14w_add_int_mul h1', s14w_add_int_mul h2]
+
+/-- `q^{2(n+1)} = e^{2πi (n+1) τ}`. -/
+theorem s14w_nome_pow (τ : ℂ) (n : ℕ) :
+    s14w_nome τ ^ (2 * (n + 1)) = cexp (2 * π * I * ((n + 1 : ℂ) * τ)) := by
+  rw [s14w_nome, ← Complex.exp_nat_mul]
+  congr 1
+  push_cast
+  ring
+
+/-- `e^{2πiw} = 1` only for an integer `w`. -/
+theorem s14w_exists_int_of_exp {w : ℂ} (h : cexp (2 * π * I * w) = 1) : ∃ m : ℤ, w = m := by
+  obtain ⟨m, hm⟩ := Complex.exp_eq_one_iff.1 h
+  refine ⟨m, ?_⟩
+  have h2 : (2 * π * I : ℂ) ≠ 0 := by simp [Real.pi_ne_zero, I_ne_zero]
+  have h0 : (2 * π * I : ℂ) * (w - m) = 0 := by linear_combination hm
+  rcases mul_eq_zero.1 h0 with h1 | h1
+  · exact absurd h1 h2
+  · exact sub_eq_zero.1 h1
+
+/-- `m + kτ` lies in the lattice `ℤ + τℤ`. -/
+theorem s14w_mem_lattice {τ : ℂ} (hτ : 0 < τ.im) (m k : ℤ) :
+    (m : ℂ) + k * τ ∈ (periodPairOf τ hτ).lattice :=
+  (wv_mem_lattice_one (L := periodPairOf τ hτ) rfl).2 ⟨m, k, rfl⟩
+
+/-- `∏' n, (1 - q^{2(n+1)} w) ≠ 0` for `‖q‖ < 1` and `‖w‖ ≤ 1`: every factor is nonzero and the product
+converges. -/
+theorem s14w_tprod_ne_zero {q : ℂ} (hq : ‖q‖ < 1) {w : ℂ} (hw : ‖w‖ ≤ 1) :
+    ∏' n : ℕ, (1 - q ^ (2 * (n + 1)) * w) ≠ 0 := by
+  have h := tprod_one_add_ne_zero_of_summable (f := fun n : ℕ => -(q ^ (2 * (n + 1)) * w))
+    (fun n hn => ?_) (by simpa only [norm_neg] using s14w_summable_norm hq w)
+  · simpa [sub_eq_add_neg] using h
+  · have h1 : q ^ (2 * (n + 1)) * w = 1 := by linear_combination -hn
+    have h2 : ‖q ^ (2 * (n + 1)) * w‖ < 1 := by
+      rw [norm_mul, norm_pow]
+      calc ‖q‖ ^ (2 * (n + 1)) * ‖w‖ ≤ ‖q‖ ^ (2 * (n + 1)) * 1 := by gcongr
+        _ < 1 := by
+          rw [mul_one]
+          exact pow_lt_one₀ (norm_nonneg q) hq (by omega)
+    rw [h1, norm_one] at h2
+    exact lt_irrefl 1 h2
+
+/-- SP3a. `F` has no zeros off the lattice.
+Truth: `sin(πz) = 0 ↔ z ∈ ℤ ⊆ L`; `1 - q^{2n} e^{2πiz} = 0 ↔ e^{2πi(z + nτ)} = 1 ↔ z + nτ ∈ ℤ`, and
+`1 - q^{2n} e^{-2πiz} = 0 ↔ nτ - z ∈ ℤ`, both forcing `z ∈ L`; a convergent product of nonzero factors is
+nonzero (`tprod_one_add_ne_zero_of_summable`).  Orientation: `q^{2n} = e^{2πinτ}` exactly. -/
+theorem s14w_F_ne_zero {τ : ℂ} (hτ : 0 < τ.im) {z : ℂ} (hz : z ∉ (periodPairOf τ hτ).lattice) :
+    s14w_F τ z ≠ 0 := by
+  have hq := s14w_norm_nome_lt_one hτ
+  have hsin : Complex.sin (π * z) ≠ 0 := by
+    intro h
+    obtain ⟨k, hk⟩ := Complex.sin_eq_zero_iff.1 h
+    have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_ne_zero
+    have hzk : z = (k : ℂ) + ((0 : ℤ) : ℂ) * τ := by
+      have h0 : (π : ℂ) * (z - k) = 0 := by linear_combination hk
+      rcases mul_eq_zero.1 h0 with h1 | h1
+      · exact absurd h1 hπ
+      · push_cast
+        linear_combination h1
+    exact hz (hzk ▸ s14w_mem_lattice hτ k 0)
+  have hA : ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * cexp (2 * π * I * z)) ≠ 0 := by
+    have h := tprod_one_add_ne_zero_of_summable
+      (f := fun n : ℕ => -(s14w_nome τ ^ (2 * (n + 1)) * cexp (2 * π * I * z))) (fun n hn => ?_)
+      (by simpa only [norm_neg] using s14w_summable_norm hq _)
+    · simpa [sub_eq_add_neg] using h
+    · obtain ⟨m, hm⟩ := s14w_exists_int_of_exp (w := z + (n + 1 : ℂ) * τ) (by
+        rw [mul_add, Complex.exp_add, ← s14w_nome_pow]
+        linear_combination -hn)
+      apply hz
+      have hzm : z = (m : ℂ) + ((-((n : ℤ) + 1)) : ℤ) * τ := by
+        push_cast
+        linear_combination hm
+      rw [hzm]
+      exact s14w_mem_lattice hτ _ _
+  have hB : ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * cexp (-(2 * π * I * z))) ≠ 0 := by
+    have h := tprod_one_add_ne_zero_of_summable
+      (f := fun n : ℕ => -(s14w_nome τ ^ (2 * (n + 1)) * cexp (-(2 * π * I * z)))) (fun n hn => ?_)
+      (by simpa only [norm_neg] using s14w_summable_norm hq _)
+    · simpa [sub_eq_add_neg] using h
+    · obtain ⟨m, hm⟩ := s14w_exists_int_of_exp (w := (n + 1 : ℂ) * τ - z) (by
+        rw [show 2 * π * I * ((n + 1 : ℂ) * τ - z) = 2 * π * I * ((n + 1 : ℂ) * τ) + -(2 * π * I * z) by ring,
+          Complex.exp_add, ← s14w_nome_pow]
+        linear_combination -hn)
+      apply hz
+      have hzm : z = ((-m : ℤ) : ℂ) + (((n : ℤ) + 1 : ℤ) : ℂ) * τ := by
+        push_cast
+        linear_combination -hm
+      rw [hzm]
+      exact s14w_mem_lattice hτ _ _
+  simp only [s14w_F]
+  exact mul_ne_zero (mul_ne_zero hsin hA) hB
+
+/-- SP3b. `F(0) = 0`, for every `τ`.  Truth: `sin 0 = 0`.  Orientation: none. -/
+theorem s14w_F_zero (τ : ℂ) : s14w_F τ 0 = 0 := by
+  simp [s14w_F]
+
+/-- SP3c. `F'(0) ≠ 0`; indeed `F'(0) = π ∏_{n ≥ 1} (1 - q^{2n})²`.
+Truth: `F = sin(π ·) P` with `P` the two products, differentiable at `0` (as in SP1c) and
+`P(0) = ∏ (1 - q^{2n})² ≠ 0`, so `F'(0) = π cos 0 · P(0) + sin 0 · P'(0) = π P(0)`.  Orientation: none. -/
+theorem s14w_deriv_F_zero_ne {τ : ℂ} (hτ : 0 < τ.im) : deriv (s14w_F τ) 0 ≠ 0 := by
+  have hq := s14w_norm_nome_lt_one hτ
+  have hA := s14w_differentiable_tprod hq (g := fun z => cexp (2 * π * I * z)) (by fun_prop)
+  have hB := s14w_differentiable_tprod hq (g := fun z => cexp (-(2 * π * I * z))) (by fun_prop)
+  have hs := ((hasDerivAt_id (0 : ℂ)).const_mul (π : ℂ)).csin
+  have hF : HasDerivAt (s14w_F τ) _ 0 := (hs.mul (hA 0).hasDerivAt).mul (hB 0).hasDerivAt
+  have hA0 : ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1))) ≠ 0 := by
+    simpa using s14w_tprod_ne_zero hq (w := 1) (by simp)
+  rw [hF.deriv]
+  simp [hA0, Real.pi_ne_zero]
+
+/-- For fixed `u`: `h(z) = ℘(z) - ℘(u) + F'(0)² F(z + u) F(z - u) / (F(z)² F(u)²)`.  Its vanishing off the
+lattice is the addition formula `s14w_weierstrassP_sub`. -/
+def s14w_h (τ : ℂ) (hτ : 0 < τ.im) (u z : ℂ) : ℂ :=
+  (periodPairOf τ hτ).weierstrassP z - (periodPairOf τ hτ).weierstrassP u +
+    deriv (s14w_F τ) 0 ^ 2 * s14w_F τ (z + u) * s14w_F τ (z - u) / (s14w_F τ z ^ 2 * s14w_F τ u ^ 2)
+
+/-- SP4a. For `u ∉ L`, near `0` the function `h` agrees off `0` with a function analytic at `0`.
+Truth: `℘(z) = ℘Except₀(z) + 1/z²` (`weierstrassPExcept_add` at `l₀ = 0`) and `F(z) = z G(z)` with
+`G = dslope F 0`, `G(0) = F'(0) ≠ 0` (SP3c).  So `g(z) = z² h(z)` extends analytically to `0` with
+`g(0) = 1 + F'(0)² F(u) F(-u) / (F'(0)² F(u)²) = 0` (`F` odd), and `g` is even (`℘` even, `F` odd, hence `G`
+even), so `g'(0) = 0` and `g = z² k` with `k` analytic at `0` (two `dslope`s).
+Orientation: the `+` sign in `s14w_h` is forced: with `-`, `g(0) = 2` and `h` keeps a double pole. -/
+theorem s14w_h_local {τ : ℂ} (hτ : 0 < τ.im) {u : ℂ} (hu : u ∉ (periodPairOf τ hτ).lattice) :
+    ∃ k : ℂ → ℂ, AnalyticAt ℂ k 0 ∧ ∀ᶠ z in 𝓝[≠] 0, s14w_h τ hτ u z = k z := by
+  have hFd := s14w_F_differentiable hτ
+  have hFu : s14w_F τ u ≠ 0 := s14w_F_ne_zero hτ hu
+  obtain ⟨d, hd⟩ : ∃ d, d = deriv (s14w_F τ) 0 := ⟨_, rfl⟩
+  have hd0 : d ≠ 0 := hd ▸ s14w_deriv_F_zero_ne hτ
+  obtain ⟨G, hG⟩ : ∃ G, G = dslope (s14w_F τ) 0 := ⟨_, rfl⟩
+  have hGd : Differentiable ℂ G := by
+    rw [hG, ← differentiableOn_univ, differentiableOn_dslope univ_mem]
+    exact hFd.differentiableOn
+  have hG0 : G 0 = d := by rw [hG, hd, dslope_same]
+  have hFG : ∀ z, s14w_F τ z = z * G z := by
+    intro z
+    have h := sub_smul_dslope (s14w_F τ) 0 z
+    rw [sub_zero, smul_eq_mul, s14w_F_zero, sub_zero, ← hG] at h
+    exact h.symm
+  have hGeven : ∀ z, G (-z) = G z := by
+    intro z
+    by_cases hz : z = 0
+    · rw [hz, neg_zero]
+    · have h1 : -z * G (-z) = -(z * G z) := by rw [← hFG, ← hFG, s14w_F_neg]
+      have h2 : z * (G (-z) - G z) = 0 := by linear_combination -h1
+      rcases mul_eq_zero.1 h2 with h | h
+      · exact absurd h hz
+      · exact sub_eq_zero.1 h
+  have hPsplit : ∀ z, (periodPairOf τ hτ).weierstrassP z =
+      (periodPairOf τ hτ).weierstrassPExcept 0 z + 1 / z ^ 2 := by
+    intro z
+    have h := (periodPairOf τ hτ).weierstrassPExcept_add ⟨0, zero_mem _⟩ z
+    dsimp only at h
+    linear_combination -h
+  have hPeven : ∀ z, (periodPairOf τ hτ).weierstrassPExcept 0 (-z) =
+      (periodPairOf τ hτ).weierstrassPExcept 0 z := by
+    intro z
+    rw [(periodPairOf τ hτ).weierstrassPExcept_neg, neg_zero]
+  obtain ⟨g, hg⟩ : ∃ g : ℂ → ℂ, g = fun z => z ^ 2 * (periodPairOf τ hτ).weierstrassPExcept 0 z + 1 -
+      z ^ 2 * (periodPairOf τ hτ).weierstrassP u +
+      d ^ 2 * s14w_F τ (z + u) * s14w_F τ (z - u) / (G z ^ 2 * s14w_F τ u ^ 2) := ⟨_, rfl⟩
+  have hgA : AnalyticAt ℂ g 0 := by
+    rw [hg]
+    have hGA : AnalyticAt ℂ G 0 := hGd.analyticAt 0
+    have hF1 : AnalyticAt ℂ (fun z => s14w_F τ (z + u)) 0 :=
+      AnalyticAt.comp (g := s14w_F τ) (f := fun z => z + u) (hFd.analyticAt _)
+        (analyticAt_id.add analyticAt_const)
+    have hF2 : AnalyticAt ℂ (fun z => s14w_F τ (z - u)) 0 :=
+      AnalyticAt.comp (g := s14w_F τ) (f := fun z => z - u) (hFd.analyticAt _)
+        (analyticAt_id.sub analyticAt_const)
+    have hP0 : AnalyticAt ℂ ((periodPairOf τ hτ).weierstrassPExcept 0) 0 :=
+      (periodPairOf τ hτ).analyticAt_weierstrassPExcept 0
+    have hden : G 0 ^ 2 * s14w_F τ u ^ 2 ≠ 0 := by
+      rw [hG0]
+      exact mul_ne_zero (pow_ne_zero 2 hd0) (pow_ne_zero 2 hFu)
+    exact ((((analyticAt_id.pow 2).mul hP0).add analyticAt_const).sub
+      ((analyticAt_id.pow 2).mul analyticAt_const)).add
+      (((analyticAt_const.mul hF1).mul hF2).div ((hGA.pow 2).mul analyticAt_const) hden)
+  have hg0 : g 0 = 0 := by
+    simp only [hg]
+    rw [zero_add, zero_sub, s14w_F_neg, hG0]
+    field_simp
+    ring
+  have hgeven : ∀ z, g (-z) = g z := by
+    intro z
+    simp only [hg]
+    rw [hGeven, hPeven, show -z + u = -(z - u) by ring, show -z - u = -(z + u) by ring, s14w_F_neg,
+      s14w_F_neg]
+    ring
+  have hgd : deriv g 0 = 0 := by
+    have h1 : deriv (fun z => g (-z)) 0 = -deriv g (-0) := deriv_comp_neg g 0
+    rw [show (fun z => g (-z)) = g from funext hgeven, neg_zero] at h1
+    linear_combination h1 / 2
+  obtain ⟨s, hsN, hsA⟩ : ∃ s ∈ 𝓝 (0 : ℂ), ∀ z ∈ s, AnalyticAt ℂ g z :=
+    ⟨_, hgA.eventually_analyticAt, fun z hz => hz⟩
+  have hgDs : DifferentiableOn ℂ g s := fun z hz => (hsA z hz).differentiableAt.differentiableWithinAt
+  have hg₁D : DifferentiableOn ℂ (dslope g 0) s := (differentiableOn_dslope hsN).2 hgDs
+  have hkD : DifferentiableOn ℂ (dslope (dslope g 0) 0) s := (differentiableOn_dslope hsN).2 hg₁D
+  have hg₁0 : dslope g 0 0 = 0 := by rw [dslope_same, hgd]
+  have hgk : ∀ z, g z = z ^ 2 * dslope (dslope g 0) 0 z := by
+    intro z
+    have e1 := sub_smul_dslope g 0 z
+    have e2 := sub_smul_dslope (dslope g 0) 0 z
+    rw [hg0, sub_zero, sub_zero, smul_eq_mul] at e1
+    rw [hg₁0, sub_zero, sub_zero, smul_eq_mul] at e2
+    rw [← e1, ← e2]
+    ring
+  refine ⟨dslope (dslope g 0) 0, hkD.analyticAt hsN, ?_⟩
+  have hGne : ∀ᶠ z in 𝓝 (0 : ℂ), G z ≠ 0 :=
+    (hGd 0).continuousAt.eventually_ne (by rw [hG0]; exact hd0)
+  filter_upwards [nhdsWithin_le_nhds hGne, self_mem_nhdsWithin] with z hGz hz0
+  have hz0' : z ≠ 0 := hz0
+  have key : s14w_h τ hτ u z - dslope (dslope g 0) 0 z =
+      (g z - z ^ 2 * dslope (dslope g 0) 0 z) / z ^ 2 := by
+    rw [s14w_h, hPsplit z, hFG z, ← hd]
+    simp only [hg]
+    field_simp
+  rw [← sub_eq_zero, key, ← hgk z, sub_self, zero_div]
+
+/-- SP4b. `h(z + 1) = h(z)` for every `z` (the junk values on `L` included).
+Truth: `℘(z + 1) = ℘(z)` (`weierstrassP_add_coe`, `1 ∈ L`), and by SP2a the ratio picks up
+`(-1)(-1)/(-1)² = 1`.  Orientation: none. -/
+theorem s14w_h_add_one {τ : ℂ} (hτ : 0 < τ.im) (u z : ℂ) : s14w_h τ hτ u (z + 1) = s14w_h τ hτ u z := by
+  have h1 : (1 : ℂ) ∈ (periodPairOf τ hτ).lattice := by simpa using s14w_mem_lattice hτ 1 0
+  have hp : (periodPairOf τ hτ).weierstrassP (z + 1) = (periodPairOf τ hτ).weierstrassP z :=
+    (periodPairOf τ hτ).weierstrassP_add_coe z ⟨1, h1⟩
+  have e1 : s14w_F τ (z + 1 + u) = -s14w_F τ (z + u) := by
+    rw [show z + 1 + u = (z + u) + 1 by ring, s14w_F_add_one]
+  have e2 : s14w_F τ (z + 1 - u) = -s14w_F τ (z - u) := by
+    rw [show z + 1 - u = (z - u) + 1 by ring, s14w_F_add_one]
+  simp only [s14w_h, hp, e1, e2, s14w_F_add_one]
+  ring
+
+/-- `c (k₁ A)(k₂ B) / ((k C)² D) = c A B / (C² D)` when `k₁ k₂ = k²` and `k ≠ 0` (also when `C = 0`). -/
+theorem s14w_div_scale {c A B C D k₁ k₂ k : ℂ} (h : k₁ * k₂ = k ^ 2) (hk : k ≠ 0) :
+    c * (k₁ * A) * (k₂ * B) / ((k * C) ^ 2 * D) = c * A * B / (C ^ 2 * D) := by
+  rw [show c * (k₁ * A) * (k₂ * B) = k ^ 2 * (c * A * B) by linear_combination (c * A * B) * h,
+    show (k * C) ^ 2 * D = k ^ 2 * (C ^ 2 * D) by ring]
+  exact mul_div_mul_left _ _ (pow_ne_zero 2 hk)
+
+/-- SP4c. `h(z + τ) = h(z)` for every `z` (the junk values on `L` included).
+Truth: `℘(z + τ) = ℘(z)`, and by SP2c the numerator picks up
+`q⁻¹ e^{-2πi(z + u)} · q⁻¹ e^{-2πi(z - u)} = q⁻² e^{-4πiz}`, the same nonzero factor as `F(z + τ)²`
+(`mul_div_mul_left`).  Orientation: the `e^{∓2πiu}` factors cancel because the numerator pairs `z + u`
+with `z - u`. -/
+theorem s14w_h_add_tau {τ : ℂ} (hτ : 0 < τ.im) (u z : ℂ) : s14w_h τ hτ u (z + τ) = s14w_h τ hτ u z := by
+  have hτL : τ ∈ (periodPairOf τ hτ).lattice := by simpa using s14w_mem_lattice hτ 0 1
+  have hp : (periodPairOf τ hτ).weierstrassP (z + τ) = (periodPairOf τ hτ).weierstrassP z :=
+    (periodPairOf τ hτ).weierstrassP_add_coe z ⟨τ, hτL⟩
+  have e1 : s14w_F τ (z + τ + u) =
+      -(s14w_nome τ)⁻¹ * cexp (-(2 * π * I * (z + u))) * s14w_F τ (z + u) := by
+    rw [show z + τ + u = (z + u) + τ by ring, s14w_F_add_tau hτ]
+  have e2 : s14w_F τ (z + τ - u) =
+      -(s14w_nome τ)⁻¹ * cexp (-(2 * π * I * (z - u))) * s14w_F τ (z - u) := by
+    rw [show z + τ - u = (z - u) + τ by ring, s14w_F_add_tau hτ]
+  have hE : cexp (-(2 * π * I * (z + u))) * cexp (-(2 * π * I * (z - u))) = cexp (-(2 * π * I * z)) ^ 2 := by
+    rw [← Complex.exp_add, sq, ← Complex.exp_add]
+    congr 1
+    ring
+  have hk : -(s14w_nome τ)⁻¹ * cexp (-(2 * π * I * z)) ≠ 0 :=
+    mul_ne_zero (neg_ne_zero.2 (inv_ne_zero (Complex.exp_ne_zero _))) (Complex.exp_ne_zero _)
+  simp only [s14w_h, hp, e1, e2, s14w_F_add_tau hτ z]
+  rw [s14w_div_scale (by linear_combination (s14w_nome τ)⁻¹ ^ 2 * hE) hk]
+
+/-- SP4d. For `u ∉ L`, `h` is differentiable off the lattice.
+Truth: `℘` is analytic off `L` (`analyticOnNhd_weierstrassP`), `F` is entire (SP1c), and `F(z)` (SP3a) and
+`F(u)` are nonzero.  Orientation: none. -/
+theorem s14w_h_differentiableAt {τ : ℂ} (hτ : 0 < τ.im) {u z : ℂ} (hu : u ∉ (periodPairOf τ hτ).lattice)
+    (hz : z ∉ (periodPairOf τ hτ).lattice) : DifferentiableAt ℂ (s14w_h τ hτ u) z := by
+  have hF := s14w_F_differentiable hτ
+  have hP : DifferentiableAt ℂ (periodPairOf τ hτ).weierstrassP z :=
+    ((periodPairOf τ hτ).analyticOnNhd_weierstrassP z hz).differentiableAt
+  have hden : s14w_F τ z ^ 2 * s14w_F τ u ^ 2 ≠ 0 :=
+    mul_ne_zero (pow_ne_zero 2 (s14w_F_ne_zero hτ hz)) (pow_ne_zero 2 (s14w_F_ne_zero hτ hu))
+  have h1 : DifferentiableAt ℂ (fun w => s14w_F τ (w + u)) z :=
+    (hF (z + u)).comp z (differentiableAt_id.add_const u)
+  have h2 : DifferentiableAt ℂ (fun w => s14w_F τ (w - u)) z :=
+    (hF (z - u)).comp z (differentiableAt_id.sub_const u)
+  have h3 : DifferentiableAt ℂ (fun w => s14w_F τ w ^ 2 * s14w_F τ u ^ 2) z :=
+    ((hF z).pow 2).mul_const _
+  exact (hP.sub_const _).add (((h1.const_mul _).mul h2).div h3 hden)
+
+/-- Liouville for elliptic functions: an entire function with every period of `L` (`L.ω₁ = 1`,
+`0 < L.ω₂.im`) is constant.  It is bounded because each value is taken on a compact fundamental box
+(`wv_exists_rep`).  This is the s21r probe `h21r4_elliptic_liouville`. -/
+theorem s14w_elliptic_liouville {L : PeriodPair} (h1 : L.ω₁ = 1) (hτ : 0 < L.ω₂.im)
+    {f : ℂ → ℂ} (hf : Differentiable ℂ f) (hper : ∀ z, ∀ l ∈ L.lattice, f (z - l) = f z) (z : ℂ) :
+    f z = f 0 := by
+  set B : Set ℂ := Icc (0 : ℝ) 1 ×ℂ Icc (0 : ℝ) L.ω₂.im
+  have hBc : IsCompact B := isCompact_Icc.reProdIm isCompact_Icc
+  have hrange : range f ⊆ f '' B := by
+    rintro _ ⟨ζ, rfl⟩
+    obtain ⟨l, hl, hre, him⟩ := wv_exists_rep h1 hτ ζ 0 0
+    refine ⟨ζ - l, ?_, hper ζ l hl⟩
+    refine ⟨?_, ?_⟩
+    · exact ⟨hre.1, by linarith [hre.2]⟩
+    · exact ⟨him.1, by linarith [him.2]⟩
+  have hb : Bornology.IsBounded (range f) :=
+    ((hBc.image hf.continuous).isBounded).subset hrange
+  exact hf.apply_eq_apply_of_bounded hb z 0
+
+/-- SP4e. For `u ∉ L`, `h = 0` off the lattice.
+Truth: with `k` from SP4a let `H w = if w ∈ L then k 0 else h w`.  Off `L`, `H = h` near `w` (`Lᶜ` is open),
+so SP4d applies.  At `l ∈ L`, `H = k (· - l)` on a neighbourhood of `l`: off `l` by
+`compl_lattice_sdiff_singleton_mem_nhds` and periodicity (SP4b, SP4c, `s14w_sub_lattice`), at `l` by
+definition.  So `H` is entire and `L`-periodic, hence constant (`s14w_elliptic_liouville`), and
+`H u = h u = F'(0)² F(2u) F(0) / (F(u)² F(u)²) = 0` by SP3b.  Orientation: none. -/
+theorem s14w_h_eq_zero {τ : ℂ} (hτ : 0 < τ.im) {u z : ℂ} (hu : u ∉ (periodPairOf τ hτ).lattice)
+    (hz : z ∉ (periodPairOf τ hτ).lattice) : s14w_h τ hτ u z = 0 := by
+  classical
+  obtain ⟨k, hk, hkev⟩ := s14w_h_local hτ hu
+  have hper : ∀ w, ∀ l ∈ (periodPairOf τ hτ).lattice, s14w_h τ hτ u (w - l) = s14w_h τ hτ u w :=
+    fun w l hl => s14w_sub_lattice hτ (s14w_h_add_one hτ u) (s14w_h_add_tau hτ u) w hl
+  obtain ⟨H, hH⟩ : ∃ H : ℂ → ℂ,
+      H = fun w => if w ∈ (periodPairOf τ hτ).lattice then k 0 else s14w_h τ hτ u w := ⟨_, rfl⟩
+  have hk' : ∀ᶠ y in 𝓝 (0 : ℂ), y ≠ 0 → s14w_h τ hτ u y = k y := eventually_nhdsWithin_iff.1 hkev
+  have hHd : Differentiable ℂ H := by
+    intro w
+    have h1 : ∀ᶠ x in 𝓝 w, x ∉ ((periodPairOf τ hτ).lattice : Set ℂ) \ {w} :=
+      (periodPairOf τ hτ).compl_lattice_sdiff_singleton_mem_nhds w
+    by_cases hw : w ∈ (periodPairOf τ hτ).lattice
+    · have hev : H =ᶠ[𝓝 w] fun x => k (x - w) := by
+        have ht : Tendsto (fun x => x - w) (𝓝 w) (𝓝 0) := by
+          simpa using (continuous_sub_right w).tendsto w
+        filter_upwards [h1, ht.eventually hk'] with x hx1 hx2
+        by_cases hxw : x = w
+        · subst hxw
+          simp [hH, hw]
+        · have hxL : x ∉ (periodPairOf τ hτ).lattice := fun h => hx1 ⟨h, hxw⟩
+          simp only [hH, hxL, ↓reduceIte]
+          rw [← hper x w hw]
+          exact hx2 (sub_ne_zero.2 hxw)
+      have hkw : DifferentiableAt ℂ k (w - w) := by
+        rw [sub_self]
+        exact hk.differentiableAt
+      have hkd : DifferentiableAt ℂ (fun x => k (x - w)) w :=
+        DifferentiableAt.comp (g := k) (f := fun x => x - w) w hkw (differentiableAt_id.sub_const w)
+      exact hkd.congr_of_eventuallyEq hev
+    · have hev : H =ᶠ[𝓝 w] s14w_h τ hτ u := by
+        filter_upwards [h1] with x hx
+        have hxL : x ∉ (periodPairOf τ hτ).lattice := by
+          intro h
+          by_cases hxw : x = w
+          · exact hw (hxw ▸ h)
+          · exact hx ⟨h, hxw⟩
+        simp [hH, hxL]
+      exact (s14w_h_differentiableAt hτ hu hw).congr_of_eventuallyEq hev
+  have hHper : ∀ w, ∀ l ∈ (periodPairOf τ hτ).lattice, H (w - l) = H w := by
+    intro w l hl
+    by_cases hw : w ∈ (periodPairOf τ hτ).lattice
+    · have hwl : w - l ∈ (periodPairOf τ hτ).lattice := sub_mem hw hl
+      simp [hH, hw, hwl]
+    · have hwl : w - l ∉ (periodPairOf τ hτ).lattice := fun h => hw (by simpa using add_mem h hl)
+      simp only [hH, hw, hwl, ↓reduceIte]
+      exact hper w l hl
+  have hconst := s14w_elliptic_liouville (L := periodPairOf τ hτ) rfl hτ hHd hHper
+  have hHu : H u = 0 := by simp [hH, hu, s14w_h, s14w_F_zero]
+  have hHz : H z = s14w_h τ hτ u z := by simp [hH, hz]
+  rw [← hHz, hconst z, ← hconst u, hHu]
+
+/-- SP4. **Addition formula.**  For `z, u ∉ L`,
+`℘(z) - ℘(u) = -F'(0)² F(z + u) F(z - u) / (F(z)² F(u)²)`.
+Orientation: as `z → 0` both sides are `1/z² + O(1)`, because `F(u) F(-u) = -F(u)²`. -/
+theorem s14w_weierstrassP_sub {τ : ℂ} (hτ : 0 < τ.im) {z u : ℂ} (hz : z ∉ (periodPairOf τ hτ).lattice)
+    (hu : u ∉ (periodPairOf τ hτ).lattice) :
+    (periodPairOf τ hτ).weierstrassP z - (periodPairOf τ hτ).weierstrassP u =
+      -(deriv (s14w_F τ) 0 ^ 2 * s14w_F τ (z + u) * s14w_F τ (z - u) / (s14w_F τ z ^ 2 * s14w_F τ u ^ 2)) := by
+  have h := s14w_h_eq_zero hτ hu hz
+  rw [s14w_h] at h
+  linear_combination h
+
+/-- SP5a. `F(1/2) = (∏_{n ≥ 1} (1 + q^{2n}))²`, for every `τ`.
+Truth: `sin(π/2) = 1` and `e^{±πi} = -1`, so both products become `∏ (1 + q^{2n})`; no convergence is needed.
+Orientation: `e^{πi} = -1` turns `1 - q^{2n} e^{πi}` into `1 + q^{2n}`, the denominators of (14.23) and
+(14.24). -/
+theorem s14w_F_half (τ : ℂ) : s14w_F τ (1 / 2) = (∏' n : ℕ, (1 + s14w_nome τ ^ (2 * (n + 1)))) ^ 2 := by
+  have e1 : cexp (2 * π * I * (1 / 2)) = -1 := by
+    rw [show 2 * π * I * (1 / 2) = π * I by ring, Complex.exp_pi_mul_I]
+  have e2 : cexp (-(2 * π * I * (1 / 2))) = -1 := by
+    rw [Complex.exp_neg, e1, inv_neg, inv_one]
+  have e3 : Complex.sin (π * (1 / 2)) = 1 := by
+    rw [show (π : ℂ) * (1 / 2) = π / 2 by ring, Complex.sin_pi_div_two]
+  simp only [s14w_F, e1, e2, e3, mul_neg, mul_one, sub_neg_eq_add, one_mul]
+  ring
+
+/-- `(q^{1/2})² = q`. -/
+theorem s14w_sqrtNome_sq (τ : ℂ) : s14w_sqrtNome τ ^ 2 = s14w_nome τ := by
+  rw [s14w_sqrtNome, s14w_nome, ← Complex.exp_nat_mul]
+  congr 1
+  push_cast
+  ring
+
+/-- `q^{2(n+1)} q⁻¹ = q^{2n+1}`. -/
+theorem s14w_nome_pow_mul_inv (τ : ℂ) (n : ℕ) :
+    s14w_nome τ ^ (2 * (n + 1)) * (s14w_nome τ)⁻¹ = s14w_nome τ ^ (2 * n + 1) := by
+  rw [show 2 * (n + 1) = 2 * n + 1 + 1 by ring, pow_succ,
+    mul_inv_cancel_right₀ (show s14w_nome τ ≠ 0 from Complex.exp_ne_zero _)]
+
+/-- SP5b. `F(τ/2) = (i/2) q^{-1/2} (∏_{n ≥ 1} (1 - q^{2n-1}))²`.
+Truth: `e^{2πi·τ/2} = q` and `e^{-2πi·τ/2} = q⁻¹`, so the products are `∏_{n ≥ 1} (1 - q^{2n+1})` and
+`∏_{n ≥ 1} (1 - q^{2n-1})`; `sin(πτ/2) = (q^{1/2} - q^{-1/2})/(2i) = (i/2) q^{-1/2} (1 - q)`, and `1 - q` is the
+missing `n = 0` factor of the first product (`tprod_eq_zero_mul'`).
+Orientation: the constant is `i/2`, since `-1/(2i) = i/2`.  Downstream only its fourth power `1/16` is used. -/
+theorem s14w_F_half_tau {τ : ℂ} (hτ : 0 < τ.im) :
+    s14w_F τ (τ / 2) = I / 2 * (s14w_sqrtNome τ)⁻¹ * (∏' n : ℕ, (1 - s14w_nome τ ^ (2 * n + 1))) ^ 2 := by
+  have hs0 : s14w_sqrtNome τ ≠ 0 := Complex.exp_ne_zero _
+  have e1 : cexp (2 * π * I * (τ / 2)) = s14w_nome τ := by
+    rw [s14w_nome]
+    congr 1
+    ring
+  have e2 : cexp (-(2 * π * I * (τ / 2))) = (s14w_nome τ)⁻¹ := by rw [Complex.exp_neg, e1]
+  have e3 : Complex.sin (π * (τ / 2)) = I / 2 * (s14w_sqrtNome τ)⁻¹ * (1 - s14w_nome τ) := by
+    have c1 : cexp (-(↑π * (τ / 2)) * I) = (s14w_sqrtNome τ)⁻¹ := by
+      rw [s14w_sqrtNome, ← Complex.exp_neg]
+      congr 1
+      ring
+    have c2 : cexp (↑π * (τ / 2) * I) = s14w_sqrtNome τ := by
+      rw [s14w_sqrtNome]
+      congr 1
+      ring
+    rw [Complex.sin, c1, c2, ← s14w_sqrtNome_sq]
+    field_simp
+  have hB : ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * (s14w_nome τ)⁻¹) =
+      ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * n + 1)) :=
+    tprod_congr fun n => by rw [s14w_nome_pow_mul_inv]
+  have hM : ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * n + 1)) =
+      (1 - s14w_nome τ) * ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * s14w_nome τ) := by
+    have hm : Multipliable fun n : ℕ => 1 - s14w_nome τ ^ (2 * (n + 1) + 1) :=
+      (s14w_multipliable hτ (s14w_nome τ)).congr fun n => by ring
+    rw [tprod_eq_zero_mul' (f := fun n : ℕ => 1 - s14w_nome τ ^ (2 * n + 1)) hm,
+      tprod_congr fun n : ℕ => show 1 - s14w_nome τ ^ (2 * (n + 1) + 1) =
+        1 - s14w_nome τ ^ (2 * (n + 1)) * s14w_nome τ by ring]
+    ring
+  simp only [s14w_F, e1, e2, e3, hB]
+  rw [hM]
+  ring
+
+/-- SP5c. `F((1 + τ)/2) = (1/2) q^{-1/2} (∏_{n ≥ 1} (1 + q^{2n-1}))²`.
+Truth: `e^{2πi(1 + τ)/2} = -q`, `e^{-2πi(1 + τ)/2} = -q⁻¹`, and `sin(π(1 + τ)/2) = cos(πτ/2) = q^{-1/2} (1 + q)/2`;
+`1 + q` is the missing `n = 0` factor.  Orientation: `e^{πi} = -1` turns both product signs into `+`. -/
+theorem s14w_F_half_one_tau {τ : ℂ} (hτ : 0 < τ.im) :
+    s14w_F τ ((1 + τ) / 2) = 1 / 2 * (s14w_sqrtNome τ)⁻¹ * (∏' n : ℕ, (1 + s14w_nome τ ^ (2 * n + 1))) ^ 2 := by
+  have hs0 : s14w_sqrtNome τ ≠ 0 := Complex.exp_ne_zero _
+  have e1 : cexp (2 * π * I * ((1 + τ) / 2)) = -s14w_nome τ := by
+    rw [show 2 * π * I * ((1 + τ) / 2) = π * I + π * I * τ by ring, Complex.exp_add, Complex.exp_pi_mul_I,
+      s14w_nome]
+    ring
+  have e2 : cexp (-(2 * π * I * ((1 + τ) / 2))) = -(s14w_nome τ)⁻¹ := by
+    rw [Complex.exp_neg, e1, inv_neg]
+  have e3 : Complex.sin (π * ((1 + τ) / 2)) = 1 / 2 * (s14w_sqrtNome τ)⁻¹ * (1 + s14w_nome τ) := by
+    rw [show (π : ℂ) * ((1 + τ) / 2) = π / 2 + π * (τ / 2) by ring, Complex.sin_add, Complex.sin_pi_div_two,
+      Complex.cos_pi_div_two, zero_mul, add_zero, one_mul, Complex.cos]
+    have c1 : cexp (↑π * (τ / 2) * I) = s14w_sqrtNome τ := by
+      rw [s14w_sqrtNome]
+      congr 1
+      ring
+    have c2 : cexp (-(↑π * (τ / 2)) * I) = (s14w_sqrtNome τ)⁻¹ := by
+      rw [s14w_sqrtNome, ← Complex.exp_neg]
+      congr 1
+      ring
+    rw [c1, c2, ← s14w_sqrtNome_sq]
+    field_simp
+    ring
+  have hB : ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * -(s14w_nome τ)⁻¹) =
+      ∏' n : ℕ, (1 + s14w_nome τ ^ (2 * n + 1)) :=
+    tprod_congr fun n => by rw [mul_neg, sub_neg_eq_add, s14w_nome_pow_mul_inv]
+  have hN : ∏' n : ℕ, (1 + s14w_nome τ ^ (2 * n + 1)) =
+      (1 + s14w_nome τ) * ∏' n : ℕ, (1 - s14w_nome τ ^ (2 * (n + 1)) * -s14w_nome τ) := by
+    have hm : Multipliable fun n : ℕ => 1 + s14w_nome τ ^ (2 * (n + 1) + 1) :=
+      (s14w_multipliable hτ (-s14w_nome τ)).congr fun n => by ring
+    rw [tprod_eq_zero_mul' (f := fun n : ℕ => 1 + s14w_nome τ ^ (2 * n + 1)) hm,
+      tprod_congr fun n : ℕ => show 1 + s14w_nome τ ^ (2 * (n + 1) + 1) =
+        1 - s14w_nome τ ^ (2 * (n + 1)) * -s14w_nome τ by ring]
+    ring
+  simp only [s14w_F, e1, e2, e3, hB]
+  rw [hN]
+  ring
+
+/-- The half periods `1/2`, `τ/2` and `(1 + τ)/2` are not lattice points. -/
+theorem s14w_half_notMem {τ : ℂ} (hτ : 0 < τ.im) :
+    (1 / 2 : ℂ) ∉ (periodPairOf τ hτ).lattice ∧ τ / 2 ∉ (periodPairOf τ hτ).lattice ∧
+      (1 + τ) / 2 ∉ (periodPairOf τ hτ).lattice := by
+  have h1 : (periodPairOf τ hτ).ω₁ = 1 := rfl
+  have h2 : (periodPairOf τ hτ).ω₂ = τ := rfl
+  refine ⟨wv_notMem_lattice_of_rat (1 / 2) 0 (by left; simp) ?_,
+    wv_notMem_lattice_of_rat 0 (1 / 2) (by right; simp) ?_,
+    wv_notMem_lattice_of_rat (1 / 2) (1 / 2) (by left; simp) ?_⟩ <;> rw [h1, h2] <;> push_cast <;> ring
+
+/-- SP5d. `e₁ - e₃ = -F'(0)² F(τ/2)² / (F(1/2)² F((1 + τ)/2)²)`.
+Truth: SP4 at `z = 1/2`, `u = (1 + τ)/2`, both `∉ L`: `F(1 + τ/2) = -F(τ/2)` (SP2a) and `F(-τ/2) = -F(τ/2)`
+(SP2b).  Orientation: `weierstrassE τ` has indices `0 ↦ 1/2`, `1 ↦ τ/2`, `2 ↦ (1 + τ)/2`. -/
+theorem s14w_e0_sub_e2 {τ : ℂ} (hτ : 0 < τ.im) :
+    weierstrassE τ 0 - weierstrassE τ 2 =
+      -(deriv (s14w_F τ) 0 ^ 2 * s14w_F τ (τ / 2) ^ 2 / (s14w_F τ (1 / 2) ^ 2 * s14w_F τ ((1 + τ) / 2) ^ 2)) := by
+  obtain ⟨h1, -, h3⟩ := s14w_half_notMem hτ
+  have hE0 : weierstrassE τ 0 = (periodPairOf τ hτ).weierstrassP (1 / 2) := by simp [weierstrassE, hτ]
+  have hE2 : weierstrassE τ 2 = (periodPairOf τ hτ).weierstrassP ((1 + τ) / 2) := by simp [weierstrassE, hτ]
+  rw [hE0, hE2, s14w_weierstrassP_sub hτ h1 h3, show (1 / 2 : ℂ) + (1 + τ) / 2 = τ / 2 + 1 by ring,
+    s14w_F_add_one, show (1 / 2 : ℂ) - (1 + τ) / 2 = -(τ / 2) by ring, s14w_F_neg]
+  ring
+
+/-- SP5e. `e₃ - e₂ = -F'(0)² q⁻¹ F(1/2)² / (F((1 + τ)/2)² F(τ/2)²)`.
+Truth: SP4 at `z = (1 + τ)/2`, `u = τ/2`: `z - u = 1/2`, and `z + u = 1/2 + τ` with `F(1/2 + τ) = q⁻¹ F(1/2)`
+(SP2c, `e^{-πi} = -1`).  Orientation: the `-1` from `e^{-πi}` cancels the sign of SP2c. -/
+theorem s14w_e2_sub_e1 {τ : ℂ} (hτ : 0 < τ.im) :
+    weierstrassE τ 2 - weierstrassE τ 1 = -(deriv (s14w_F τ) 0 ^ 2 * (s14w_nome τ)⁻¹ * s14w_F τ (1 / 2) ^ 2 /
+      (s14w_F τ ((1 + τ) / 2) ^ 2 * s14w_F τ (τ / 2) ^ 2)) := by
+  obtain ⟨-, h2, h3⟩ := s14w_half_notMem hτ
+  have hE1 : weierstrassE τ 1 = (periodPairOf τ hτ).weierstrassP (τ / 2) := by simp [weierstrassE, hτ]
+  have hE2 : weierstrassE τ 2 = (periodPairOf τ hτ).weierstrassP ((1 + τ) / 2) := by simp [weierstrassE, hτ]
+  have e : cexp (-(2 * π * I * (1 / 2))) = -1 := by
+    rw [show -(2 * π * I * (1 / 2)) = -(π * I) by ring, Complex.exp_neg, Complex.exp_pi_mul_I, inv_neg, inv_one]
+  rw [hE2, hE1, s14w_weierstrassP_sub hτ h3 h2, show (1 + τ) / 2 + τ / 2 = 1 / 2 + τ by ring,
+    s14w_F_add_tau hτ, e, show (1 + τ) / 2 - τ / 2 = 1 / 2 by ring]
+  ring
+
+/-- SP5f. `e₁ - e₂ = -F'(0)² F((1 + τ)/2)² / (F(1/2)² F(τ/2)²)`.
+Truth: SP4 at `z = 1/2`, `u = τ/2`: `z + u = (1 + τ)/2`, and `z - u = (1 - τ)/2` with
+`F((1 + τ)/2) = F((1 - τ)/2)` (SP2c at `(1 - τ)/2`, where `-q⁻¹ e^{-2πi(1 - τ)/2} = -q⁻¹ · (-q) = 1`).
+Orientation: this identity produces `λ + 1`, not `λ - 1`, in (14.24). -/
+theorem s14w_e0_sub_e1 {τ : ℂ} (hτ : 0 < τ.im) :
+    weierstrassE τ 0 - weierstrassE τ 1 =
+      -(deriv (s14w_F τ) 0 ^ 2 * s14w_F τ ((1 + τ) / 2) ^ 2 / (s14w_F τ (1 / 2) ^ 2 * s14w_F τ (τ / 2) ^ 2)) := by
+  obtain ⟨h1, h2, -⟩ := s14w_half_notMem hτ
+  have hq0 : s14w_nome τ ≠ 0 := Complex.exp_ne_zero _
+  have hE0 : weierstrassE τ 0 = (periodPairOf τ hτ).weierstrassP (1 / 2) := by simp [weierstrassE, hτ]
+  have hE1 : weierstrassE τ 1 = (periodPairOf τ hτ).weierstrassP (τ / 2) := by simp [weierstrassE, hτ]
+  have hshift : s14w_F τ (1 / 2 - τ / 2) = s14w_F τ ((1 + τ) / 2) := by
+    have h := s14w_F_add_tau hτ (1 / 2 - τ / 2)
+    have e : cexp (-(2 * π * I * (1 / 2 - τ / 2))) = -s14w_nome τ := by
+      rw [show -(2 * π * I * (1 / 2 - τ / 2)) = π * I * τ + -(π * I) by ring, Complex.exp_add,
+        Complex.exp_neg (π * I), Complex.exp_pi_mul_I, s14w_nome]
+      ring
+    rw [show 1 / 2 - τ / 2 + τ = (1 + τ) / 2 by ring, e] at h
+    rw [h, neg_mul_neg, inv_mul_cancel₀ hq0, one_mul]
+  rw [hE0, hE1, s14w_weierstrassP_sub hτ h1 h2, show (1 / 2 : ℂ) + τ / 2 = (1 + τ) / 2 by ring, hshift]
+  ring
+
+/-- SP5g. `(e₁ - e₃)/(e₃ - e₂) = q F(τ/2)⁴ / F(1/2)⁴`; for `τ = iv` the left side is `eq14_21`'s.
+Truth: divide SP5d by SP5e; `F'(0)² ≠ 0` (SP3c) and the values of `F` at the half periods (SP3a,
+`wv_notMem_lattice_of_rat`) cancel.  Orientation: the quotient is taken in `eq14_21`'s order. -/
+theorem s14w_lambdaE_eq {τ : ℂ} (hτ : 0 < τ.im) :
+    (weierstrassE τ 0 - weierstrassE τ 2) / (weierstrassE τ 2 - weierstrassE τ 1) =
+      s14w_nome τ * s14w_F τ (τ / 2) ^ 4 / s14w_F τ (1 / 2) ^ 4 := by
+  obtain ⟨h1, h2, h3⟩ := s14w_half_notMem hτ
+  have hd := s14w_deriv_F_zero_ne hτ
+  have hA := s14w_F_ne_zero hτ h2
+  have hB := s14w_F_ne_zero hτ h1
+  have hC := s14w_F_ne_zero hτ h3
+  have hq0 : s14w_nome τ ≠ 0 := Complex.exp_ne_zero _
+  rw [s14w_e0_sub_e2 hτ, s14w_e2_sub_e1 hτ]
+  field_simp
+
+/-- SP5h. `(e₁ - e₃)/(e₃ - e₂) + 1 = q F((1 + τ)/2)⁴ / F(1/2)⁴`.
+Truth: the left side is `(e₁ - e₂)/(e₃ - e₂)` (`e₃ ≠ e₂` by SP5e); divide SP5f by SP5e.
+Orientation: as in SP5g. -/
+theorem s14w_lambdaE_add_one_eq {τ : ℂ} (hτ : 0 < τ.im) :
+    (weierstrassE τ 0 - weierstrassE τ 2) / (weierstrassE τ 2 - weierstrassE τ 1) + 1 =
+      s14w_nome τ * s14w_F τ ((1 + τ) / 2) ^ 4 / s14w_F τ (1 / 2) ^ 4 := by
+  obtain ⟨h1, h2, h3⟩ := s14w_half_notMem hτ
+  have hd := s14w_deriv_F_zero_ne hτ
+  have hA := s14w_F_ne_zero hτ h2
+  have hB := s14w_F_ne_zero hτ h1
+  have hC := s14w_F_ne_zero hτ h3
+  have hq0 : s14w_nome τ ≠ 0 := Complex.exp_ne_zero _
+  have hne : weierstrassE τ 2 - weierstrassE τ 1 ≠ 0 := by
+    rw [s14w_e2_sub_e1 hτ]
+    exact neg_ne_zero.2 (div_ne_zero (mul_ne_zero (mul_ne_zero (pow_ne_zero 2 hd) (inv_ne_zero hq0))
+      (pow_ne_zero 2 hB)) (mul_ne_zero (pow_ne_zero 2 hC) (pow_ne_zero 2 hA)))
+  rw [div_add_one hne, show weierstrassE τ 0 - weierstrassE τ 2 + (weierstrassE τ 2 - weierstrassE τ 1) =
+    weierstrassE τ 0 - weierstrassE τ 1 by ring, s14w_e0_sub_e1 hτ, s14w_e2_sub_e1 hτ]
+  field_simp
+
+/-- `n ↦ ‖q^{2n+1}‖` is summable for `‖q‖ < 1`, in any normed field. -/
+theorem s14w_summable_pow_odd {K : Type*} [NormedField K] {q : K} (hq : ‖q‖ < 1) :
+    Summable fun n : ℕ => ‖q ^ (2 * n + 1)‖ := by
+  have hq2 : ‖q‖ ^ 2 < 1 := by nlinarith [norm_nonneg q]
+  refine ((summable_geometric_of_lt_one (by positivity) hq2).mul_left ‖q‖).congr fun n => ?_
+  rw [norm_pow]
+  ring
+
+/-- `n ↦ ‖q^{2(n+1)}‖` is summable for `‖q‖ < 1`, in any normed field. -/
+theorem s14w_summable_pow_even {K : Type*} [NormedField K] {q : K} (hq : ‖q‖ < 1) :
+    Summable fun n : ℕ => ‖q ^ (2 * (n + 1))‖ := by
+  have hq2 : ‖q‖ ^ 2 < 1 := by nlinarith [norm_nonneg q]
+  refine ((summable_geometric_of_lt_one (by positivity) hq2).comp_injective
+    (add_left_injective 1)).congr fun n => ?_
+  simp only [Function.comp_apply, norm_pow, pow_mul]
+
+/-- `1 + x ≠ 0` when `‖x‖ < 1`, in any normed field. -/
+theorem s14w_one_add_ne_zero {K : Type*} [NormedField K] {x : K} (hx : ‖x‖ < 1) : 1 + x ≠ 0 := by
+  intro h
+  have hx1 : x = -1 := by linear_combination h
+  rw [hx1, norm_neg, norm_one] at hx
+  exact lt_irrefl 1 hx
+
+/-- `∏ ((1 + a n)/(1 + b n))^m = (∏ (1 + a n) / ∏ (1 + b n))^m` for norm-summable `a`, `b` with
+`1 + b n ≠ 0`, in any complete normed field. -/
+theorem s14w_tprod_div_pow {K : Type*} [NormedField K] [CompleteSpace K] {a b : ℕ → K}
+    (ha : Summable fun n => ‖a n‖) (hb : Summable fun n => ‖b n‖) (hb0 : ∀ n, 1 + b n ≠ 0) (m : ℕ) :
+    ∏' n, ((1 + a n) / (1 + b n)) ^ m = ((∏' n, (1 + a n)) / ∏' n, (1 + b n)) ^ m := by
+  have hA := multipliable_one_add_of_summable ha
+  have hB := multipliable_one_add_of_summable hb
+  have hB0 := tprod_one_add_ne_zero_of_summable hb0 hb
+  rw [(hA.div₀ hB hB0).tprod_pow m, hA.tprod_div₀ hB hB0]
+
+/-- SP5i. `q F(τ/2)⁴ / F(1/2)⁴ = q⁻¹/16 ∏_{n ≥ 1} ((1 - q^{2n-1})/(1 + q^{2n}))⁸`.
+Truth: SP5a and SP5b; `(i/2)⁴ = 1/16` and `(q^{1/2})⁻⁴ = q⁻²`; then `Multipliable.tprod_div₀`,
+`Multipliable.div₀` and `Multipliable.tprod_pow`, the denominator product being nonzero
+(`tprod_one_add_ne_zero_of_summable`).  Orientation: `n ≥ 0` with `2n + 1 = 2(n + 1) - 1` and `2(n + 1)`, as in
+`eq14_23`. -/
+theorem s14w_prod_lambda {τ : ℂ} (hτ : 0 < τ.im) :
+    s14w_nome τ * s14w_F τ (τ / 2) ^ 4 / s14w_F τ (1 / 2) ^ 4 =
+      (s14w_nome τ)⁻¹ / 16 *
+        ∏' n : ℕ, ((1 - s14w_nome τ ^ (2 * n + 1)) / (1 + s14w_nome τ ^ (2 * (n + 1)))) ^ 8 := by
+  have hq := s14w_norm_nome_lt_one hτ
+  have hq0 : s14w_nome τ ≠ 0 := Complex.exp_ne_zero _
+  have hP : ∏' n : ℕ, (1 + s14w_nome τ ^ (2 * (n + 1))) ≠ 0 := by
+    simpa using s14w_tprod_ne_zero hq (w := -1) (by simp)
+  have hprod : ∏' n : ℕ, ((1 - s14w_nome τ ^ (2 * n + 1)) / (1 + s14w_nome τ ^ (2 * (n + 1)))) ^ 8 =
+      ((∏' n : ℕ, (1 - s14w_nome τ ^ (2 * n + 1))) / ∏' n : ℕ, (1 + s14w_nome τ ^ (2 * (n + 1)))) ^ 8 := by
+    simp_rw [sub_eq_add_neg]
+    exact s14w_tprod_div_pow (by simpa using s14w_summable_pow_odd hq) (s14w_summable_pow_even hq)
+      (fun n => s14w_one_add_ne_zero (by rw [norm_pow]; exact pow_lt_one₀ (norm_nonneg _) hq (by omega))) 8
+  have hI : (I / 2) ^ 4 = 1 / 16 := by
+    rw [div_pow, Complex.I_pow_four]
+    norm_num
+  have hs4 : (s14w_sqrtNome τ)⁻¹ ^ 4 = (s14w_nome τ)⁻¹ ^ 2 := by
+    rw [← s14w_sqrtNome_sq]
+    ring
+  rw [s14w_F_half_tau hτ, s14w_F_half τ, hprod, mul_pow, mul_pow, hI, hs4]
+  field_simp
+
+/-- SP5j. `q F((1 + τ)/2)⁴ / F(1/2)⁴ = q⁻¹/16 ∏_{n ≥ 1} ((1 + q^{2n-1})/(1 + q^{2n}))⁸`.
+Truth: SP5a and SP5c, as in SP5i, with `(1/2)⁴ = 1/16`.  Orientation: as in SP5i. -/
+theorem s14w_prod_lambda_add_one {τ : ℂ} (hτ : 0 < τ.im) :
+    s14w_nome τ * s14w_F τ ((1 + τ) / 2) ^ 4 / s14w_F τ (1 / 2) ^ 4 =
+      (s14w_nome τ)⁻¹ / 16 *
+        ∏' n : ℕ, ((1 + s14w_nome τ ^ (2 * n + 1)) / (1 + s14w_nome τ ^ (2 * (n + 1)))) ^ 8 := by
+  have hq := s14w_norm_nome_lt_one hτ
+  have hq0 : s14w_nome τ ≠ 0 := Complex.exp_ne_zero _
+  have hP : ∏' n : ℕ, (1 + s14w_nome τ ^ (2 * (n + 1))) ≠ 0 := by
+    simpa using s14w_tprod_ne_zero hq (w := -1) (by simp)
+  have hprod : ∏' n : ℕ, ((1 + s14w_nome τ ^ (2 * n + 1)) / (1 + s14w_nome τ ^ (2 * (n + 1)))) ^ 8 =
+      ((∏' n : ℕ, (1 + s14w_nome τ ^ (2 * n + 1))) / ∏' n : ℕ, (1 + s14w_nome τ ^ (2 * (n + 1)))) ^ 8 :=
+    s14w_tprod_div_pow (s14w_summable_pow_odd hq) (s14w_summable_pow_even hq)
+      (fun n => s14w_one_add_ne_zero (by rw [norm_pow]; exact pow_lt_one₀ (norm_nonneg _) hq (by omega))) 8
+  have hh : (1 / 2 : ℂ) ^ 4 = 1 / 16 := by norm_num
+  have hs4 : (s14w_sqrtNome τ)⁻¹ ^ 4 = (s14w_nome τ)⁻¹ ^ 2 := by
+    rw [← s14w_sqrtNome_sq]
+    ring
+  rw [s14w_F_half_one_tau hτ, s14w_F_half τ, hprod, mul_pow, mul_pow, hh, hs4]
+  field_simp
+
+/-- `ofReal` commutes with the product of a multipliable real sequence (`HasProd.map` along
+`Complex.ofRealHom`; Mathlib has no `ofReal_tprod`). -/
+theorem s14w_ofReal_tprod {f : ℕ → ℝ} (hf : Multipliable f) : ((∏' n, f n : ℝ) : ℂ) = ∏' n, (f n : ℂ) := by
+  have h := (hf.hasProd.map Complex.ofRealHom Complex.continuous_ofReal).tprod_eq
+  simpa using h.symm
+
+/-- `e^{-πv} < 1` in norm for `v > 0`. -/
+theorem s14w_norm_exp_neg_lt_one {v : ℝ} (hv : 0 < v) : ‖Real.exp (-(π * v))‖ < 1 := by
+  rw [Real.norm_of_nonneg (Real.exp_pos _).le]
+  calc Real.exp (-(π * v)) < Real.exp 0 := Real.exp_lt_exp.mpr (by nlinarith [Real.pi_pos])
+    _ = 1 := Real.exp_zero
+
+/-- At `τ = iv` the nome is the real number `e^{-πv}`. -/
+theorem s14w_nome_vI (v : ℝ) : s14w_nome (v * I) = (Real.exp (-(π * v)) : ℂ) := by
+  rw [s14w_nome, Complex.ofReal_exp]
+  congr 1
+  push_cast
+  linear_combination (↑π * ↑v : ℂ) * Complex.I_sq
+
+/-- The exponents of (14.23)/(14.24): `e^{-(2(n+1)-1)πv} = (e^{-πv})^{2n+1}`. -/
+theorem s14w_exp_odd (v : ℝ) (n : ℕ) :
+    Real.exp (-(2 * (n + 1 : ℝ) - 1) * π * v) = Real.exp (-(π * v)) ^ (2 * n + 1) := by
+  rw [← Real.exp_nat_mul]
+  congr 1
+  push_cast
+  ring
+
+/-- The exponents of (14.23)/(14.24): `e^{-2(n+1)πv} = (e^{-πv})^{2(n+1)}`. -/
+theorem s14w_exp_even (v : ℝ) (n : ℕ) :
+    Real.exp (-2 * (n + 1 : ℝ) * π * v) = Real.exp (-(π * v)) ^ (2 * (n + 1)) := by
+  rw [← Real.exp_nat_mul]
+  congr 1
+  push_cast
+  ring
+
+/-- SP5k. At `τ = iv` the complex product of SP5i is the real right side of `eq14_23`.
+Truth: `q = e^{-πv}` is real, `q^{2n+1} = e^{-(2(n+1)-1)πv}`, `q^{2(n+1)} = e^{-2(n+1)πv}`, `q⁻¹ = e^{πv}`, and
+`ofReal` commutes with `∏'` of the multipliable real product (`HasProd.map` with `Complex.ofRealHom`).
+Orientation: `-(2 * (n + 1 : ℝ) - 1) * π * v` is `-(2m - 1)πv` with `m = n + 1`. -/
+theorem s14w_prod_ofReal_23 {v : ℝ} (hv : 0 < v) :
+    (s14w_nome (v * I))⁻¹ / 16 *
+        ∏' n : ℕ, ((1 - s14w_nome (v * I) ^ (2 * n + 1)) / (1 + s14w_nome (v * I) ^ (2 * (n + 1)))) ^ 8 =
+      ((Real.exp (π * v) / 16 *
+        ∏' n : ℕ, ((1 - Real.exp (-(2 * (n + 1 : ℝ) - 1) * π * v)) /
+          (1 + Real.exp (-2 * (n + 1 : ℝ) * π * v))) ^ 8 : ℝ) : ℂ) := by
+  have hrn := s14w_norm_exp_neg_lt_one hv
+  have hmult : Multipliable fun n : ℕ =>
+      ((1 - Real.exp (-(π * v)) ^ (2 * n + 1)) / (1 + Real.exp (-(π * v)) ^ (2 * (n + 1)))) ^ 8 := by
+    have ha := multipliable_one_add_of_summable (f := fun n : ℕ => -(Real.exp (-(π * v)) ^ (2 * n + 1)))
+      (by simpa using s14w_summable_pow_odd hrn)
+    have hb := multipliable_one_add_of_summable (f := fun n : ℕ => Real.exp (-(π * v)) ^ (2 * (n + 1)))
+      (s14w_summable_pow_even hrn)
+    have hb0 := tprod_one_add_ne_zero_of_summable (f := fun n : ℕ => Real.exp (-(π * v)) ^ (2 * (n + 1)))
+      (fun n => s14w_one_add_ne_zero (by rw [norm_pow]; exact pow_lt_one₀ (norm_nonneg _) hrn (by omega)))
+      (s14w_summable_pow_even hrn)
+    simpa [sub_eq_add_neg] using (ha.div₀ hb hb0).pow 8
+  have hinv : Real.exp (π * v) = (Real.exp (-(π * v)))⁻¹ := by rw [Real.exp_neg, inv_inv]
+  simp_rw [s14w_exp_odd, s14w_exp_even, hinv]
+  rw [s14w_nome_vI, Complex.ofReal_mul, s14w_ofReal_tprod hmult]
+  push_cast
+  rfl
+
+/-- SP5l. At `τ = iv` the complex product of SP5j is the real right side of `eq14_24`.
+Truth and orientation: as in SP5k. -/
+theorem s14w_prod_ofReal_24 {v : ℝ} (hv : 0 < v) :
+    (s14w_nome (v * I))⁻¹ / 16 *
+        ∏' n : ℕ, ((1 + s14w_nome (v * I) ^ (2 * n + 1)) / (1 + s14w_nome (v * I) ^ (2 * (n + 1)))) ^ 8 =
+      ((Real.exp (π * v) / 16 *
+        ∏' n : ℕ, ((1 + Real.exp (-(2 * (n + 1 : ℝ) - 1) * π * v)) /
+          (1 + Real.exp (-2 * (n + 1 : ℝ) * π * v))) ^ 8 : ℝ) : ℂ) := by
+  have hrn := s14w_norm_exp_neg_lt_one hv
+  have hmult : Multipliable fun n : ℕ =>
+      ((1 + Real.exp (-(π * v)) ^ (2 * n + 1)) / (1 + Real.exp (-(π * v)) ^ (2 * (n + 1)))) ^ 8 := by
+    have ha := multipliable_one_add_of_summable (f := fun n : ℕ => Real.exp (-(π * v)) ^ (2 * n + 1))
+      (s14w_summable_pow_odd hrn)
+    have hb := multipliable_one_add_of_summable (f := fun n : ℕ => Real.exp (-(π * v)) ^ (2 * (n + 1)))
+      (s14w_summable_pow_even hrn)
+    have hb0 := tprod_one_add_ne_zero_of_summable (f := fun n : ℕ => Real.exp (-(π * v)) ^ (2 * (n + 1)))
+      (fun n => s14w_one_add_ne_zero (by rw [norm_pow]; exact pow_lt_one₀ (norm_nonneg _) hrn (by omega)))
+      (s14w_summable_pow_even hrn)
+    exact (ha.div₀ hb hb0).pow 8
+  have hinv : Real.exp (π * v) = (Real.exp (-(π * v)))⁻¹ := by rw [Real.exp_neg, inv_inv]
+  simp_rw [s14w_exp_odd, s14w_exp_even, hinv]
+  rw [s14w_nome_vI, Complex.ofReal_mul, s14w_ofReal_tprod hmult]
+  push_cast
+  rfl
+
 /-- (14.23): `λ(v) = (e^{πv}/16) ∏_{n ≥ 1} ((1 - e^{-(2n-1)πv})/(1 + e^{-2nπv}))⁸`. -/
 theorem eq14_23 {v : ℝ} (hv : 0 < v) :
     lambdaInv v = Real.exp (π * v) / 16 *
       ∏' n : ℕ, ((1 - Real.exp (-(2 * (n + 1 : ℝ) - 1) * π * v)) /
         (1 + Real.exp (-2 * (n + 1 : ℝ) * π * v))) ^ 8 := by
-  sorry
+  have hτ : 0 < ((v : ℂ) * I).im := by simpa using hv
+  refine Complex.ofReal_injective ?_
+  rw [eq14_21 hv]
+  exact (s14w_lambdaE_eq hτ).trans ((s14w_prod_lambda hτ).trans (s14w_prod_ofReal_23 hv))
 
 /-- (14.24): `λ(v) + 1 = (e^{πv}/16) ∏_{n ≥ 1} ((1 + e^{-(2n-1)πv})/(1 + e^{-2nπv}))⁸`. -/
 theorem eq14_24 {v : ℝ} (hv : 0 < v) :
     lambdaInv v + 1 = Real.exp (π * v) / 16 *
       ∏' n : ℕ, ((1 + Real.exp (-(2 * (n + 1 : ℝ) - 1) * π * v)) /
         (1 + Real.exp (-2 * (n + 1 : ℝ) * π * v))) ^ 8 := by
-  sorry
+  have hτ : 0 < ((v : ℂ) * I).im := by simpa using hv
+  refine Complex.ofReal_injective ?_
+  rw [Complex.ofReal_add, Complex.ofReal_one, eq14_21 hv]
+  exact (s14w_lambdaE_add_one_eq hτ).trans ((s14w_prod_lambda_add_one hτ).trans (s14w_prod_ofReal_24 hv))
 
 /-- (14.25): `16 λ(v) ≤ e^{πv} ≤ 16 (λ(v) + 1)`. -/
 theorem eq14_25 {v : ℝ} (hv : 0 < v) :

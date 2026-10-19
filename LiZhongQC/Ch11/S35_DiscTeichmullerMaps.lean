@@ -1,5 +1,6 @@
 import LiZhongQC.Ch10.S34_BersFiberSpace
 import LiZhongQC.Lemmas.FluxRoute
+import LiZhongQC.Lemmas.BoundaryJensen
 
 /-!
 # §35 单位圆上的 Teichmüller 映射 — Teichmüller maps of the unit disc
@@ -198,26 +199,6 @@ theorem eq35_1_radii_finite_length {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD
         rw [Real.volume_Ioo]
         exact ENNReal.add_lt_top.2 ⟨ENNReal.mul_lt_top ENNReal.ofReal_lt_top ENNReal.ofReal_lt_top,
           ENNReal.mul_lt_top (by norm_num) hθ⟩
-
-/-- (35.2): if the ray `α⁺` crossed two radii of finite `φ`-length infinitely often, its sub-arcs `τₙ`
-between the two radii would have `φ`-length tending to `0`, forcing `φ ∈ E^{1/2}` of the sector with
-boundary values `0` a.e., hence `φ ≡ 0`.
-
-**Correction.**  The hypotheses `hne` (`φ ≢ 0`) and `h₁`, `h₂` (the two radii have finite `φ`-length) were
-redundant and are dropped: a horizontal ray already forces `φ ≢ 0` (`φ(c) c'² > 0`), and the conclusion
-follows from Lemma 35.1 alone (the ray converges to one point of `∂Δ`, which cannot have both arguments
-`θ₁` and `θ₂`).  The statement is thereby slightly stronger than the book's (35.2), and still true. -/
-theorem eq35_2_crossing_arcs {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) {c : ℝ → ℂ}
-    (hc : IsHorizontalRay φ c) {θ₁ θ₂ : ℝ} (hθ : θ₁ < θ₂) (hθ₂ : θ₂ < θ₁ + 2 * π) :
-    ¬ (∀ t₀ < (1 : ℝ), ∃ s t, t₀ < s ∧ s < t ∧ t < 1 ∧ arg (c s) = θ₁ ∧ arg (c t) = θ₂) := by
-  sorry
-
-/-- **Lemma 35.1**: let `ω = φ dz²` be a non-zero holomorphic quadratic differential in `Δ` of finite
-norm.  Then every ray `α⁺` of a non-critical horizontal trajectory converges to a point of `∂Δ`
-(the limit set `A ⊆ ∂Δ` of the ray cannot be an arc). -/
-theorem lemma35_1 {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) (hne : ∃ z ∈ unitDisc, φ z ≠ 0) {c : ℝ → ℂ}
-    (hc : IsHorizontalRay φ c) : ∃ ζ : ℂ, ‖ζ‖ = 1 ∧ Tendsto c (𝓝[<] 1) (𝓝 ζ) := by
-  sorry
 
 /-! ### Short circular arcs about a boundary point -/
 
@@ -911,6 +892,848 @@ theorem a35_key {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) (hne : ∃ z ∈ 
     _ ≤ (ε : ℝ≥0∞) / 2 + phiLength φ β + (ε : ℝ≥0∞) / 2 := add_le_add (add_le_add hA₁ε hBlen) hA₂ε
     _ = phiLength φ β + ε := by rw [add_comm ((ε : ℝ≥0∞) / 2), add_assoc, ENNReal.add_halves]
 
+/-! ### s21u P2b interface (scout U3): Lemma 35.1 through the Jensen-form boundary uniqueness
+
+A horizontal ray that does not converge crosses a fixed sector near `∂Δ` again and again, and the crossing arcs have
+`φ`-length tending to `0` (`s35v_crossing_arcs`). The Jensen-form boundary uniqueness `buj_no_short_crossings`
+(`Lemmas/BoundaryJensen`) forbids this. So every ray converges (`s35v_ray_converges`), and `eq35_2_crossing_arcs`,
+`lemma35_1` and `trajectory_endpoints` follow. -/
+
+/-! ### Copied from s35h `scout_T/h35_T.lean` (renamed `s35v_c_`) -/
+
+/-- A horizontal arc on `(0, 1)` is continuous on `(0, 1)` (s35h `h35_cont`). -/
+theorem s35v_c_cont {φ : ℂ → ℂ} {c : ℝ → ℂ} (hH : IsHorizontalArc φ c 0 1) :
+    ContinuousOn c (Ioo 0 1) := fun t ht => (hH t ht).1.continuousAt.continuousWithinAt
+
+/-- **Late crossings** (s35h `h35_cross`). If `c` (continuous on `(0, 1)`) comes arbitrarily late within `r` of `ζ`
+and arbitrarily late to distance `≥ δ > r` from `ζ`, it meets the circle `|z - ζ| = r` arbitrarily late. -/
+theorem s35v_c_cross {c : ℝ → ℂ} (hc : ContinuousOn c (Ioo 0 1)) {ζ : ℂ} {r δ : ℝ} (hrδ : r < δ)
+    (hin : ∃ᶠ t in 𝓝[<] (1 : ℝ), ‖c t - ζ‖ < r) (hout : ∃ᶠ t in 𝓝[<] (1 : ℝ), δ ≤ ‖c t - ζ‖)
+    {T : ℝ} (hT : T < 1) : ∃ u ∈ Ioo (max T 0) 1, ‖c u - ζ‖ = r := by
+  have hT' : max T 0 < 1 := max_lt hT one_pos
+  obtain ⟨t₁, ht₁, ht₁T⟩ := (hin.and_eventually (Ioo_mem_nhdsLT hT')).exists
+  obtain ⟨t₂, ht₂, ht₂T⟩ := (hout.and_eventually (Ioo_mem_nhdsLT ht₁T.2)).exists
+  have hsub : Icc t₁ t₂ ⊆ Ioo 0 1 := fun x hx =>
+    ⟨(le_max_right T 0).trans_lt (ht₁T.1.trans_le hx.1), hx.2.trans_lt ht₂T.2⟩
+  have hg : ContinuousOn (fun s => ‖c s - ζ‖) (Icc t₁ t₂) :=
+    ((hc.mono hsub).sub continuousOn_const).norm
+  obtain ⟨u, hu, hur⟩ := intermediate_value_Icc ht₂T.1.le hg ⟨ht₁.le, hrδ.le.trans ht₂⟩
+  exact ⟨u, ⟨ht₁T.1.trans_le hu.1, hu.2.trans_lt ht₂T.2⟩, hur⟩
+
+/-- Not converging to `ζ` means: frequently at distance `≥ δ` from `ζ`, for some `δ > 0` (s35h
+`h35_frequently_far`). -/
+theorem s35v_c_frequently_far {c : ℝ → ℂ} {ζ : ℂ} (hnt : ¬ Tendsto c (𝓝[<] 1) (𝓝 ζ)) :
+    ∃ δ > 0, ∃ᶠ t in 𝓝[<] (1 : ℝ), δ ≤ ‖c t - ζ‖ := by
+  by_contra hcon
+  push Not at hcon
+  apply hnt
+  rw [Metric.tendsto_nhds]
+  intro e he
+  filter_upwards [hcon e he] with t ht
+  rwa [dist_eq_norm]
+
+/-- The `φ`-length of `c|(a, b)` is monotone in the interval (s35h `h35_rayLength_mono`). -/
+theorem s35v_c_rayLength_mono (φ : ℂ → ℂ) (c : ℝ → ℂ) {a b a' b' : ℝ} (ha : a' ≤ a) (hb : b ≤ b') :
+    rayLength φ c a b ≤ rayLength φ c a' b' :=
+  lintegral_mono_set (Ioo_subset_Ioo ha hb)
+
+/-- `rayLength φ c u 1` is the supremum of `rayLength φ c u v`, `v < 1`: a bound for all `v < 1` bounds the tail
+(s35h `h35_rayLength_tail_le`). -/
+theorem s35v_c_rayLength_tail_le {φ : ℂ → ℂ} {c : ℝ → ℂ} {u : ℝ} (hu : u < 1) {B : ℝ≥0∞}
+    (hB : ∀ v ∈ Ioo u 1, rayLength φ c u v ≤ B) : rayLength φ c u 1 ≤ B := by
+  set w : ℕ → ℝ := fun k => 1 - (1 - u) / ((k : ℝ) + 2) with hw
+  have hu0 : 0 < 1 - u := sub_pos.2 hu
+  have hw1 : ∀ k : ℕ, u < w k ∧ w k < 1 := by
+    intro k
+    have hk : (0 : ℝ) < (k : ℝ) + 2 := by positivity
+    have h1 : (1 - u) / ((k : ℝ) + 2) < 1 - u := by
+      rw [div_lt_iff₀ hk]
+      nlinarith [(k.cast_nonneg : (0 : ℝ) ≤ k)]
+    have h2 : 0 < (1 - u) / ((k : ℝ) + 2) := div_pos hu0 hk
+    constructor <;> simp only [hw] <;> linarith
+  have hU : Ioo u 1 = ⋃ k : ℕ, Ioo u (w k) := by
+    ext x
+    simp only [mem_iUnion, mem_Ioo]
+    constructor
+    · rintro ⟨h1, h2⟩
+      obtain ⟨k, hk⟩ := exists_nat_gt ((1 - u) / (1 - x))
+      refine ⟨k, h1, ?_⟩
+      have hx0 : 0 < 1 - x := sub_pos.2 h2
+      have hk2 : (0 : ℝ) < (k : ℝ) + 2 := by positivity
+      have h3 : 1 - u < (k : ℝ) * (1 - x) := by
+        rw [div_lt_iff₀ hx0] at hk
+        linarith
+      have h4 : (1 - u) / ((k : ℝ) + 2) < 1 - x := by
+        rw [div_lt_iff₀ hk2]
+        nlinarith
+      simp only [hw]
+      linarith
+    · rintro ⟨k, h1, h2⟩
+      exact ⟨h1, h2.trans (hw1 k).2⟩
+  have hdir : Directed (· ⊆ ·) fun k : ℕ => Ioo u (w k) := by
+    refine Monotone.directed_le fun k l hkl => Ioo_subset_Ioo_right ?_
+    have hk2 : (0 : ℝ) < (k : ℝ) + 2 := by positivity
+    have hkl' : (k : ℝ) + 2 ≤ (l : ℝ) + 2 := by exact_mod_cast Nat.add_le_add_right hkl 2
+    have := div_le_div_of_nonneg_left hu0.le hk2 hkl'
+    simp only [hw]
+    linarith
+  unfold rayLength
+  rw [hU, setLIntegral_iUnion_of_directed _ hdir]
+  exact iSup_le fun k => hB (w k) (hw1 k)
+
+/-- **Short tails** (s35h `h35_tail_small`). If a horizontal ray of `φ ∈ A(Δ)` has a boundary cluster point `ζ`
+(at `t → 1⁻`) but does not converge to `ζ`, then arbitrarily late tails have arbitrarily small `φ`-length: between
+two late crossings of a short circle `|z - ζ| = r` (`circular_arcs_short`) the ray is shorter than the circular arc
+(`fx_arc_shortest_rayLength`). -/
+theorem s35v_c_tail_small {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) (hne : ∃ z ∈ unitDisc, φ z ≠ 0)
+    {c : ℝ → ℂ} (hc : IsHorizontalRay φ c) {ζ : ℂ} (hζ : ‖ζ‖ = 1)
+    (hcl : MapClusterPt ζ (𝓝[<] 1) c) (hnt : ¬ Tendsto c (𝓝[<] 1) (𝓝 ζ))
+    {ε : ℝ≥0∞} (hε : 0 < ε) {T : ℝ} (hT : T < 1) :
+    ∃ t₀ ∈ Ioo (max T 0) 1, rayLength φ c t₀ 1 ≤ ε := by
+  obtain ⟨hH, hD, -⟩ := hc
+  have hcont := s35v_c_cont hH
+  obtain ⟨δ, hδ, hout⟩ := s35v_c_frequently_far hnt
+  obtain ⟨r, hr, hr0, hLr⟩ := circular_arcs_short hφ hζ
+  obtain ⟨n, hn1, hn2⟩ :=
+    ((hr0.eventually (gt_mem_nhds hδ)).and (hLr.eventually (gt_mem_nhds hε))).exists
+  have hin : ∃ᶠ t in 𝓝[<] (1 : ℝ), ‖c t - ζ‖ < r n := by
+    have h := (mapClusterPt_iff_frequently.1 hcl) _ (ball_mem_nhds ζ (hr n).1)
+    exact h.mono fun t ht => by rwa [mem_ball, dist_eq_norm] at ht
+  obtain ⟨u₀, hu₀, hu₀r⟩ := s35v_c_cross hcont hn1 hin hout hT
+  have hu₀pos : 0 < u₀ := (le_max_right T 0).trans_lt hu₀.1
+  have hu₀D : c u₀ ∈ unitDisc := hD (mem_image_of_mem c ⟨hu₀pos, hu₀.2⟩)
+  -- between `u₀` and a later crossing `v`, the ray is shorter than the circle
+  have hseg : ∀ v ∈ Ioo u₀ 1, ‖c v - ζ‖ = r n → rayLength φ c u₀ v ≤
+      ∫⁻ θ in Ioo (0 : ℝ) (2 * π),
+        unitDisc.indicator (fun z => phiDensity φ z) (ζ + r n * exp (θ * I)) * ENNReal.ofReal (r n) := by
+    intro v hv hvr
+    have hvD : c v ∈ unitDisc := hD (mem_image_of_mem c ⟨hu₀pos.trans hv.1, hv.2⟩)
+    obtain ⟨A, hAlip, hA0, hA1, hAD, hAlen⟩ := a35_arc_exists hζ (hr n).1 hu₀r hvr hu₀D hvD
+    obtain ⟨hAloc, hAt0, hAt1⟩ := a35_lip_curve hAlip
+    obtain ⟨hHab, hcab, hDab⟩ := a35_sub_arc hH hD hu₀pos hv.2
+    have key := fx_arc_shortest_rayLength hφ.1 hne hv.1 hHab hcab hDab ⟨A, hAloc⟩
+      (fun z hz => hAD (image_mono Ioo_subset_Icc_self hz)) (by rw [← hA0]; exact hAt0)
+      (by rw [← hA1]; exact hAt1)
+    exact key.trans (hAlen (phiDensity φ))
+  refine ⟨u₀, hu₀, s35v_c_rayLength_tail_le hu₀.2 fun v hv => ?_⟩
+  obtain ⟨w, hw, hwr⟩ := s35v_c_cross hcont hn1 hin hout hv.2
+  have hvw : v ≤ w := (le_max_left v 0).trans hw.1.le
+  calc rayLength φ c u₀ v ≤ rayLength φ c u₀ w := s35v_c_rayLength_mono φ c le_rfl hvw
+    _ ≤ _ := hseg w ⟨hv.1.trans_le hvw, hw.2⟩ hwr
+    _ ≤ ε := hn2.le
+
+/-- A horizontal ray lies eventually (as `t → 1⁻`) in `Δ` (s35h `h35_ev_mem`). -/
+theorem s35v_c_ev_mem {φ : ℂ → ℂ} {c : ℝ → ℂ} (hc : IsHorizontalRay φ c) :
+    ∀ᶠ t in 𝓝[<] (1 : ℝ), c t ∈ unitDisc := by
+  filter_upwards [Ioo_mem_nhdsLT zero_lt_one] with t ht
+  exact hc.2.1 (mem_image_of_mem c ht)
+
+/-- A cluster point (at `t → 1⁻`) of a horizontal ray lying in `closedBall 0 1` lies on `∂Δ` (s35h
+`h35_norm_of_cluster`). -/
+theorem s35v_c_norm_of_cluster {φ : ℂ → ℂ} {c : ℝ → ℂ} (hc : IsHorizontalRay φ c) {ζ : ℂ}
+    (hζ : ζ ∈ closedBall (0 : ℂ) 1) (hcl : MapClusterPt ζ (𝓝[<] 1) c) : ‖ζ‖ = 1 := by
+  have hle : ‖ζ‖ ≤ 1 := by simpa using hζ
+  by_contra hne
+  have hlt : ‖ζ‖ < 1 := lt_of_le_of_ne hle hne
+  have hεpos : 0 < (1 - ‖ζ‖) / 2 := by linarith
+  have hsub : closedBall ζ ((1 - ‖ζ‖) / 2) ⊆ unitDisc := by
+    intro z hz
+    rw [mem_closedBall, dist_eq_norm] at hz
+    rw [unitDisc, mem_ball_zero_iff]
+    have h' := norm_sub_norm_le z ζ
+    linarith
+  have h1 := hc.2.2 _ (isCompact_closedBall ζ _) hsub
+  have h2 := (mapClusterPt_iff_frequently.1 hcl) _ (closedBall_mem_nhds ζ hεpos)
+  obtain ⟨t, ht1, ht2⟩ := (h2.and_eventually h1).exists
+  exact ht2 ht1
+
+/-- A horizontal ray has a cluster point on `∂Δ` at `t → 1⁻` (s35h `h35_cluster_exists`). -/
+theorem s35v_c_cluster_exists {φ : ℂ → ℂ} {c : ℝ → ℂ} (hc : IsHorizontalRay φ c) :
+    ∃ ζ : ℂ, ‖ζ‖ = 1 ∧ MapClusterPt ζ (𝓝[<] 1) c := by
+  have hfr : ∃ᶠ t in 𝓝[<] (1 : ℝ), c t ∈ closedBall (0 : ℂ) 1 :=
+    ((s35v_c_ev_mem hc).mono fun t ht => ball_subset_closedBall ht).frequently
+  obtain ⟨ζ, hζ, hcl⟩ := (isCompact_closedBall (0 : ℂ) 1).exists_mapClusterPt_of_frequently hfr
+  exact ⟨ζ, s35v_c_norm_of_cluster hc hζ hcl, hcl⟩
+
+/-- A horizontal ray eventually stays in the collar `ρ < |z| < 1` (`ρ < 1`) (s35h `h35_ev_collar`). -/
+theorem s35v_c_ev_collar {φ : ℂ → ℂ} {c : ℝ → ℂ} (hc : IsHorizontalRay φ c) {ρ : ℝ} (hρ : ρ < 1) :
+    ∃ T < (1 : ℝ), ∀ t ∈ Ioo T 1, ρ < ‖c t‖ := by
+  have hsub : closedBall (0 : ℂ) (max ρ 0) ⊆ unitDisc :=
+    closedBall_subset_ball (max_lt hρ one_pos)
+  have hev := hc.2.2 _ (isCompact_closedBall (0 : ℂ) (max ρ 0)) hsub
+  obtain ⟨T, hT, hTs⟩ := mem_nhdsLT_iff_exists_Ioo_subset.1 hev
+  refine ⟨T, hT, fun t ht => ?_⟩
+  have h : c t ∉ closedBall (0 : ℂ) (max ρ 0) := hTs ht
+  rw [mem_closedBall, dist_zero_right, not_le] at h
+  exact (le_max_left ρ 0).trans_lt h
+
+/-! ### Ray injectivity (copied from s21u scout U3 `h21u3_inj.lean`) -/
+
+/-- The constant curve at `p` as an `LRCurve` (scout U3 `h21u3_constCurve`). -/
+def s35v_c_constCurve (p : ℂ) : LRCurve :=
+  ⟨fun _ => p, (LipschitzWith.const (α := ℝ) p).locallyLipschitz.locallyLipschitzOn⟩
+
+/-- A constant curve has `φ`-length `0` (scout U3 `h21u3_phiLength_const`). -/
+theorem s35v_c_phiLength_const (φ : ℂ → ℂ) (p : ℂ) : phiLength φ (s35v_c_constCurve p) = 0 := by
+  simp [phiLength, LRCurve.rhoLength, s35v_c_constCurve]
+
+/-- **A horizontal ray is injective on `(0, 1)`** (scout U3 `h21u3_ray_injOn`): a loop `c a = c b` would be longer
+than the constant curve, against the geodesic property `fx_arc_shortest_rayLength` and `a35_rayLength_pos`. -/
+theorem s35v_c_ray_injOn {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) (hne : ∃ z ∈ unitDisc, φ z ≠ 0)
+    {c : ℝ → ℂ} (hc : IsHorizontalRay φ c) : InjOn c (Ioo 0 1) := by
+  obtain ⟨hH, hD, -⟩ := hc
+  have key : ∀ a b : ℝ, a ∈ Ioo (0 : ℝ) 1 → b ∈ Ioo (0 : ℝ) 1 → a < b → c a ≠ c b := by
+    intro a b ha hb hab heq
+    obtain ⟨hHab, hcab, hDab⟩ := a35_sub_arc hH hD ha.1 hb.2
+    have hca : c a ∈ unitDisc := hD (mem_image_of_mem c ha)
+    have hle := fx_arc_shortest_rayLength hφ.1 hne hab hHab hcab hDab (s35v_c_constCurve (c a))
+      (by rintro _ ⟨t, -, rfl⟩; exact hca) tendsto_const_nhds
+      (by rw [← heq]; exact tendsto_const_nhds)
+    rw [s35v_c_phiLength_const] at hle
+    have hpos := a35_rayLength_pos hφ.1.continuousOn hH hD ha.1.le hab hb.2.le
+    exact absurd (le_antisymm hle zero_le) hpos.ne'
+  intro a ha b hb heq
+  rcases lt_trichotomy a b with h | h | h
+  · exact absurd heq (key a b ha hb h)
+  · exact h
+  · exact absurd heq.symm (key b a hb ha h)
+
+/-! ### Real-variable lemmas: crossings of two levels, oscillation, good angles -/
+
+/-- **Crossing of two levels.** If `f` is continuous on `[p, q]` with `f p ≤ A < B ≤ f q`, there are `p ≤ s < t ≤ q`
+with `f s = A`, `f t = B` and `A < f < B` on `(s, t)`: `t` is the first time `f` reaches `B`, and `s` is the last
+time before `t` at which `f ≤ A`. -/
+theorem s35v_c_extract {f : ℝ → ℝ} {p q A B : ℝ} (hpq : p ≤ q) (hf : ContinuousOn f (Icc p q)) (hAB : A < B)
+    (hp : f p ≤ A) (hq : B ≤ f q) :
+    ∃ s t, p ≤ s ∧ s < t ∧ t ≤ q ∧ f s = A ∧ f t = B ∧ ∀ u ∈ Ioo s t, A < f u ∧ f u < B := by
+  -- `t`: the first time in `[p, q]` at which `f ≥ B`
+  obtain ⟨t, htS, hle⟩ : ∃ t ∈ Icc p q ∩ f ⁻¹' Ici B, ∀ u ∈ Icc p q ∩ f ⁻¹' Ici B, t ≤ u := by
+    have hSc : IsClosed (Icc p q ∩ f ⁻¹' Ici B) := hf.preimage_isClosed_of_isClosed isClosed_Icc isClosed_Ici
+    have hSb : BddBelow (Icc p q ∩ f ⁻¹' Ici B) := ⟨p, fun u hu => hu.1.1⟩
+    exact ⟨_, hSc.csInf_mem ⟨q, ⟨hpq, le_rfl⟩, hq⟩ hSb, fun u hu => csInf_le hSb hu⟩
+  have hpt : p ≤ t := htS.1.1
+  have htq : t ≤ q := htS.1.2
+  have hft : f t = B := by
+    obtain ⟨u, hu, hfu⟩ := intermediate_value_Icc hpt (hf.mono (Icc_subset_Icc_right htq))
+      ⟨hp.trans hAB.le, htS.2⟩
+    have hut : t ≤ u := hle u ⟨⟨hu.1, hu.2.trans htq⟩, hfu.ge⟩
+    rw [← le_antisymm hu.2 hut]
+    exact hfu
+  -- `s`: the last time in `[p, t]` at which `f ≤ A`
+  obtain ⟨s, hsS, hge⟩ : ∃ s ∈ Icc p t ∩ f ⁻¹' Iic A, ∀ u ∈ Icc p t ∩ f ⁻¹' Iic A, u ≤ s := by
+    have hSc : IsClosed (Icc p t ∩ f ⁻¹' Iic A) :=
+      (hf.mono (Icc_subset_Icc_right htq)).preimage_isClosed_of_isClosed isClosed_Icc isClosed_Iic
+    have hSb : BddAbove (Icc p t ∩ f ⁻¹' Iic A) := ⟨t, fun u hu => hu.1.2⟩
+    exact ⟨_, hSc.csSup_mem ⟨p, ⟨le_rfl, hpt⟩, hp⟩ hSb, fun u hu => le_csSup hSb hu⟩
+  have hps : p ≤ s := hsS.1.1
+  have hst' : s ≤ t := hsS.1.2
+  have hfs : f s = A := by
+    obtain ⟨u, hu, hfu⟩ := intermediate_value_Icc hst' (hf.mono (Icc_subset_Icc hps htq))
+      ⟨hsS.2, hAB.le.trans hft.ge⟩
+    have hus : u ≤ s := hge u ⟨⟨hps.trans hu.1, hu.2⟩, hfu.le⟩
+    rw [← le_antisymm hus hu.1]
+    exact hfu
+  have hst : s < t := lt_of_le_of_ne hst' fun h => by
+    rw [h, hft] at hfs
+    linarith
+  refine ⟨s, t, hps, hst, htq, hfs, hft, fun u hu => ⟨?_, ?_⟩⟩
+  · by_contra h
+    exact absurd (hge u ⟨⟨hps.trans hu.1.le, hu.2.le⟩, not_lt.1 h⟩) (not_le.2 hu.1)
+  · by_contra h
+    exact absurd (hle u ⟨⟨hps.trans hu.1.le, hu.2.le.trans htq⟩, not_lt.1 h⟩) (not_le.2 hu.2)
+
+/-- **Oscillation of a non-convergent function modulo `2π`.** If `f` has no limit at `1⁻`, then for `σ = 1` or
+`σ = -1` there are levels `A < B` such that arbitrarily late `σ f` passes from `≤ A + 2πk` to `≥ B + 2πk` (for some
+`k ∈ ℤ`). Either `f` oscillates between two levels (`k = 0`), or `f` is unbounded above (`σ = 1`) or below
+(`σ = -1`), or `f` is eventually bounded and then converges to any of its cluster values. -/
+theorem s35v_c_osc {f : ℝ → ℝ} {T : ℝ} (hT : T < 1) (hnc : ∀ L : ℝ, ¬ Tendsto f (𝓝[<] 1) (𝓝 L)) :
+    ∃ σ : ℝ, (σ = 1 ∨ σ = -1) ∧ ∃ A B : ℝ, A < B ∧ ∀ t₀ < (1 : ℝ), ∃ p q : ℝ, ∃ k : ℤ,
+      max t₀ T < p ∧ p < q ∧ q < 1 ∧ σ * f p ≤ A + 2 * π * k ∧ B + 2 * π * k ≤ σ * f q := by
+  have hfr : ∀ P : ℝ → Prop, (∃ᶠ t in 𝓝[<] (1 : ℝ), P t) → ∀ x < (1 : ℝ), ∃ t, x < t ∧ t < 1 ∧ P t := by
+    intro P hP x hx
+    obtain ⟨t, htP, ht⟩ := (hP.and_eventually (Ioo_mem_nhdsLT hx)).exists
+    exact ⟨t, ht.1, ht.2, htP⟩
+  by_cases h1 : ∃ A B : ℝ, A < B ∧ (∃ᶠ t in 𝓝[<] (1 : ℝ), f t < A) ∧ ∃ᶠ t in 𝓝[<] (1 : ℝ), B < f t
+  · obtain ⟨A, B, hAB, hA, hB⟩ := h1
+    refine ⟨1, Or.inl rfl, A, B, hAB, fun t₀ ht₀ => ?_⟩
+    obtain ⟨p, hp, hp1, hpA⟩ := hfr _ hA _ (max_lt ht₀ hT)
+    obtain ⟨q, hq, hq1, hqB⟩ := hfr _ hB p hp1
+    refine ⟨p, q, 0, hp, hq, hq1, ?_, ?_⟩
+    · simp only [one_mul, Int.cast_zero, mul_zero, add_zero]
+      exact hpA.le
+    · simp only [one_mul, Int.cast_zero, mul_zero, add_zero]
+      exact hqB.le
+  by_cases h2 : ∀ B : ℝ, ∃ᶠ t in 𝓝[<] (1 : ℝ), B < f t
+  · refine ⟨1, Or.inl rfl, 0, 1, one_pos, fun t₀ ht₀ => ?_⟩
+    obtain ⟨p, hp, hp1⟩ := exists_between (max_lt ht₀ hT)
+    have hk := Int.le_ceil (f p / (2 * π))
+    rw [div_le_iff₀ Real.two_pi_pos] at hk
+    obtain ⟨q, hq, hq1, hqB⟩ := hfr _ (h2 (1 + 2 * π * ⌈f p / (2 * π)⌉)) p hp1
+    exact ⟨p, q, ⌈f p / (2 * π)⌉, hp, hq, hq1, by linarith, by linarith⟩
+  by_cases h3 : ∀ A : ℝ, ∃ᶠ t in 𝓝[<] (1 : ℝ), f t < A
+  · refine ⟨-1, Or.inr rfl, 0, 1, one_pos, fun t₀ ht₀ => ?_⟩
+    obtain ⟨p, hp, hp1⟩ := exists_between (max_lt ht₀ hT)
+    have hk := Int.le_ceil (-f p / (2 * π))
+    rw [div_le_iff₀ Real.two_pi_pos] at hk
+    obtain ⟨q, hq, hq1, hqA⟩ := hfr _ (h3 (-(1 + 2 * π * ⌈-f p / (2 * π)⌉))) p hp1
+    exact ⟨p, q, ⌈-f p / (2 * π)⌉, hp, hq, hq1, by linarith, by linarith⟩
+  -- otherwise `f` is eventually bounded, and converges to a cluster value: a contradiction
+  exfalso
+  obtain ⟨B₀, hB₀⟩ : ∃ B₀ : ℝ, ∀ᶠ t in 𝓝[<] (1 : ℝ), f t ≤ B₀ := by
+    by_contra h
+    apply h2
+    intro B
+    by_contra hB
+    exact h ⟨B, (not_frequently.1 hB).mono fun t ht => not_lt.1 ht⟩
+  obtain ⟨A₀, hA₀⟩ : ∃ A₀ : ℝ, ∀ᶠ t in 𝓝[<] (1 : ℝ), A₀ ≤ f t := by
+    by_contra h
+    apply h3
+    intro A
+    by_contra hA
+    exact h ⟨A, (not_frequently.1 hA).mono fun t ht => not_lt.1 ht⟩
+  have hK : ∃ᶠ t in 𝓝[<] (1 : ℝ), f t ∈ Icc A₀ B₀ :=
+    ((hA₀.and hB₀).mono fun t ht => (⟨ht.1, ht.2⟩ : f t ∈ Icc A₀ B₀)).frequently
+  obtain ⟨L, -, hL⟩ := isCompact_Icc.exists_mapClusterPt_of_frequently hK
+  apply hnc L
+  rw [tendsto_order]
+  refine ⟨fun a ha => ?_, fun b hb => ?_⟩
+  · by_contra hcon
+    exact h1 ⟨(a + L) / 2, (a + 3 * L) / 4, by linarith,
+      (not_eventually.1 hcon).mono fun t ht => by linarith [not_lt.1 ht],
+      ((mapClusterPt_iff_frequently.1 hL) _ (Ioi_mem_nhds (by linarith))).mono fun t ht => ht⟩
+  · by_contra hcon
+    exact h1 ⟨(3 * L + b) / 4, (L + b) / 2, by linarith,
+      ((mapClusterPt_iff_frequently.1 hL) _ (Iio_mem_nhds (by linarith))).mono fun t ht => ht,
+      (not_eventually.1 hcon).mono fun t ht => by linarith [not_lt.1 ht]⟩
+
+/-- `e^{i(θ + 2πk)} = e^{iθ}`. -/
+theorem s35v_c_exp_shift (θ : ℝ) (k : ℤ) : exp (((θ + 2 * π * k : ℝ) : ℂ) * I) = exp (θ * I) := by
+  have h : (((θ + 2 * π * k : ℝ) : ℂ) * I) = θ * I + k * (2 * π * I) := by push_cast; ring
+  rw [h, exp_add, Complex.exp_int_mul_two_pi_mul_I, mul_one]
+
+/-- **Good angles are dense**: every interval `(x, x + ε)` contains an angle `θ` whose radius has finite `φ`-length
+(`eq35_1_radii_finite_length`, moved into `(0, 2π)` by a multiple of `2π`). -/
+theorem s35v_c_good_dense {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) (x : ℝ) {ε : ℝ} (hε : 0 < ε) :
+    ∃ θ ∈ Ioo x (x + ε), ∫⁻ r in Ioo (0 : ℝ) 1, phiDensity φ ((r : ℂ) * exp (θ * I)) < ⊤ := by
+  have hπ : 0 < 2 * π := Real.two_pi_pos
+  obtain ⟨n, hn1, hn2⟩ : ∃ n : ℤ, (n : ℝ) * (2 * π) ≤ x ∧ x < ((n : ℝ) + 1) * (2 * π) :=
+    ⟨⌊x / (2 * π)⌋, (le_div_iff₀ hπ).1 (Int.floor_le _), (div_lt_iff₀ hπ).1 (Int.lt_floor_add_one _)⟩
+  obtain ⟨ε', hε'0, hε'ε, hε'y⟩ : ∃ ε' : ℝ, 0 < ε' ∧ ε' ≤ ε ∧ ε' ≤ 2 * π - (x - 2 * π * n) :=
+    ⟨min ε (2 * π - (x - 2 * π * n)), lt_min hε (by linarith), min_le_left _ _, min_le_right _ _⟩
+  have hsub : Ioo (x - 2 * π * n) (x - 2 * π * n + ε') ⊆ Ioo 0 (2 * π) := fun θ hθ =>
+    ⟨by linarith [hθ.1], by linarith [hθ.2]⟩
+  have hae := ae_restrict_of_ae_restrict_of_subset hsub (eq35_1_radii_finite_length hφ)
+  have hne0 : volume.restrict (Ioo (x - 2 * π * n) (x - 2 * π * n + ε')) ≠ 0 := by
+    rw [Ne, Measure.restrict_eq_zero, Real.volume_Ioo, ENNReal.ofReal_eq_zero, not_le]
+    linarith
+  have : (ae (volume.restrict (Ioo (x - 2 * π * n) (x - 2 * π * n + ε')))).NeBot := ae_neBot.2 hne0
+  obtain ⟨θ, hθ, hθmem⟩ := (hae.and (ae_restrict_mem measurableSet_Ioo)).exists
+  refine ⟨θ + 2 * π * n, ⟨by linarith [hθmem.1], by linarith [hθmem.2]⟩, ?_⟩
+  rw [s35v_c_exp_shift]
+  exact hθ
+
+/-- `s35v_c_good_dense` for `σ θ`, `σ = ±1`. -/
+theorem s35v_c_good_dense_sign {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) {σ : ℝ} (hσ : σ = 1 ∨ σ = -1) (x : ℝ)
+    {ε : ℝ} (hε : 0 < ε) :
+    ∃ θ ∈ Ioo x (x + ε), ∫⁻ r in Ioo (0 : ℝ) 1, phiDensity φ ((r : ℂ) * exp (((σ * θ : ℝ) : ℂ) * I)) < ⊤ := by
+  rcases hσ with rfl | rfl
+  · obtain ⟨θ, hθ, hg⟩ := s35v_c_good_dense hφ x hε
+    exact ⟨θ, hθ, by rwa [one_mul]⟩
+  · obtain ⟨θ, hθ, hg⟩ := s35v_c_good_dense hφ (-x - ε) hε
+    exact ⟨-θ, ⟨by linarith [hθ.2], by linarith [hθ.1]⟩, by rwa [neg_one_mul, neg_neg]⟩
+
+/-! ### The continuous argument of the ray -/
+
+/-- `|c(t)| → 1` as `t → 1⁻` for a horizontal ray. -/
+theorem s35v_c_norm_tendsto {φ : ℂ → ℂ} {c : ℝ → ℂ} (hc : IsHorizontalRay φ c) :
+    Tendsto (fun t => ‖c t‖) (𝓝[<] 1) (𝓝 1) := by
+  rw [tendsto_order]
+  refine ⟨fun a ha => ?_, fun a ha => ?_⟩
+  · filter_upwards [hc.2.2 (closedBall 0 a) (isCompact_closedBall 0 a) (closedBall_subset_ball ha)] with t ht
+    rwa [mem_closedBall, dist_zero_right, not_le] at ht
+  · filter_upwards [Ioo_mem_nhdsLT zero_lt_one] with t ht
+    have h := hc.2.1 (mem_image_of_mem c ht)
+    rw [unitDisc, mem_ball_zero_iff] at h
+    linarith
+
+/-- **Continuous argument.** A curve `c ≠ 0`, continuous on `(T, 1)`, has a continuous argument `Θ` there:
+`c = |c| e^{iΘ}` (a continuous logarithm on the simply connected `(T, 1)`). -/
+theorem s35v_c_lift {c : ℝ → ℂ} {T : ℝ} (hT : T < 1) (hc : ContinuousOn c (Ioo T 1))
+    (h0 : ∀ t ∈ Ioo T 1, c t ≠ 0) :
+    ∃ Θ : ℝ → ℝ, ContinuousOn Θ (Ioo T 1) ∧ ∀ t ∈ Ioo T 1, c t = ‖c t‖ * exp (Θ t * I) := by
+  have hsc : IsSimplyConnected (Ioo T 1) := by
+    have : ContractibleSpace ↥(Ioo T 1) := (convex_Ioo T 1).contractibleSpace (nonempty_Ioo.2 hT)
+    exact SimplyConnectedSpace.ofContractible _
+  obtain ⟨L, hLc, hLe⟩ := Complex.exists_continuousOn_eqOn_exp_comp hsc isOpen_Ioo hc
+    (by rintro ⟨t, ht, h⟩; exact h0 t ht h)
+  refine ⟨fun t => (L t).im, Complex.continuous_im.comp_continuousOn hLc, fun t ht => ?_⟩
+  have h1 : exp (L t) = c t := hLe ht
+  show c t = ‖c t‖ * exp ((L t).im * I)
+  rw [← h1, Complex.norm_exp, Complex.ofReal_exp, ← exp_add, Complex.re_add_im]
+
+/-- The continuous argument of a ray that does not converge does not converge either: `Θ → L` would give
+`c → e^{iL}`. -/
+theorem s35v_c_lift_not_tendsto {φ : ℂ → ℂ} {c : ℝ → ℂ} (hc : IsHorizontalRay φ c)
+    (hnc : ¬ ∃ ζ : ℂ, ‖ζ‖ = 1 ∧ Tendsto c (𝓝[<] 1) (𝓝 ζ)) {T : ℝ} (hT : T < 1) {Θ : ℝ → ℝ}
+    (hpol : ∀ t ∈ Ioo T 1, c t = ‖c t‖ * exp (Θ t * I)) (L : ℝ) : ¬ Tendsto Θ (𝓝[<] 1) (𝓝 L) := by
+  intro hΘ
+  refine hnc ⟨exp (L * I), Complex.norm_exp_ofReal_mul_I L, ?_⟩
+  have h1 : Tendsto (fun t => ((‖c t‖ : ℝ) : ℂ) * exp (Θ t * I)) (𝓝[<] 1)
+      (𝓝 (((1 : ℝ) : ℂ) * exp (L * I))) :=
+    ((Complex.continuous_ofReal.tendsto 1).comp (s35v_c_norm_tendsto hc)).mul
+      ((Complex.continuous_exp.tendsto _).comp
+        (((Complex.continuous_ofReal.tendsto L).comp hΘ).mul_const I))
+  rw [Complex.ofReal_one, one_mul] at h1
+  refine Tendsto.congr' ?_ h1
+  filter_upwards [Ioo_mem_nhdsLT hT] with t ht using (hpol t ht).symm
+
+/-! ### Sector cuts -/
+
+/-- The open sector `buj_openSector ξ α` (`α < π`) is open. -/
+theorem s35v_c_isOpen_sector {ξ : ℂ} {α : ℝ} (hαπ : α < π) : IsOpen (buj_openSector ξ α) := by
+  rw [isOpen_iff_mem_nhds]
+  intro z hz
+  obtain ⟨hz0, hz1, hz2⟩ := hz
+  have hslit : z / ξ ∈ slitPlane := mem_slitPlane_iff_arg.2 ⟨(hz2.trans hαπ).ne, hz0⟩
+  have hdiv : Continuous fun w : ℂ => w / ξ := continuous_id.div_const ξ
+  have harg : ContinuousAt (fun w : ℂ => arg (w / ξ)) z :=
+    ContinuousAt.comp (g := arg) (f := fun w : ℂ => w / ξ) (x := z) (continuousAt_arg hslit) hdiv.continuousAt
+  filter_upwards [harg.eventually (lt_mem_nhds hz1), harg.eventually (gt_mem_nhds hz2),
+    hdiv.continuousAt.eventually_ne hz0] with w h1 h2 h3
+  exact ⟨h3, h1, h2⟩
+
+/-- **The base point.** For `φ ≢ 0` holomorphic in `Δ` and a sector with `0 < α < π`, there is a ball `B(z₀, δ)`
+inside the open sector ∩ `B(0, 1/2)` with `φ(z₀) ≠ 0` (identity theorem on the connected `Δ`). -/
+theorem s35v_c_base {φ : ℂ → ℂ} (hφ : DifferentiableOn ℂ φ unitDisc) (hne : ∃ z ∈ unitDisc, φ z ≠ 0) {ξ : ℂ}
+    (hξ : ‖ξ‖ = 1) {α : ℝ} (hα0 : 0 < α) (hαπ : α < π) :
+    ∃ z₀ : ℂ, ∃ δ : ℝ, 0 < δ ∧ φ z₀ ≠ 0 ∧ ball z₀ δ ⊆ buj_openSector ξ α ∩ ball 0 (1 / 2) := by
+  have hWo : IsOpen (buj_openSector ξ α ∩ ball 0 (1 / 2)) := (s35v_c_isOpen_sector hαπ).inter isOpen_ball
+  have hξ0 : ξ ≠ 0 := by
+    intro h
+    rw [h, norm_zero] at hξ
+    exact zero_ne_one hξ
+  -- the point `w₀ = ξ e^{iα/2}/4`
+  obtain ⟨w₀, hw₀⟩ : ∃ w₀ : ℂ, w₀ = ξ * (((1 / 4 : ℝ) : ℂ) * exp (((α / 2 : ℝ) : ℂ) * I)) := ⟨_, rfl⟩
+  have hw₀ξ : w₀ / ξ = ((1 / 4 : ℝ) : ℂ) * exp (((α / 2 : ℝ) : ℂ) * I) := by
+    rw [hw₀, mul_div_cancel_left₀ _ hξ0]
+  have harg : arg (w₀ / ξ) = α / 2 := by
+    rw [hw₀ξ, exp_mul_I]
+    exact arg_mul_cos_add_sin_mul_I (by norm_num) ⟨by linarith [Real.pi_pos], by linarith⟩
+  have hw₀W : w₀ ∈ buj_openSector ξ α ∩ ball 0 (1 / 2) := by
+    refine ⟨⟨?_, ?_, ?_⟩, ?_⟩
+    · rw [hw₀ξ]
+      exact mul_ne_zero (by norm_num) (exp_ne_zero _)
+    · rw [harg]
+      linarith
+    · rw [harg]
+      linarith
+    · rw [mem_ball_zero_iff, hw₀, norm_mul, norm_mul, hξ, Complex.norm_exp_ofReal_mul_I, Complex.norm_real,
+        Real.norm_eq_abs, abs_of_pos (by norm_num : (0 : ℝ) < 1 / 4)]
+      norm_num
+  by_contra hcon
+  have hzero : ∀ z ∈ buj_openSector ξ α ∩ ball 0 (1 / 2), φ z = 0 := by
+    intro z hz
+    by_contra hz0
+    obtain ⟨δ, hδ, hball⟩ := Metric.isOpen_iff.1 hWo z hz
+    exact hcon ⟨z, δ, hδ, hz0, hball⟩
+  have hsub : buj_openSector ξ α ∩ ball 0 (1 / 2) ⊆ unitDisc := fun z hz =>
+    mem_ball_zero_iff.2 ((mem_ball_zero_iff.1 hz.2).trans (by norm_num))
+  have hev : φ =ᶠ[𝓝 w₀] 0 := by
+    filter_upwards [hWo.mem_nhds hw₀W] with z hz using hzero z hz
+  have hA : AnalyticOnNhd ℂ φ unitDisc := hφ.analyticOnNhd isOpen_ball
+  have hEq := hA.eqOn_zero_of_preconnected_of_eventuallyEq_zero (convex_ball (0 : ℂ) 1).isPreconnected
+    (hsub hw₀W) hev
+  obtain ⟨z, hz, hφz⟩ := hne
+  exact hφz (hEq hz)
+
+/-- **A crossing of the sector is a sector cut.** Let `τ` be an arc on `[s, t]` (continuous, injective,
+differentiable inside, with integrable derivative) in the collar `1/2 < |τ| < 1`, with a continuous argument `Ψ`
+(`τ = |τ| e^{iΨ}`) that runs from `θ + 2πk` to `θ + α + 2πk` and stays strictly between. Then `τ|[s, t]` is a
+sector cut of the sector `buj_openSector (e^{iθ}) α` at height `1/2`. -/
+theorem s35v_c_cut {τ : ℝ → ℂ} {Ψ : ℝ → ℝ} {s t θ α : ℝ} {k : ℤ} (hα0 : 0 < α) (hαπ : α < π) (hst : s < t)
+    (hτ : ContinuousOn τ (Icc s t) ∧ InjOn τ (Icc s t) ∧ (∀ u ∈ Ioo s t, DifferentiableAt ℝ τ u) ∧
+      IntervalIntegrable (deriv τ) volume s t)
+    (hpol : ∀ u ∈ Icc s t, τ u = ‖τ u‖ * exp (Ψ u * I))
+    (hnorm : ∀ u ∈ Icc s t, 1 / 2 < ‖τ u‖ ∧ ‖τ u‖ < 1)
+    (hΨs : Ψ s = θ + 2 * π * k) (hΨt : Ψ t = θ + α + 2 * π * k)
+    (hΨ : ∀ u ∈ Ioo s t, θ + 2 * π * k < Ψ u ∧ Ψ u < θ + α + 2 * π * k) :
+    buj_IsSectorCut (exp (θ * I)) α ‖τ s‖ ‖τ t‖ (1 / 2) τ s t := by
+  obtain ⟨hcont, hinj, hdiff, hint⟩ := hτ
+  have hsI : s ∈ Icc s t := left_mem_Icc.2 hst.le
+  have htI : t ∈ Icc s t := right_mem_Icc.2 hst.le
+  have hpos : ∀ u ∈ Icc s t, 0 < ‖τ u‖ := fun u hu => by linarith [(hnorm u hu).1]
+  refine ⟨⟨hα0, hαπ, Complex.norm_exp_ofReal_mul_I θ, by norm_num, hpos s hsI, hpos t htI, hst⟩,
+    ⟨hcont, hinj, ?_, ?_⟩, fun u hu => ?_, hnorm, hdiff, hint⟩
+  · refine (hpol s hsI).trans ?_
+    rw [hΨs, s35v_c_exp_shift]
+  · refine (hpol t htI).trans ?_
+    rw [hΨt, s35v_c_exp_shift, ← exp_add]
+    congr 2
+    push_cast
+    ring
+  · have huI : u ∈ Icc s t := Ioo_subset_Icc_self hu
+    obtain ⟨ψ, hψ⟩ : ∃ ψ : ℝ, ψ = Ψ u - θ - 2 * π * k := ⟨_, rfl⟩
+    have hψ0 : 0 < ψ := by linarith [(hΨ u hu).1]
+    have hψα : ψ < α := by linarith [(hΨ u hu).2]
+    have hexp : exp (Ψ u * I) = exp (ψ * I) * exp (θ * I) := by
+      rw [← exp_add, show Ψ u = (ψ + θ) + 2 * π * k by linarith, s35v_c_exp_shift]
+      congr 1
+      push_cast
+      ring
+    have heq : τ u / exp (θ * I) = ‖τ u‖ * exp (ψ * I) := by
+      calc τ u / exp (θ * I) = ‖τ u‖ * exp (Ψ u * I) / exp (θ * I) := by rw [← hpol u huI]
+        _ = ‖τ u‖ * exp (ψ * I) := by
+          rw [hexp, ← mul_assoc, mul_div_assoc, div_self (exp_ne_zero _), mul_one]
+    have harg : arg ((‖τ u‖ : ℂ) * exp (ψ * I)) = ψ := by
+      rw [exp_mul_I]
+      exact arg_mul_cos_add_sin_mul_I (hpos u huI) ⟨by linarith [Real.pi_pos], by linarith⟩
+    show τ u / exp (θ * I) ≠ 0 ∧ 0 < arg (τ u / exp (θ * I)) ∧ arg (τ u / exp (θ * I)) < α
+    rw [heq, harg]
+    exact ⟨mul_ne_zero (ofReal_ne_zero.2 (hpos u huI).ne') (exp_ne_zero _), hψ0, hψα⟩
+
+/-- **The arc facts for a ray.** For `0 < s < t < 1` with `rayLength φ c s t < ∞`, the ray `c` is continuous and
+injective on `[s, t]`, differentiable inside, and `c'` is integrable on `[s, t]` (`√|φ ∘ c|` is bounded below on the
+compact arc). -/
+theorem s35v_c_arc_facts {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) {c : ℝ → ℂ} (hc : IsHorizontalRay φ c) {s t : ℝ}
+    (hs : 0 < s) (hst : s < t) (ht : t < 1) (hlen : rayLength φ c s t < ⊤) :
+    ContinuousOn c (Icc s t) ∧ InjOn c (Icc s t) ∧ (∀ u ∈ Ioo s t, DifferentiableAt ℝ c u) ∧
+      IntervalIntegrable (deriv c) volume s t := by
+  obtain ⟨hHab, hcc, hcD⟩ := a35_sub_arc hc.1 hc.2.1 hs ht
+  have hsub : Icc s t ⊆ Ioo 0 1 := fun u hu => ⟨hs.trans_le hu.1, hu.2.trans_lt ht⟩
+  have hsI : s ∈ Icc s t := left_mem_Icc.2 hst.le
+  have hne : ∃ z ∈ unitDisc, φ z ≠ 0 :=
+    ⟨c s, hcD (mem_image_of_mem c hsI), (hc.1 s (hsub hsI)).2.2.1⟩
+  refine ⟨hcc, (s35v_c_ray_injOn hφ hne hc).mono hsub, fun u hu => (hHab u hu).1, ?_⟩
+  -- `√|φ ∘ c| ≥ m₀ > 0` on `[s, t]`
+  have hg : ContinuousOn (fun u => Real.sqrt ‖φ (c u)‖) (Icc s t) :=
+    Real.continuous_sqrt.comp_continuousOn
+      ((hφ.1.continuousOn.comp hcc fun u hu => hcD (mem_image_of_mem c hu)).norm)
+  obtain ⟨u₀, hu₀, hmin⟩ := isCompact_Icc.exists_isMinOn (nonempty_Icc.2 hst.le) hg
+  have hm₀ : 0 < Real.sqrt ‖φ (c u₀)‖ := Real.sqrt_pos.2 (norm_pos_iff.2 (hc.1 u₀ (hsub hu₀)).2.2.1)
+  have hm0' : ENNReal.ofReal (Real.sqrt ‖φ (c u₀)‖) ≠ 0 := (ENNReal.ofReal_pos.2 hm₀).ne'
+  have hfin : ∫⁻ u in Ioo s t, ‖deriv c u‖ₑ < ⊤ := by
+    calc ∫⁻ u in Ioo s t, ‖deriv c u‖ₑ
+        ≤ ∫⁻ u in Ioo s t, (ENNReal.ofReal (Real.sqrt ‖φ (c u₀)‖))⁻¹ *
+            (phiDensity φ (c u) * ‖deriv c u‖ₑ) := by
+          refine setLIntegral_mono' measurableSet_Ioo fun u hu => ?_
+          calc ‖deriv c u‖ₑ = (ENNReal.ofReal (Real.sqrt ‖φ (c u₀)‖))⁻¹ *
+                (ENNReal.ofReal (Real.sqrt ‖φ (c u₀)‖) * ‖deriv c u‖ₑ) := by
+                rw [← mul_assoc, ENNReal.inv_mul_cancel hm0' ENNReal.ofReal_ne_top, one_mul]
+            _ ≤ _ := by
+                gcongr
+                exact ENNReal.ofReal_le_ofReal (isMinOn_iff.1 hmin u (Ioo_subset_Icc_self hu))
+      _ = (ENNReal.ofReal (Real.sqrt ‖φ (c u₀)‖))⁻¹ * rayLength φ c s t :=
+          lintegral_const_mul' _ _ (ENNReal.inv_ne_top.2 hm0')
+      _ < ⊤ := ENNReal.mul_lt_top (ENNReal.inv_lt_top.2 (ENNReal.ofReal_pos.2 hm₀)) hlen
+  rw [intervalIntegrable_iff_integrableOn_Ioo_of_le hst.le]
+  exact ⟨(measurable_deriv c).aestronglyMeasurable, hfin⟩
+
+/-- The arc facts transfer to the reversal `τ = c (-·)` on `[-t, -s]`. -/
+theorem s35v_c_arc_facts_neg {c τ : ℝ → ℂ} (hτ : ∀ u, τ u = c (-u)) {s t : ℝ}
+    (h : ContinuousOn c (Icc s t) ∧ InjOn c (Icc s t) ∧ (∀ u ∈ Ioo s t, DifferentiableAt ℝ c u) ∧
+      IntervalIntegrable (deriv c) volume s t) :
+    ContinuousOn τ (Icc (-t) (-s)) ∧ InjOn τ (Icc (-t) (-s)) ∧
+      (∀ u ∈ Ioo (-t) (-s), DifferentiableAt ℝ τ u) ∧ IntervalIntegrable (deriv τ) volume (-t) (-s) := by
+  obtain rfl : τ = fun u => c (-u) := funext hτ
+  obtain ⟨hcc, hinj, hdiff, hint⟩ := h
+  have hmaps : MapsTo (fun u : ℝ => -u) (Icc (-t) (-s)) (Icc s t) := fun u hu =>
+    ⟨by linarith [hu.2], by linarith [hu.1]⟩
+  refine ⟨hcc.comp continuous_neg.continuousOn hmaps,
+    fun x hx y hy hxy => neg_injective (hinj (hmaps hx) (hmaps hy) hxy),
+    fun u hu => (hdiff (-u) ⟨by linarith [hu.2], by linarith [hu.1]⟩).comp u differentiableAt_id.neg, ?_⟩
+  have hderiv : deriv (fun u => c (-u)) = fun u => -deriv c (-u) := funext fun u => deriv_comp_neg c u
+  rw [hderiv]
+  exact ((IntervalIntegrable.iff_comp_neg (f := deriv c) (a := s) (b := t)).1 hint).neg.symm
+
+/-- The `φ`-length of the reversal: `rayLength φ (c (-·)) (-t) (-s) = rayLength φ c s t`. -/
+theorem s35v_c_rayLength_neg (φ : ℂ → ℂ) {c τ : ℝ → ℂ} (hτ : ∀ u, τ u = c (-u)) (s t : ℝ) :
+    rayLength φ τ (-t) (-s) = rayLength φ c s t := by
+  obtain rfl : τ = fun u => c (-u) := funext hτ
+  have hpre : (Neg.neg : ℝ → ℝ) ⁻¹' Ioo s t = Ioo (-t) (-s) := by
+    ext x
+    simp only [mem_preimage, mem_Ioo]
+    constructor <;> intro h <;> constructor <;> linarith [h.1, h.2]
+  calc rayLength φ (fun u => c (-u)) (-t) (-s)
+      = ∫⁻ x in (Neg.neg : ℝ → ℝ) ⁻¹' Ioo s t, phiDensity φ (c (-x)) * ‖deriv c (-x)‖ₑ := by
+        rw [hpre]
+        refine lintegral_congr fun x => ?_
+        rw [deriv_comp_neg c x, enorm_neg]
+    _ = ∫⁻ y in Ioo s t, phiDensity φ (c y) * ‖deriv c y‖ₑ :=
+        (Measure.measurePreserving_neg (volume : Measure ℝ)).setLIntegral_comp_preimage_emb
+          measurableEmbedding_neg (fun y => phiDensity φ (c y) * ‖deriv c y‖ₑ) (Ioo s t)
+
+/-- **Assembly.** Sector crossings `τ|[sₙ, tₙ]` of `buj_openSector (e^{iθ}) α` in the collar, with good sides and
+`φ`-lengths tending to `0`, give the conclusion of `s35v_crossing_arcs` (the base point by `s35v_c_base`, the cuts by
+`s35v_c_cut`). -/
+theorem s35v_c_finish {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) (hne : ∃ z ∈ unitDisc, φ z ≠ 0) {c τ : ℝ → ℂ}
+    (hτc : τ = c ∨ τ = fun u => c (-u)) {Ψ : ℝ → ℝ} {θ β : ℝ} (hβ0 : 0 < β) (hβπ : β < π)
+    (hg₁ : ∫⁻ r in Ioo (0 : ℝ) 1, phiDensity φ ((r : ℂ) * exp (θ * I)) < ⊤)
+    (hg₂ : ∫⁻ r in Ioo (0 : ℝ) 1, phiDensity φ ((r : ℂ) * exp (((θ + β : ℝ) : ℂ) * I)) < ⊤)
+    {s₁ t₁ : ℕ → ℝ} {k : ℕ → ℤ} (hst : ∀ n, s₁ n < t₁ n)
+    (hτ : ∀ n, ContinuousOn τ (Icc (s₁ n) (t₁ n)) ∧ InjOn τ (Icc (s₁ n) (t₁ n)) ∧
+      (∀ u ∈ Ioo (s₁ n) (t₁ n), DifferentiableAt ℝ τ u) ∧ IntervalIntegrable (deriv τ) volume (s₁ n) (t₁ n))
+    (hpol : ∀ n, ∀ u ∈ Icc (s₁ n) (t₁ n), τ u = ‖τ u‖ * exp (Ψ u * I))
+    (hnorm : ∀ n, ∀ u ∈ Icc (s₁ n) (t₁ n), 1 / 2 < ‖τ u‖ ∧ ‖τ u‖ < 1)
+    (hΨs : ∀ n, Ψ (s₁ n) = θ + 2 * π * k n) (hΨt : ∀ n, Ψ (t₁ n) = θ + β + 2 * π * k n)
+    (hΨ : ∀ n, ∀ u ∈ Ioo (s₁ n) (t₁ n), θ + 2 * π * k n < Ψ u ∧ Ψ u < θ + β + 2 * π * k n)
+    (hlen : Tendsto (fun n => rayLength φ τ (s₁ n) (t₁ n)) atTop (𝓝 0)) :
+    ∃ (ξ z₀ : ℂ) (α δ : ℝ), 0 < δ ∧ φ z₀ ≠ 0 ∧ ball z₀ δ ⊆ buj_openSector ξ α ∩ ball 0 (1 / 2) ∧
+      ∫⁻ r in Ioo (0 : ℝ) 1, phiDensity φ ((r : ℂ) * ξ) < ⊤ ∧
+      ∫⁻ r in Ioo (0 : ℝ) 1, phiDensity φ ((r : ℂ) * (ξ * exp (α * I))) < ⊤ ∧
+      ∃ τ : ℝ → ℂ, (τ = c ∨ τ = fun u => c (-u)) ∧ ∃ a b s t : ℕ → ℝ,
+        (∀ n, buj_IsSectorCut ξ α (a n) (b n) (1 / 2) τ (s n) (t n)) ∧
+        Tendsto (fun n => rayLength φ τ (s n) (t n)) atTop (𝓝 0) := by
+  obtain ⟨z₀, δ, hδ, hz₀, hball⟩ := s35v_c_base hφ.1 hne (Complex.norm_exp_ofReal_mul_I θ) hβ0 hβπ
+  have hexp : exp (θ * I) * exp (β * I) = exp (((θ + β : ℝ) : ℂ) * I) := by
+    rw [← exp_add]
+    congr 1
+    push_cast
+    ring
+  refine ⟨exp (θ * I), z₀, β, δ, hδ, hz₀, hball, hg₁, by rw [hexp]; exact hg₂, τ, hτc,
+    fun n => ‖τ (s₁ n)‖, fun n => ‖τ (t₁ n)‖, s₁, t₁, fun n => ?_, hlen⟩
+  exact s35v_c_cut hβ0 hβπ (hst n) (hτ n) (hpol n) (hnorm n) (hΨs n) (hΨt n) (hΨ n)
+
+/-- **Short crossings of a non-convergent ray.**
+
+Setting: a horizontal ray `c` of `φ ∈ A(Δ)` that does not converge.
+
+Claim: there are
+* a sector `buj_openSector ξ α` with `0 < α < π`, whose two sides have finite `φ`-length;
+* a base point `z₀` with `φ(z₀) ≠ 0` and `B(z₀, δ)` in the open sector ∩ `B(0, 1/2)`;
+* sub-arcs `τ|[sₙ, tₙ]` that are sector cuts at height `1/2`, with `φ`-lengths tending to `0`, where the curve `τ`
+  is `c` itself or its reversal `u ↦ c (-u)`.
+
+*Orientation.* `buj_IsSectorCut` fixes the direction of a cut (side `ξ` first). A ray that crosses the
+sector only clockwise (its continuous argument tends to `-∞`) has no such sub-arcs of `c`; its cuts are sub-arcs of
+the reversal `u ↦ c (-u)` on `[-tₙ, -sₙ]`, with the same `φ`-length. Excluding that case would be Lemma 35.1 itself.
+
+*Truth:* TRUE. The only analytic input beyond the installed tools is the short-tail lemma of s35h.
+
+*Route:*
+1. **Late behaviour.** The ray eventually lies in `1/2 < |z| < 1`. It is injective: `fx_arc_shortest_rayLength`
+   against a constant comparison curve, together with `a35_rayLength_pos` (scout probe `h21u3_ray_injOn`).
+2. **Continuous argument.** Take a continuous argument `Θ` of `c` on `[T, 1)` (the log lifts of `Lemmas/Winding`).
+   Since `|c| → 1` and `c` does not converge, `Θ` does not converge. Either it is bounded with `liminf < limsup`, or
+   it is unbounded.
+3. **Good angles.** By `eq35_1_radii_finite_length`, almost every radius has finite `φ`-length. Pick good
+   `θ₁ < θ₂ < θ₁ + π` that are crossed infinitely often (modulo `2π` in the unbounded case). Set `ξ = e^{iθ₁}` and
+   `α = θ₂ - θ₁`.
+4. **Crossing arcs.** `sₙ` is the last time `Θ = θ₁ (+ 2πk)` before the next time `tₙ` with `Θ = θ₂ (+ 2πk)`.
+   Between them `Θ` stays strictly between, so the arc lies in the open sector, and `c(sₙ) = |c(sₙ)| ξ`. In the case
+   `Θ → -∞` (the only one in which counterclockwise crossings may run out), use the clockwise crossings (`θ₂ (+ 2πk)`
+   first, then `θ₁ (+ 2πk)`) and `τ = c (-·)`.
+5. **Integrable derivative.** `√|φ ∘ c|` is bounded below on the compact arc and the `φ`-length is finite, so
+   `∫ |c'| < ∞` on `[sₙ, tₙ]`.
+6. **Short tails.** `h35_tail_small` (s35h `scout_T/h35_T.lean`, via `circular_arcs_short` and
+   `fx_arc_shortest_rayLength`) gives `rayLength φ c sₙ tₙ → 0`.
+7. **Base point.** Open sector ∩ `B(0, 1/2)` is open and nonempty. `φ ≢ 0` there by the identity theorem
+   (`φ(c(t)) ≠ 0`), which gives `z₀` and `δ`. -/
+theorem s35v_crossing_arcs {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) {c : ℝ → ℂ} (hc : IsHorizontalRay φ c)
+    (hnc : ¬ ∃ ζ : ℂ, ‖ζ‖ = 1 ∧ Tendsto c (𝓝[<] 1) (𝓝 ζ)) :
+    ∃ (ξ z₀ : ℂ) (α δ : ℝ), 0 < δ ∧ φ z₀ ≠ 0 ∧ ball z₀ δ ⊆ buj_openSector ξ α ∩ ball 0 (1 / 2) ∧
+      ∫⁻ r in Ioo (0 : ℝ) 1, phiDensity φ ((r : ℂ) * ξ) < ⊤ ∧
+      ∫⁻ r in Ioo (0 : ℝ) 1, phiDensity φ ((r : ℂ) * (ξ * exp (α * I))) < ⊤ ∧
+      ∃ τ : ℝ → ℂ, (τ = c ∨ τ = fun u => c (-u)) ∧ ∃ a b s t : ℕ → ℝ,
+        (∀ n, buj_IsSectorCut ξ α (a n) (b n) (1 / 2) τ (s n) (t n)) ∧
+        Tendsto (fun n => rayLength φ τ (s n) (t n)) atTop (𝓝 0) := by
+  have h12 : (1 / 2 : ℝ) ∈ Ioo (0 : ℝ) 1 := ⟨by norm_num, by norm_num⟩
+  have hne : ∃ z ∈ unitDisc, φ z ≠ 0 :=
+    ⟨c (1 / 2), hc.2.1 (mem_image_of_mem c h12), (hc.1 (1 / 2) h12).2.2.1⟩
+  -- the collar `1/2 < |c| < 1` on `(T, 1)`
+  obtain ⟨T₀, hT₀, hcol⟩ := s35v_c_ev_collar hc (by norm_num : (1 / 2 : ℝ) < 1)
+  obtain ⟨T, hT0, hT1, hTT₀⟩ : ∃ T : ℝ, 0 < T ∧ T < 1 ∧ T₀ ≤ T :=
+    ⟨max T₀ (1 / 2), lt_max_of_lt_right (by norm_num), max_lt hT₀ (by norm_num), le_max_left _ _⟩
+  have hsubT : Ioo T 1 ⊆ Ioo 0 1 := Ioo_subset_Ioo_left hT0.le
+  have hnormT : ∀ u ∈ Ioo T 1, 1 / 2 < ‖c u‖ ∧ ‖c u‖ < 1 := fun u hu =>
+    ⟨hcol u ⟨hTT₀.trans_lt hu.1, hu.2⟩, mem_ball_zero_iff.1 (hc.2.1 (mem_image_of_mem c (hsubT hu)))⟩
+  -- a continuous argument `Θ` of `c` on `(T, 1)`; it does not converge, so it oscillates (mod `2π`)
+  obtain ⟨Θ, hΘc, hpol⟩ := s35v_c_lift hT1 ((s35v_c_cont hc.1).mono hsubT) fun u hu h0 => by
+    have h := (hnormT u hu).1
+    rw [h0, norm_zero] at h
+    linarith
+  obtain ⟨σ, hσ, A, B, hAB, hosc⟩ := s35v_c_osc hT1 (s35v_c_lift_not_tendsto hc hnc hT1 hpol)
+  -- two good angles `A < θ₁ < θ₂ < B` with `θ₂ - θ₁ < π`
+  obtain ⟨ε, hε, hεB, hεπ⟩ : ∃ ε : ℝ, 0 < ε ∧ 3 * ε ≤ B - A ∧ 3 * ε ≤ π :=
+    ⟨min (B - A) π / 3, div_pos (lt_min (sub_pos.2 hAB) Real.pi_pos) (by norm_num),
+      by linarith [min_le_left (B - A) π], by linarith [min_le_right (B - A) π]⟩
+  obtain ⟨θ₁, hθ₁, hg₁⟩ := s35v_c_good_dense_sign hφ hσ A hε
+  obtain ⟨θ₂, hθ₂, hg₂⟩ := s35v_c_good_dense_sign hφ hσ (A + ε) hε
+  -- short tails
+  obtain ⟨ζ, hζ, hcl⟩ := s35v_c_cluster_exists hc
+  have hnt : ¬ Tendsto c (𝓝[<] 1) (𝓝 ζ) := fun h => hnc ⟨ζ, hζ, h⟩
+  have htail : ∀ n : ℕ, ∃ t₀ ∈ Ioo (max T 0) 1,
+      rayLength φ c t₀ 1 ≤ ENNReal.ofReal (1 / ((n : ℝ) + 1)) := fun n =>
+    s35v_c_tail_small hφ hne hc hζ hcl hnt (ENNReal.ofReal_pos.2 (by positivity)) hT1
+  choose t₀ ht₀ ht₀len using htail
+  -- crossings of the levels `θ₁ < θ₂` (mod `2π`) by `σ Θ` after `t₀ n`
+  have hcross : ∀ n : ℕ, ∃ s t : ℝ, ∃ k : ℤ, t₀ n < s ∧ s < t ∧ t < 1 ∧ T < s ∧
+      σ * Θ s = θ₁ + 2 * π * k ∧ σ * Θ t = θ₂ + 2 * π * k ∧
+      ∀ u ∈ Ioo s t, θ₁ + 2 * π * k < σ * Θ u ∧ σ * Θ u < θ₂ + 2 * π * k := by
+    intro n
+    obtain ⟨p, q, k, hp, hpq, hq1, hpA, hqB⟩ := hosc (t₀ n) (ht₀ n).2
+    have hpT : T < p := (le_max_right _ _).trans_lt hp
+    have hf : ContinuousOn (fun u => σ * Θ u) (Icc p q) :=
+      (continuousOn_const.mul hΘc).mono fun u hu => ⟨hpT.trans_le hu.1, hu.2.trans_lt hq1⟩
+    have hlev : θ₁ + 2 * π * k < θ₂ + 2 * π * k := by linarith [hθ₁.2, hθ₂.1]
+    have hpf : σ * Θ p ≤ θ₁ + 2 * π * k := by linarith [hθ₁.1]
+    have hqf : θ₂ + 2 * π * k ≤ σ * Θ q := by linarith [hθ₂.2]
+    obtain ⟨s, t, hps, hst, htq, hfs, hft, hmid⟩ :=
+      s35v_c_extract (f := fun u => σ * Θ u) hpq.le hf hlev hpf hqf
+    exact ⟨s, t, k, (le_max_left _ _).trans_lt (hp.trans_le hps), hst, htq.trans_lt hq1,
+      hpT.trans_le hps, hfs, hft, hmid⟩
+  choose s t k hs hst ht hsT hfs hft hmid using hcross
+  have hsub : ∀ n, Icc (s n) (t n) ⊆ Ioo T 1 := fun n u hu =>
+    ⟨(hsT n).trans_le hu.1, hu.2.trans_lt (ht n)⟩
+  have hlen : ∀ n, rayLength φ c (s n) (t n) ≤ ENNReal.ofReal (1 / ((n : ℝ) + 1)) := fun n =>
+    (s35v_c_rayLength_mono φ c (hs n).le (ht n).le).trans (ht₀len n)
+  have hlen0 : Tendsto (fun n => rayLength φ c (s n) (t n)) atTop (𝓝 0) := by
+    have h := ENNReal.tendsto_ofReal tendsto_one_div_add_atTop_nhds_zero_nat
+    rw [ENNReal.ofReal_zero] at h
+    exact tendsto_of_tendsto_of_tendsto_of_le_of_le tendsto_const_nhds h (fun _ => zero_le) hlen
+  have hfacts : ∀ n, ContinuousOn c (Icc (s n) (t n)) ∧ InjOn c (Icc (s n) (t n)) ∧
+      (∀ u ∈ Ioo (s n) (t n), DifferentiableAt ℝ c u) ∧ IntervalIntegrable (deriv c) volume (s n) (t n) :=
+    fun n => s35v_c_arc_facts hφ hc (hT0.trans (hsT n)) (hst n) (ht n)
+      ((hlen n).trans_lt ENNReal.ofReal_lt_top)
+  rcases hσ with rfl | rfl
+  · -- counterclockwise crossings: the cuts are sub-arcs of `c` itself
+    refine s35v_c_finish hφ hne (Or.inl rfl) (Ψ := Θ) (θ := θ₁) (β := θ₂ - θ₁) (k := k)
+      (by linarith [hθ₁.2, hθ₂.1]) (by linarith [hθ₁.1, hθ₂.2]) (by simpa only [one_mul] using hg₁) ?_ hst
+      hfacts (fun n u hu => hpol u (hsub n hu)) (fun n u hu => hnormT u (hsub n hu))
+      (fun n => by linarith [hfs n]) (fun n => by linarith [hft n])
+      (fun n u hu => ⟨by linarith [(hmid n u hu).1], by linarith [(hmid n u hu).2]⟩) hlen0
+    rw [show θ₁ + (θ₂ - θ₁) = 1 * θ₂ by ring]
+    exact hg₂
+  · -- clockwise crossings: the cuts are sub-arcs of the reversal `τ = c (-·)` on `[-tₙ, -sₙ]`
+    obtain ⟨τ, hτ⟩ : ∃ τ : ℝ → ℂ, ∀ u, τ u = c (-u) := ⟨fun u => c (-u), fun _ => rfl⟩
+    obtain ⟨Ψ, hΨ⟩ : ∃ Ψ : ℝ → ℝ, ∀ u, Ψ u = Θ (-u) := ⟨fun u => Θ (-u), fun _ => rfl⟩
+    obtain ⟨s', hs'⟩ : ∃ s' : ℕ → ℝ, ∀ n, s' n = -t n := ⟨fun n => -t n, fun _ => rfl⟩
+    obtain ⟨t', ht'⟩ : ∃ t' : ℕ → ℝ, ∀ n, t' n = -s n := ⟨fun n => -s n, fun _ => rfl⟩
+    obtain ⟨k', hk'⟩ : ∃ k' : ℕ → ℤ, ∀ n, (k' n : ℝ) = -(k n : ℝ) :=
+      ⟨fun n => -k n, fun n => by push_cast; ring⟩
+    have hmemI : ∀ n, ∀ u ∈ Icc (s' n) (t' n), -u ∈ Icc (s n) (t n) := fun n u hu =>
+      ⟨by linarith [hu.2, ht' n], by linarith [hu.1, hs' n]⟩
+    have hmemO : ∀ n, ∀ u ∈ Ioo (s' n) (t' n), -u ∈ Ioo (s n) (t n) := fun n u hu =>
+      ⟨by linarith [hu.2, ht' n], by linarith [hu.1, hs' n]⟩
+    refine s35v_c_finish hφ hne (Or.inr (funext hτ)) (Ψ := Ψ) (θ := -θ₂) (β := θ₂ - θ₁)
+      (s₁ := s') (t₁ := t') (k := k')
+      (by linarith [hθ₁.2, hθ₂.1]) (by linarith [hθ₁.1, hθ₂.2]) (by simpa only [neg_one_mul] using hg₂) ?_
+      (fun n => by linarith [hs' n, ht' n, hst n])
+      (fun n => by rw [hs' n, ht' n]; exact s35v_c_arc_facts_neg hτ (hfacts n))
+      (fun n u hu => by rw [hτ u, hΨ u]; exact hpol (-u) (hsub n (hmemI n u hu)))
+      (fun n u hu => by rw [hτ u]; exact hnormT (-u) (hsub n (hmemI n u hu)))
+      (fun n => by rw [hΨ, hs' n, neg_neg, hk' n]; linarith [hft n])
+      (fun n => by rw [hΨ, ht' n, neg_neg, hk' n]; linarith [hfs n])
+      (fun n u hu => by
+        rw [hΨ u, hk' n]
+        have h := hmid n (-u) (hmemO n u hu)
+        constructor <;> linarith [h.1, h.2])
+      (hlen0.congr fun n => by rw [hs' n, ht' n, s35v_c_rayLength_neg φ hτ])
+    rw [show -θ₂ + (θ₂ - θ₁) = -1 * θ₁ by ring]
+    exact hg₁
+
+/-- **Lemma 35.1, core (proved glue).** A horizontal ray of `φ ∈ A(Δ)` converges to a point of `∂Δ`. Otherwise
+`s35v_crossing_arcs` would give sector cuts of `φ`-length tending to `0`, which `buj_no_short_crossings` forbids.
+
+This is the statement of `lemma35_1` without its redundant `hne`. It sits here because the book's order puts
+`eq35_2_crossing_arcs`, which uses it, before `lemma35_1`. -/
+theorem s35v_ray_converges {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) {c : ℝ → ℂ} (hc : IsHorizontalRay φ c) :
+    ∃ ζ : ℂ, ‖ζ‖ = 1 ∧ Tendsto c (𝓝[<] 1) (𝓝 ζ) := by
+  by_contra hnc
+  obtain ⟨ξ, z₀, α, δ, hδ, hz₀, hball, hL₁, hL₂, τ, _hτ, a, b, s, t, hcut, hlen⟩ := s35v_crossing_arcs hφ hc hnc
+  exact buj_no_short_crossings hφ.1 hδ hz₀ hball hL₁ hL₂ (τ := fun _ => τ) hcut hlen
+
+/-- A late sequence with `arg (c sₙ) = θ` and `c sₙ → ζ ∈ ∂Δ` forces `ζ = e^{iθ}` (s35h `h35_limit_of_arg`). -/
+theorem s35v_limit_of_arg {c : ℝ → ℂ} {s : ℕ → ℝ} {ζ : ℂ} (hζ : ‖ζ‖ = 1)
+    (hs : Tendsto (fun n => c (s n)) atTop (𝓝 ζ)) {θ : ℝ} (harg : ∀ n, arg (c (s n)) = θ) :
+    ζ = exp (θ * I) := by
+  have h1 : Tendsto (fun n => (‖c (s n)‖ : ℂ) * exp (θ * I)) atTop (𝓝 ((‖ζ‖ : ℂ) * exp (θ * I))) :=
+    ((Complex.continuous_ofReal.tendsto _).comp hs.norm).mul_const _
+  have h2 : (fun n => (‖c (s n)‖ : ℂ) * exp (θ * I)) = fun n => c (s n) := by
+    funext n
+    rw [← harg n, norm_mul_exp_arg_mul_I]
+  rw [h2, hζ, Complex.ofReal_one, one_mul] at h1
+  exact tendsto_nhds_unique hs h1
+
+/-- The reversal `t ↦ c (1 - t)` of a complete trajectory is a horizontal ray (s35h `h35_reverse_ray`). -/
+theorem s35v_reverse_ray {φ : ℂ → ℂ} {c : ℝ → ℂ} (hc : IsCompleteTrajectory φ c) :
+    IsHorizontalRay φ (fun t => c (1 - t)) := by
+  obtain ⟨hH, hD, hK⟩ := hc
+  refine ⟨fun t ht => ?_, ?_, fun K hK1 hK2 => ?_⟩
+  · have ht' : 1 - t ∈ Ioo (0 : ℝ) 1 := ⟨by linarith [ht.2], by linarith [ht.1]⟩
+    obtain ⟨hd, hd0, hφ0, him, hre⟩ := hH (1 - t) ht'
+    have hdiff : DifferentiableAt ℝ (fun t => c (1 - t)) t :=
+      hd.comp t ((differentiableAt_const _).sub differentiableAt_id)
+    have hderiv : deriv (fun t => c (1 - t)) t = -deriv c (1 - t) :=
+      deriv_comp_const_sub c 1 t
+    refine ⟨hdiff, ?_, hφ0, ?_, ?_⟩
+    · rw [hderiv]; exact neg_ne_zero.2 hd0
+    · rw [hderiv, neg_sq]; exact him
+    · rw [hderiv, neg_sq]; exact hre
+  · rintro _ ⟨t, ht, rfl⟩
+    exact hD (mem_image_of_mem c ⟨by linarith [ht.2], by linarith [ht.1]⟩)
+  · have h0 := (hK K hK1 hK2).2
+    have hmap : Tendsto (fun t : ℝ => 1 - t) (𝓝[<] 1) (𝓝[>] 0) := by
+      refine tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _ ?_ ?_
+      · have h : Tendsto (fun t : ℝ => 1 - t) (𝓝 1) (𝓝 (1 - 1)) := tendsto_const_nhds.sub tendsto_id
+        rw [sub_self] at h
+        exact h.mono_left nhdsWithin_le_nhds
+      · filter_upwards [self_mem_nhdsWithin] with t ht
+        exact sub_pos.2 (mem_Iio.1 ht)
+    exact hmap.eventually h0
+
+/-- (35.2): if the ray `α⁺` crossed two radii of finite `φ`-length infinitely often, its sub-arcs `τₙ`
+between the two radii would have `φ`-length tending to `0`, forcing `φ ∈ E^{1/2}` of the sector with
+boundary values `0` a.e., hence `φ ≡ 0`.
+
+**Correction.**  The hypotheses `hne` (`φ ≢ 0`) and `h₁`, `h₂` (the two radii have finite `φ`-length) were
+redundant and are dropped: a horizontal ray already forces `φ ≢ 0` (`φ(c) c'² > 0`), and the conclusion
+follows from Lemma 35.1 alone (the ray converges to one point of `∂Δ`, which cannot have both arguments
+`θ₁` and `θ₂`).  The statement is thereby slightly stronger than the book's (35.2), and still true. -/
+theorem eq35_2_crossing_arcs {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) {c : ℝ → ℂ}
+    (hc : IsHorizontalRay φ c) {θ₁ θ₂ : ℝ} (hθ : θ₁ < θ₂) (hθ₂ : θ₂ < θ₁ + 2 * π) :
+    ¬ (∀ t₀ < (1 : ℝ), ∃ s t, t₀ < s ∧ s < t ∧ t < 1 ∧ arg (c s) = θ₁ ∧ arg (c t) = θ₂) := by
+  intro H
+  obtain ⟨ζ, hζ, hlim⟩ := s35v_ray_converges hφ hc
+  have H' : ∀ n : ℕ, ∃ s t, 1 - 1 / ((n : ℝ) + 1) < s ∧ s < t ∧ t < 1 ∧
+      arg (c s) = θ₁ ∧ arg (c t) = θ₂ := fun n =>
+    H _ (by
+      have : (0 : ℝ) < 1 / ((n : ℝ) + 1) := by positivity
+      linarith)
+  choose s t hs hst ht hs₁ ht₂ using H'
+  have hseq : ∀ u : ℕ → ℝ, (∀ n : ℕ, 1 - 1 / ((n : ℝ) + 1) < u n ∧ u n < 1) →
+      Tendsto u atTop (𝓝[<] 1) := by
+    intro u hu
+    refine tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _ ?_
+      (Eventually.of_forall fun n => (hu n).2)
+    have hlow : Tendsto (fun n : ℕ => 1 - 1 / ((n : ℝ) + 1)) atTop (𝓝 1) := by
+      simpa using (tendsto_one_div_add_atTop_nhds_zero_nat).const_sub (1 : ℝ)
+    exact tendsto_of_tendsto_of_tendsto_of_le_of_le hlow tendsto_const_nhds
+      (fun n => (hu n).1.le) (fun n => (hu n).2.le)
+  have hS := hseq s fun n => ⟨hs n, (hst n).trans (ht n)⟩
+  have hT := hseq t fun n => ⟨(hs n).trans (hst n), ht n⟩
+  have e₁ := s35v_limit_of_arg hζ (hlim.comp hS) hs₁
+  have e₂ := s35v_limit_of_arg hζ (hlim.comp hT) ht₂
+  obtain ⟨k, hk⟩ := Complex.exp_eq_exp_iff_exists_int.1 (e₁.symm.trans e₂)
+  have hk' : θ₁ = θ₂ + k * (2 * π) := by
+    have := congrArg Complex.im hk
+    simpa using this
+  have hπ := Real.pi_pos
+  have hk1 : (k : ℝ) * (2 * π) < 0 := by linarith
+  have hk2 : -(2 * π) < (k : ℝ) * (2 * π) := by linarith
+  have hkneg : (k : ℝ) < 0 := by nlinarith
+  have hkgt : (-1 : ℝ) < k := by nlinarith
+  have hk0 : k < 0 := by exact_mod_cast hkneg
+  have hkm1 : -1 < k := by exact_mod_cast hkgt
+  omega
+
+/-- **Lemma 35.1**: let `ω = φ dz²` be a non-zero holomorphic quadratic differential in `Δ` of finite
+norm.  Then every ray `α⁺` of a non-critical horizontal trajectory converges to a point of `∂Δ`
+(the limit set `A ⊆ ∂Δ` of the ray cannot be an arc). -/
+theorem lemma35_1 {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) (hne : ∃ z ∈ unitDisc, φ z ≠ 0) {c : ℝ → ℂ}
+    (hc : IsHorizontalRay φ c) : ∃ ζ : ℂ, ‖ζ‖ = 1 ∧ Tendsto c (𝓝[<] 1) (𝓝 ζ) := by
+  have _ := hne
+  exact s35v_ray_converges hφ hc
+
 /-- **Lemma 35.2**: the two rays `α⁺`, `α⁻` of a non-critical horizontal trajectory of a non-zero
 `φ dz²` of finite norm cannot converge to the same boundary point. -/
 theorem lemma35_2 {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) (hne : ∃ z ∈ unitDisc, φ z ≠ 0) {c : ℝ → ℂ}
@@ -958,7 +1781,20 @@ two (distinct) end points on `∂Δ`. -/
 theorem trajectory_endpoints {φ : ℂ → ℂ} (hφ : φ ∈ integrableQD) (hne : ∃ z ∈ unitDisc, φ z ≠ 0) {c : ℝ → ℂ}
     (hc : IsCompleteTrajectory φ c) :
     ∃ ζ₁ ζ₂ : ℂ, ‖ζ₁‖ = 1 ∧ ‖ζ₂‖ = 1 ∧ ζ₁ ≠ ζ₂ ∧ Tendsto c (𝓝[>] 0) (𝓝 ζ₁) ∧ Tendsto c (𝓝[<] 1) (𝓝 ζ₂) := by
-  sorry
+  obtain ⟨ζ₂, hζ₂, h₂⟩ := lemma35_1 hφ hne ⟨hc.1, hc.2.1, fun K hK1 hK2 => (hc.2.2 K hK1 hK2).1⟩
+  obtain ⟨ζ₁, hζ₁, h₁'⟩ := lemma35_1 hφ hne (s35v_reverse_ray hc)
+  have hmap : Tendsto (fun t : ℝ => 1 - t) (𝓝[>] 0) (𝓝[<] 1) := by
+    refine tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _ ?_ ?_
+    · have h : Tendsto (fun t : ℝ => 1 - t) (𝓝 0) (𝓝 (1 - 0)) := tendsto_const_nhds.sub tendsto_id
+      rw [sub_zero] at h
+      exact h.mono_left nhdsWithin_le_nhds
+    · filter_upwards [self_mem_nhdsWithin] with t ht
+      exact sub_lt_self 1 (mem_Ioi.1 ht)
+  have h₁ : Tendsto c (𝓝[>] 0) (𝓝 ζ₁) := by
+    have := h₁'.comp hmap
+    refine this.congr fun t => ?_
+    simp
+  exact ⟨ζ₁, ζ₂, hζ₁, hζ₂, (lemma35_2 hφ hne hc h₂ h₁).symm, h₁, h₂⟩
 
 /-- **Lemma 35.3**: let `φ dz² ≢ 0` be holomorphic in `Δ` with finite norm, `α` a non-critical
 horizontal trajectory with end points `ζ₁, ζ₂`.  Every curve `β ⊆ Δ` from `ζ₁` to `ζ₂` has

@@ -7,10 +7,16 @@ import LiZhongQC.Ch08.S28_Moduli
   a Teichmüller map; independence of representatives; the metric axioms
                                                           — `teichDistance`, `teichDistance_*`
 * the topology of the ball: (29.1) `kₙ → k, ωₙ → ω` ⟺ (29.2) `d_T → 0`; (29.3)–(29.8);
-  Theorem 29.1                                             — `eq29_1_imp_eq29_2`, `eq29_2_imp_eq29_1`,
-                                                            `thm29_1`
-* §29.2 Theorem 29.2 (completeness)                        — `thm29_2_complete`
+  Theorem 29.1                                             — (see the last bullets)
+* §29.2 Theorem 29.2 (completeness)                        — (see the last bullets)
 * §29.3 modular transformations are isometries              — `modAction_isometry`
+* The two implications (29.1) ⟺ (29.2) of the topology of the ball are stated and proved in
+  `LiZhongQC.Lemmas.UniformizedTeichmuller` as well.
+* Theorem 29.1 and Theorem 29.2 (completeness) are stated and proved in
+  `LiZhongQC.Lemmas.UniformizedTeichmuller` as well.
+* The existence of the extremal map realizing `d_T` and the implication `d_T(τ₁, τ₂) = 0 → τ₁ = τ₂` are stated (same
+  docstring and statement) and proved in `LiZhongQC.Lemmas.UniformizedTeichmuller`, whose proofs need that module (it is
+  downstream of this file).
 -/
 
 open Complex Set Metric Filter Topology MeasureTheory
@@ -39,202 +45,6 @@ def teichDistance (p q : TeichSpace S₀) : ℝ :=
     d = (1 / 2) * Real.log (maxDilatationRS g).toReal}
 
 variable [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
-
-/-- §29.1: the infimum is attained at a Teichmüller map (or a conformal map): there is a Teichmüller
-map `f₀ : S₁ → S₂` with `f₀ ≃ f₂ ∘ f₁⁻¹` and `d_T(τ₁, τ₂) = ½ ln K[f₀]`; the value does not depend on
-the representatives `(Sⱼ, fⱼ)`. -/
-theorem teichDistance_attained {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) (m₁ m₂ : MarkedRS S₀) :
-    ∃ f : m₁.X.carrier ≃ₜ m₂.X.carrier, IsExtremalInHomotopyClass f ∧
-      (IsBiholomorphic f ∨ ∃ (q : m₁.X.carrier → ℂ → ℂ) (q' : m₂.X.carrier → ℂ → ℂ) (k : ℝ),
-        IsTeichmullerMap f q q' k) ∧
-      ContinuousMap.Homotopic ((m₁.marking.trans f : S₀ ≃ₜ m₂.X.carrier) : C(S₀, m₂.X.carrier))
-        (m₂.marking : C(S₀, m₂.X.carrier)) ∧
-      teichDistance (Quot.mk _ m₁) (Quot.mk _ m₂) = (1 / 2) * Real.log (maxDilatationRS f).toReal := by
-  sorry
-
-/-- Theorem 10.1 in the plane: a `K`-q.c. map `f` of `D` whose maximal dilatation satisfies `K[f] ≤ K'`, with
-`1 ≤ K'`, is `K'`-q.c. -/
-theorem s29_m_isKQC_of_maxDilatation_le {f : ℂ → ℂ} {D : Set ℂ} {K K' : ℝ} (hf : IsKQC f D K)
-    (hK' : 1 ≤ K') (hle : maxDilatation f D ≤ ENNReal.ofReal K') : IsKQC f D K' := by
-  have hD : IsOpen D := hf.1
-  have hhom : IsHomeomorphOnto f D (f '' D) := hf.2.2.1
-  refine (thm10_1_isKQC_iff hD hK' hhom).2 ⟨thm9_1_isACL hf, ?_⟩
-  have hae := ae_le_essSup (μ := volume.restrict D)
-    (f := fun z => ENNReal.ofReal ((‖dz f z‖ + ‖dzbar f z‖) / (‖dz f z‖ - ‖dzbar f z‖)))
-  filter_upwards [hae, thm9_6_cor2_jacobian_pos hf] with z h1 hJ
-  have h2 : ENNReal.ofReal ((‖dz f z‖ + ‖dzbar f z‖) / (‖dz f z‖ - ‖dzbar f z‖)) ≤ ENNReal.ofReal K' :=
-    h1.trans hle
-  have h3 := (ENNReal.ofReal_le_ofReal_iff (by linarith)).1 h2
-  unfold jacobian at hJ
-  have ha : 0 ≤ ‖dz f z‖ := norm_nonneg _
-  have hb : 0 ≤ ‖dzbar f z‖ := norm_nonneg _
-  have hlt : ‖dzbar f z‖ < ‖dz f z‖ := by nlinarith
-  rw [div_le_iff₀ (sub_pos.2 hlt)] at h3
-  linarith
-
-/-- `1 ≤ K[f]` for a q.c. map `f` of a nonempty surface: every local expression has positive Jacobian almost
-everywhere (Theorem 9.6). -/
-theorem s29_m_one_le_maxDilatationRS {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A] [Nonempty A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] {f : A ≃ₜ B} (hf : IsQCRS f) :
-    1 ≤ maxDilatationRS f := by
-  obtain ⟨K, -, hK⟩ := hf
-  obtain ⟨x⟩ := (inferInstance : Nonempty A)
-  refine le_trans ?_ (le_iSup (fun x => maxDilatation (localMapExpr f x) (localMapDomain f x)) x)
-  have hΩ := s23_localMapDomain_isOpen f.continuous x
-  have hne : (localMapDomain f x).Nonempty := ⟨_, (s23_h_center f x).1⟩
-  have hμ : volume.restrict (localMapDomain f x) ≠ 0 := by
-    rw [Ne, Measure.restrict_eq_zero]
-    exact hΩ.measure_ne_zero volume hne
-  rw [maxDilatation, ← essSup_const (1 : ℝ≥0∞) hμ]
-  refine essSup_mono_ae ?_
-  filter_upwards [thm9_6_cor2_jacobian_pos (hK x)] with z hJ
-  unfold jacobian at hJ
-  set a := ‖dz (localMapExpr f x) z‖
-  set b := ‖dzbar (localMapExpr f x) z‖
-  have ha : 0 ≤ a := norm_nonneg _
-  have hb : 0 ≤ b := norm_nonneg _
-  have hlt : b < a := by nlinarith
-  show (1 : ℝ≥0∞) ≤ ENNReal.ofReal ((a + b) / (a - b))
-  rw [ENNReal.one_le_ofReal, one_le_div (sub_pos.2 hlt)]
-  linarith
-
-/-- `K[f] ≠ ∞` for a q.c. map `f` of surfaces. -/
-theorem s29_m_maxDilatationRS_ne_top {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] {f : A ≃ₜ B} (hf : IsQCRS f) :
-    maxDilatationRS f ≠ ⊤ := by
-  obtain ⟨K, hK⟩ := hf
-  exact ne_top_of_le_ne_top ENNReal.ofReal_ne_top (maxDilatationRS_le hK)
-
-/-- `1 ≤ K[f]` in `ℝ`, for a q.c. map `f` of a nonempty surface. -/
-theorem s29_m_one_le_toReal {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A] [Nonempty A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] {f : A ≃ₜ B} (hf : IsQCRS f) :
-    1 ≤ (maxDilatationRS f).toReal := by
-  have := ENNReal.toReal_mono (s29_m_maxDilatationRS_ne_top hf) (s29_m_one_le_maxDilatationRS hf)
-  simpa using this
-
-/-- A q.c. map `f` of surfaces with `K[f] ≤ K'`, `1 ≤ K'`, is `K'`-q.c. (Theorem 10.1 in every chart). -/
-theorem s29_m_isKQCRS_of_le {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] {f : A ≃ₜ B} (hf : IsQCRS f) {K' : ℝ}
-    (hK' : 1 ≤ K') (hle : maxDilatationRS f ≤ ENNReal.ofReal K') : IsKQCRS f K' := by
-  obtain ⟨K, -, hK⟩ := hf
-  refine ⟨hK', fun x => s29_m_isKQC_of_maxDilatation_le (hK x) hK' ?_⟩
-  exact (le_iSup (fun x => maxDilatation (localMapExpr f x) (localMapDomain f x)) x).trans hle
-
-/-- A q.c. map `f` of a nonempty surface is `K[f]`-q.c. -/
-theorem s29_m_isKQCRS_maxDil {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A] [Nonempty A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] {f : A ≃ₜ B} (hf : IsQCRS f) :
-    IsKQCRS f (maxDilatationRS f).toReal :=
-  s29_m_isKQCRS_of_le hf (s29_m_one_le_toReal hf)
-    (by rw [ENNReal.ofReal_toReal (s29_m_maxDilatationRS_ne_top hf)])
-
-/-- The inverse of a `K`-q.c. map of surfaces is `K`-q.c.: in charts it is the inverse of the local expression
-(`thm7_2_inv`). -/
-theorem s29_m_isKQCRS_symm {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] {f : A ≃ₜ B} {K : ℝ} (hf : IsKQCRS f K) :
-    IsKQCRS f.symm K := by
-  refine ⟨hf.1, fun y => ?_⟩
-  set x := f.symm y
-  have hfx : f x = y := f.apply_symm_apply y
-  set L := localMapExpr f x with hLdef
-  set D := localMapDomain f x with hDdef
-  have hL : IsKQC L D K := hf.2 x
-  have hinj : InjOn L D := hL.2.2.1.2.1
-  have hLz : ∀ z ∈ D, L z = chartAt ℂ y (f ((chartAt ℂ x).symm z)) := by
-    intro z _
-    simp only [hLdef, localMapExpr, hfx]
-  have hDz : ∀ z ∈ D, z ∈ (chartAt ℂ x).target ∧ f ((chartAt ℂ x).symm z) ∈ (chartAt ℂ y).source := by
-    intro z hz
-    have hz' := hz
-    simp only [hDdef, localMapDomain, mem_inter_iff, mem_preimage] at hz'
-    rw [hfx] at hz'
-    exact hz'
-  have hback : ∀ z ∈ D, localMapExpr f.symm y (L z) = z := by
-    intro z hz
-    obtain ⟨h1, h2⟩ := hDz z hz
-    rw [hLz z hz]
-    simp only [localMapExpr]
-    rw [(chartAt ℂ y).left_inv h2, f.symm_apply_apply, (chartAt ℂ x).right_inv h1]
-  have himg : L '' D = localMapDomain f.symm y := by
-    ext w
-    constructor
-    · rintro ⟨z, hz, rfl⟩
-      obtain ⟨h1, h2⟩ := hDz z hz
-      rw [hLz z hz]
-      refine ⟨(chartAt ℂ y).map_source h2, ?_⟩
-      show f.symm ((chartAt ℂ y).symm (chartAt ℂ y (f ((chartAt ℂ x).symm z)))) ∈
-        (chartAt ℂ (f.symm y)).source
-      rw [(chartAt ℂ y).left_inv h2, f.symm_apply_apply]
-      exact (chartAt ℂ x).map_target h1
-    · rintro ⟨hw1, hw2⟩
-      have hw2' : f.symm ((chartAt ℂ y).symm w) ∈ (chartAt ℂ x).source := hw2
-      have hzD : chartAt ℂ x (f.symm ((chartAt ℂ y).symm w)) ∈ D := by
-        simp only [hDdef, localMapDomain, mem_inter_iff, mem_preimage, hfx]
-        refine ⟨(chartAt ℂ x).map_source hw2', ?_⟩
-        rw [(chartAt ℂ x).left_inv hw2', f.apply_symm_apply]
-        exact (chartAt ℂ y).map_target hw1
-      refine ⟨chartAt ℂ x (f.symm ((chartAt ℂ y).symm w)), hzD, ?_⟩
-      rw [hLz _ hzD, (chartAt ℂ x).left_inv hw2', f.apply_symm_apply, (chartAt ℂ y).right_inv hw1]
-  have hinv := thm7_2_inv hL
-  rw [himg] at hinv
-  refine ad_isKQC_congr hinv fun w hw => ?_
-  rw [← himg] at hw
-  obtain ⟨z, hz, rfl⟩ := hw
-  rw [hback z hz, hinj.leftInvOn_invFunOn hz]
-
-/-- The inverse of a q.c. map `f` of a nonempty surface is q.c., with `K[f⁻¹] ≤ K[f]`. -/
-theorem s29_m_maxDil_symm_le {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A] [Nonempty A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] {f : A ≃ₜ B} (hf : IsQCRS f) :
-    IsQCRS f.symm ∧ maxDilatationRS f.symm ≤ maxDilatationRS f := by
-  have h := s29_m_isKQCRS_symm (s29_m_isKQCRS_maxDil hf)
-  refine ⟨⟨_, h⟩, ?_⟩
-  have := maxDilatationRS_le h
-  rwa [ENNReal.ofReal_toReal (s29_m_maxDilatationRS_ne_top hf)] at this
-
-/-- `0 ≤ ½ ln K[f]` for a q.c. map `f` of a nonempty surface. -/
-theorem s29_m_half_log_nonneg {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A] [Nonempty A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] {f : A ≃ₜ B} (hf : IsQCRS f) :
-    0 ≤ (1 / 2 : ℝ) * Real.log (maxDilatationRS f).toReal := by
-  have := Real.log_nonneg (s29_m_one_le_toReal hf)
-  positivity
-
-/-- `½ ln K` is monotone: `K[g'] ≤ K[g]` gives `½ ln K[g'] ≤ ½ ln K[g]`, for q.c. maps `g'` (of a nonempty
-surface) and `g`. -/
-theorem s29_m_half_log_mono {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A] [Nonempty A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] {C : Type*} [TopologicalSpace C] [ChartedSpace ℂ C]
-    {D : Type*} [TopologicalSpace D] [ChartedSpace ℂ D] {g' : A ≃ₜ B} (hg' : IsQCRS g') {g : C ≃ₜ D}
-    (hg : IsQCRS g) (hle : maxDilatationRS g' ≤ maxDilatationRS g) :
-    (1 / 2 : ℝ) * Real.log (maxDilatationRS g').toReal ≤
-      (1 / 2 : ℝ) * Real.log (maxDilatationRS g).toReal := by
-  have h1 := s29_m_one_le_toReal hg'
-  have h2 : (maxDilatationRS g').toReal ≤ (maxDilatationRS g).toReal :=
-    ENNReal.toReal_mono (s29_m_maxDilatationRS_ne_top hg) hle
-  have := Real.log_le_log (by linarith) h2
-  linarith
-
-/-- Conformal invariance of `K` ((23.4)): for a q.c. `g` and biholomorphic `c₁`, `c₂`, the map `c₂ ∘ g ∘ c₁` is
-q.c. with `K[c₂ ∘ g ∘ c₁] ≤ K[g]`. -/
-theorem s29_m_maxDil_conj_biholo {A : Type*} [TopologicalSpace A] [ChartedSpace ℂ A] [IsManifold 𝓘(ℂ) ω A]
-    {B : Type*} [TopologicalSpace B] [ChartedSpace ℂ B] [IsManifold 𝓘(ℂ) ω B]
-    {C : Type*} [TopologicalSpace C] [ChartedSpace ℂ C] [IsManifold 𝓘(ℂ) ω C]
-    {D : Type*} [TopologicalSpace D] [ChartedSpace ℂ D] [IsManifold 𝓘(ℂ) ω D]
-    {g : B ≃ₜ C} (hg : IsQCRS g) {c₁ : A ≃ₜ B} (hc₁ : IsBiholomorphic c₁) {c₂ : C ≃ₜ D}
-    (hc₂ : IsBiholomorphic c₂) :
-    IsQCRS (c₁.trans (g.trans c₂)) ∧ maxDilatationRS (c₁.trans (g.trans c₂)) ≤ maxDilatationRS g := by
-  obtain ⟨K, hK⟩ := hg
-  have h1 : IsKQCRS c₁ 1 := (isKQCRS_one_iff c₁).2 hc₁
-  have h2 : IsKQCRS c₂ 1 := (isKQCRS_one_iff c₂).2 hc₂
-  have hc₁le : maxDilatationRS c₁ ≤ 1 := by simpa using maxDilatationRS_le h1
-  have hc₂le : maxDilatationRS c₂ ≤ 1 := by simpa using maxDilatationRS_le h2
-  obtain ⟨hgc, hgcle⟩ := eq23_4 hK h2
-  obtain ⟨hall, hallle⟩ := eq23_4 h1 hgc
-  refine ⟨⟨_, hall⟩, ?_⟩
-  calc maxDilatationRS (c₁.trans (g.trans c₂)) = maxDilatationRS ((g.trans c₂) ∘ c₁) := rfl
-    _ ≤ maxDilatationRS (g.trans c₂) * maxDilatationRS c₁ := hallle
-    _ ≤ maxDilatationRS (g.trans c₂) * 1 := by gcongr
-    _ = maxDilatationRS (c₂ ∘ g) := by rw [mul_one]; rfl
-    _ ≤ maxDilatationRS c₂ * maxDilatationRS g := hgcle
-    _ ≤ 1 * maxDilatationRS g := by gcongr
-    _ = maxDilatationRS g := one_mul _
 
 /-- The set whose `sInf` is `teichDistance p q` (literally the body of the definition): the values `½ ln K[g]`
 over the q.c. maps `g` between representatives of `p` and `q` compatible with the markings. -/
@@ -447,17 +257,91 @@ theorem teichDistance_metric {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) :
   exact ⟨s29_m_teichDistance_nonneg, s29_m_teichDistance_self, s29_m_teichDistance_symm,
     s29_m_teichDistance_triangle⟩
 
-/-- §29.1 (the third metric axiom, split off from `teichDistance_metric`): `d_T(τ₁, τ₂) = 0` only if
-`τ₁ = τ₂`; the Teichmüller map realizing the distance has `K = 1`, so it is conformal. -/
-theorem teichDistance_eq_of_eq_zero {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) :
-    ∀ p q : TeichSpace S₀, teichDistance p q = 0 → p = q := by
-  sorry
-
 /-- §29.1: along a Teichmüller deformation `[S_{q,k}, f]`, `d_T([S₀, id], [S_{q,k}, f]) = ½ ln((1+k)/(1-k))`. -/
 theorem teichDistance_deformation {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) (hid : IsQCRS (Homeomorph.refl S₀))
     {q : S₀ → ℂ → ℂ} {k : ℝ} {p : TeichSpace S₀} (h : IsDeformationPoint q k p) :
     teichDistance (TeichSpace.basePoint hid) p = (1 / 2) * Real.log ((1 + k) / (1 - k)) := by
-  sorry
+  classical
+  obtain ⟨X, e, hqc, q', hT, hp⟩ := h
+  have hX : HasGenus X.carrier g := hasGenus_of_homeomorph hS e
+  have he : IsTeichmullerMap e q q' k :=
+    teichDeformation_isTeichmullerMap hT
+  -- Fuchsian uniformization of this deformation's `X` (genus transported along `e`).
+  obtain ⟨ΓX, pX, _hFuchsianX, _hFreeX, hpX⟩ :=
+    s22hg_exists_fuchsian_uniformization (S := X.carrier) hg hX
+  have hK : 1 ≤ (1 + k) / (1 - k) :=
+    s26u_one_le_K hT.k_nonneg hT.k_lt_one
+  have hK0 : 0 ≤ (1 + k) / (1 - k) := zero_le_one.trans hK
+  have hmax : maxDilatationRS e = ENNReal.ofReal ((1 + k) / (1 - k)) :=
+    (teichmullerMap_beltrami he).2
+  have hlog : (1 / 2 : ℝ) * Real.log (maxDilatationRS e).toReal =
+      (1 / 2) * Real.log ((1 + k) / (1 - k)) := by
+    rw [hmax, ENNReal.toReal_ofReal hK0]
+  let m0 : MarkedRS S₀ := ⟨⟨S₀⟩, Homeomorph.refl S₀, hid⟩
+  let mD : MarkedRS S₀ := ⟨X, e, hqc⟩
+  have hp0 : (Quot.mk _ m0 : TeichSpace S₀) =
+      TeichSpace.basePoint hid := rfl
+  have hpd : p = (Quot.mk _ mD : TeichSpace S₀) := hp
+  have hmark : ContinuousMap.Homotopic
+      (((Homeomorph.refl S₀).trans e : S₀ ≃ₜ X.carrier) : C(S₀, X.carrier))
+      (e : C(S₀, X.carrier)) := by
+    have hident :
+        (((Homeomorph.refl S₀).trans e : S₀ ≃ₜ X.carrier) : C(S₀, X.carrier)) =
+          (e : C(S₀, X.carrier)) := by
+      ext x
+      rfl
+    rw [hident]
+  have hmem : (1 / 2 : ℝ) * Real.log ((1 + k) / (1 - k)) ∈
+      s29_m_teichSet (TeichSpace.basePoint hid) p := by
+    exact ⟨m0, mD, e, hp0, hpd.symm, hqc, hmark, hlog.symm⟩
+  -- The actual deformation map supplies a member of the infimum set.
+  have hupper : teichDistance (TeichSpace.basePoint hid) p ≤
+      (1 / 2) * Real.log ((1 + k) / (1 - k)) := by
+    change sInf (s29_m_teichSet (TeichSpace.basePoint hid) p) ≤ _
+    exact csInf_le (s29_m_teichSet_bddBelow _ _) hmem
+  refine le_antisymm hupper ?_
+  change (1 / 2 : ℝ) * Real.log ((1 + k) / (1 - k)) ≤
+    sInf (s29_m_teichSet (TeichSpace.basePoint hid) p)
+  refine le_csInf ⟨_, hmem⟩ ?_
+  intro a ha
+  obtain ⟨m₁, m₂, G, hm₁, hm₂, hG, hhomG, haeq⟩ := ha
+  have h₁ : m₁.Equiv m0 :=
+    s29_m_equiv_of_eq (hm₁.trans hp0.symm)
+  have h₂ : m₂.Equiv mD :=
+    s29_m_equiv_of_eq (hm₂.trans hpd)
+  -- Transport each competitor to S₀ and this same X, preserving marking homotopy.
+  have htransport :
+      ∃ F : S₀ ≃ₜ X.carrier, IsQCRS F ∧ maxDilatationRS F ≤ maxDilatationRS G ∧
+        ContinuousMap.Homotopic
+          (((Homeomorph.refl S₀).trans F : S₀ ≃ₜ X.carrier) : C(S₀, X.carrier))
+          (e : C(S₀, X.carrier)) := by
+    exact s29_m_transport h₁ h₂ hG hhomG
+  obtain ⟨F, hF, hFG, hhomF⟩ := htransport
+  have hhom : ContinuousMap.Homotopic
+      (e : C(S₀, X.carrier)) (F : C(S₀, X.carrier)) := by
+    have hident :
+        (((Homeomorph.refl S₀).trans F : S₀ ≃ₜ X.carrier) : C(S₀, X.carrier)) =
+          (F : C(S₀, X.carrier)) := by
+      ext x
+      rfl
+    rw [hident] at hhomF
+    exact hhomF.symm
+  -- UU needs only the target uniformization, and only its inequality is used.
+  have hL2 : quadDiffNorm q' ≤
+      surfaceIntegral q' fun x z =>
+        ENNReal.ofReal (lambdaStretch q' q' (e.symm.trans F) x z) :=
+    utm_lemma26_2_target (S₀ := S₀) (S₁ := X.carrier) hg hX he hF hhom hpX
+  have heF : maxDilatationRS e ≤ maxDilatationRS F := by
+    rw [hmax]
+    exact utm_thm26_2_ineq (S₀ := S₀) (S₁ := X.carrier) hg hS hX he hF hL2
+  calc
+    (1 / 2 : ℝ) * Real.log ((1 + k) / (1 - k)) =
+        (1 / 2) * Real.log (maxDilatationRS e).toReal := hlog.symm
+    _ ≤ (1 / 2) * Real.log (maxDilatationRS F).toReal :=
+      s29_m_half_log_mono hqc hF heF
+    _ ≤ (1 / 2) * Real.log (maxDilatationRS G).toReal :=
+      s29_m_half_log_mono hF hG hFG
+    _ = a := haeq.symm
 
 /-! ### The Teichmüller metric and the topology of the ball -/
 
@@ -647,6 +531,192 @@ theorem eq29_3 {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [IsManifol
     (s26u_zeros_countable hfn.initial hfn.initial_ne x).ae_notMem volume] with z hzZ hzZn hz
   exact s29_e_pointwise hf hfn x hz (fun h0 => hzZ ⟨hz.1, h0⟩) (fun h0 => hzZn ⟨hz.1, h0⟩)
 
+/-! ### Helpers for `eq29_7` (`s29_e7_`): Teichmüller's main inequality for `fₙ ∘ f⁻¹`, read through the inverse
+Teichmüller map `gₙ⁻¹` (initial differential `-qₙ'`, terminal differential `-Kₙ² qₙ`) and the chain `utm_d_chain` -/
+
+/-- The pointwise estimate at a good point: `D ≥ 0`, `J ≥ 0` and `λ² ≤ D J`, with `D` read at the image-point chart. -/
+theorem s29_e7_pointwise {X : Type u} [TopologicalSpace X] [ChartedSpace ℂ X] {Y : Type u} [TopologicalSpace Y]
+    [ChartedSpace ℂ Y] [IsManifold 𝓘(ℂ) ω Y] {f : X ≃ₜ Y} {q : X → ℂ → ℂ} {q' : Y → ℂ → ℂ}
+    (x : X) {z : ℂ} (hz : z ∈ localMapDomain f x) (hq0 : q x z ≠ 0)
+    (hd : DifferentiableAt ℝ (localMapExpr f x) z)
+    (hlt : ‖dzbar (localMapExpr f x) z‖ < ‖dz (localMapExpr f x) z‖) :
+    0 ≤ jacobianQD q q' f x z ∧ 0 ≤ dilatationQuotient (localMapExprAt f x z) z ∧
+      dilatationQuotient (localMapExprAt f x z) z = dilatationQuotient (localMapExpr f x) z ∧
+      lambdaStretch q q' f x z ^ 2 ≤ dilatationQuotient (localMapExprAt f x z) z * jacobianQD q q' f x z := by
+  obtain ⟨c, hc0, hdzc, hdzbarc, hdiff⟩ := utm_d_exprAt f.continuous x hz
+  set G := localMapExprAt f x z with hG
+  set g := localMapExpr f x with hg
+  have hc : 0 < ‖c‖ := norm_pos_iff.2 hc0
+  have ha : 0 < ‖dz g z‖ := lt_of_le_of_lt (norm_nonneg _) hlt
+  have hltG : ‖dzbar G z‖ < ‖dz G z‖ := by
+    rw [hdzc, hdzbarc, norm_mul, norm_mul]
+    exact mul_lt_mul_of_pos_left hlt hc
+  have hJG : 0 ≤ jacobian G z := by
+    unfold jacobian
+    nlinarith [norm_nonneg (dzbar G z)]
+  have hJ : 0 ≤ jacobianQD q q' f x z := by
+    unfold jacobianQD
+    rw [← hG]
+    positivity
+  have hDeq : dilatationQuotient G z = dilatationQuotient g z := by
+    unfold dilatationQuotient complexDilatation
+    rw [norm_div, hdzc, hdzbarc, norm_mul, norm_mul, mul_div_mul_left _ _ hc.ne', norm_div]
+  have hD0 : 0 ≤ dilatationQuotient G z := by
+    unfold dilatationQuotient complexDilatation
+    have h1 : ‖dzbar G z / dz G z‖ < 1 := by
+      rw [norm_div]
+      exact (div_lt_one (lt_of_le_of_lt (norm_nonneg _) hltG)).2 hltG
+    exact div_nonneg (by positivity) (by linarith)
+  refine ⟨hJ, hD0, hDeq, ?_⟩
+  by_cases hq'0 : q' (f ((chartAt ℂ x).symm z)) (localMapExprAt f x z z) = 0
+  · have hl : lambdaStretch q q' f x z = 0 := by
+      unfold lambdaStretch lambdaStretchPlane
+      rw [hq'0]
+      simp
+    rw [hl]
+    simpa using mul_nonneg hD0 hJ
+  · obtain ⟨h1, -⟩ := eq26_13 (q := q) (q' := q') (f := f) x (hdiff hd) hltG hq0 hq'0
+    exact h1
+
+/-- `2 λ ≤ D + J` at a good point (AM-GM). -/
+theorem s29_e7_amgm {l D J : ℝ} (_hl : 0 ≤ l) (hD : 0 ≤ D) (hJ : 0 ≤ J) (h : l ^ 2 ≤ D * J) : 2 * l ≤ D + J := by
+  nlinarith [sq_nonneg (D - J), sq_nonneg (2 * l), sq_nonneg (D + J), mul_nonneg hD hJ]
+
+/-- `D(localMapExpr f x)` is measurable (derivatives of a fixed function are measurable). -/
+theorem s29_e7_measurable_D (g : ℂ → ℂ) : Measurable (fun z => dilatationQuotient g z) := by
+  unfold dilatationQuotient complexDilatation dz dzbar
+  have hf : Measurable (fun z => fderiv ℝ g z) := measurable_fderiv ℝ g
+  have h1 : Measurable (fun z => fderiv ℝ g z 1) := hf.apply_continuousLinearMap (1 : ℂ)
+  have h2 : Measurable (fun z => fderiv ℝ g z Complex.I) := hf.apply_continuousLinearMap Complex.I
+  fun_prop
+
+/-- **[stub] The chain on one piece, with the dilatation quotient** (the analogue of `utm_d_chain_piece`, whose
+constants `K/K₀`, `K₀` are replaced by the local `D_f` and `1`): for a `K`-q.c. `f` and a measurable `E` inside the
+domain of `localMapExpr f x`, `2 ∬_E λ_f |q| ≤ ∬_E D_f |q| + ∬_E J_f |q|`.  At the a.e. good points
+(`utm_d_ae_good`) `λ_f² ≤ D_f J_f` (`eq26_13`, `utm_d_pointwise`) and `2 λ ≤ D + J` (AM-GM); `D_f` read in the chart
+at the image point agrees a.e. with `D` of `localMapExpr f x` (`utm_d_exprAt`), which is measurable (derivatives of a
+fixed function), so the sum of the two integrals splits (`lintegral_add_right'`). -/
+theorem s29_e7_piece {X : Type u} [TopologicalSpace X] [ChartedSpace ℂ X] [T2Space X] [ConnectedSpace X]
+    {Y : Type u} [TopologicalSpace Y] [ChartedSpace ℂ Y] [IsManifold 𝓘(ℂ) ω Y] {f : X ≃ₜ Y} {K : ℝ}
+    (hf : IsKQCRS f K) {q : X → ℂ → ℂ} {q' : Y → ℂ → ℂ} (hq : IsHolQuadDiff q) (hne : q ≠ 0) (x : X)
+    {E : Set ℂ} (hEm : MeasurableSet E) (hE : E ⊆ localMapDomain f x) :
+    2 * ∫⁻ z in E, ENNReal.ofReal (lambdaStretch q q' f x z) * ENNReal.ofReal ‖q x z‖ ≤
+      (∫⁻ z in E, ENNReal.ofReal (dilatationQuotient (localMapExprAt f x z) z) * ENNReal.ofReal ‖q x z‖) +
+        ∫⁻ z in E, ENNReal.ofReal (jacobianQD q q' f x z) * ENNReal.ofReal ‖q x z‖ := by
+  have hq' : IsDiffFamily 2 0 q ∧ ∀ x : X, DifferentiableOn ℂ (q x) (chartAt ℂ x).target := hq
+  have hmeasQ : AEMeasurable (fun z => ENNReal.ofReal ‖q x z‖) (volume.restrict E) := by
+    have hc : ContinuousOn (q x) E := (hq'.2 x).continuousOn.mono fun z hz => (hE hz).1
+    exact ENNReal.measurable_ofReal.comp_aemeasurable (hc.aemeasurable hEm).norm
+  have hgood := utm_d_ae_good hf hq hne x hEm hE
+  have hDm : AEMeasurable (fun z => ENNReal.ofReal (dilatationQuotient (localMapExprAt f x z) z) *
+      ENNReal.ofReal ‖q x z‖) (volume.restrict E) := by
+    have hae : (fun z => ENNReal.ofReal (dilatationQuotient (localMapExprAt f x z) z) *
+        ENNReal.ofReal ‖q x z‖) =ᵐ[volume.restrict E]
+        (fun z => ENNReal.ofReal (dilatationQuotient (localMapExpr f x) z) * ENNReal.ofReal ‖q x z‖) := by
+      filter_upwards [hgood] with z hz
+      obtain ⟨hzE, hq0, hd, hlt, -⟩ := hz
+      rw [(s29_e7_pointwise (q' := q') x (hE hzE) hq0 hd hlt).2.2.1]
+    refine AEMeasurable.congr ?_ hae.symm
+    exact ((ENNReal.measurable_ofReal.comp (s29_e7_measurable_D _)).aemeasurable.mul hmeasQ)
+  rw [← lintegral_const_mul' 2 _ (by norm_num), ← lintegral_add_left' hDm]
+  refine lintegral_mono_ae ?_
+  filter_upwards [hgood] with z hz
+  obtain ⟨hzE, hq0, hd, hlt, -⟩ := hz
+  obtain ⟨hJ, hD, -, hlJ⟩ := s29_e7_pointwise (q' := q') x (hE hzE) hq0 hd hlt
+  have hl := utm_d_lambdaStretch_nonneg q q' f x z
+  have hQ := norm_nonneg (q x z)
+  have hr := s29_e7_amgm hl hD hJ hlJ
+  calc 2 * (ENNReal.ofReal (lambdaStretch q q' f x z) * ENNReal.ofReal ‖q x z‖)
+      = ENNReal.ofReal (2 * (lambdaStretch q q' f x z * ‖q x z‖)) := by
+        rw [← ENNReal.ofReal_mul hl, two_mul, two_mul,
+          ENNReal.ofReal_add (mul_nonneg hl hQ) (mul_nonneg hl hQ)]
+    _ ≤ ENNReal.ofReal ((dilatationQuotient (localMapExprAt f x z) z + jacobianQD q q' f x z) * ‖q x z‖) := by
+        refine ENNReal.ofReal_le_ofReal ?_
+        calc 2 * (lambdaStretch q q' f x z * ‖q x z‖) = (2 * lambdaStretch q q' f x z) * ‖q x z‖ := by ring
+          _ ≤ _ := mul_le_mul_of_nonneg_right hr hQ
+    _ = ENNReal.ofReal (dilatationQuotient (localMapExprAt f x z) z) * ENNReal.ofReal ‖q x z‖ +
+          ENNReal.ofReal (jacobianQD q q' f x z) * ENNReal.ofReal ‖q x z‖ := by
+        rw [add_mul, ENNReal.ofReal_add (mul_nonneg hD hQ) (mul_nonneg hJ hQ), ENNReal.ofReal_mul hD,
+          ENNReal.ofReal_mul hJ]
+
+/-- `localMapExprAt f p (φ_p p)` is `localMapExpr f p`. -/
+theorem s29_e7_exprAt_center {X Y : Type*} [TopologicalSpace X] [ChartedSpace ℂ X] [TopologicalSpace Y]
+    [ChartedSpace ℂ Y] (f : X → Y) (p : X) : localMapExprAt f p (chartAt ℂ p p) = localMapExpr f p := by
+  funext w
+  simp only [localMapExprAt, localMapExpr]
+  rw [(chartAt ℂ p).left_inv (mem_chart_source ℂ p)]
+
+/-- **Chart independence of `D`** read at the image point: for `p = φ_y⁻¹ z`,
+`D(localMapExprAt f y z) z = D(localMapExpr f p) (φ_p p)`. -/
+theorem s29_e7_D_inv {X : Type u} [TopologicalSpace X] [ChartedSpace ℂ X] [IsManifold 𝓘(ℂ) ω X]
+    {Y : Type u} [TopologicalSpace Y] [ChartedSpace ℂ Y] (f : X → Y) (y : X) {z : ℂ}
+    (hz : z ∈ (chartAt ℂ y).target) :
+    dilatationQuotient (localMapExprAt f y z) z =
+      dilatationQuotient (localMapExpr f ((chartAt ℂ y).symm z)) (chartAt ℂ ((chartAt ℂ y).symm z) ((chartAt ℂ y).symm z)) := by
+  set p := (chartAt ℂ y).symm z with hp
+  have hzp : (chartAt ℂ y).symm z ∈ (chartAt ℂ p).source := mem_chart_source ℂ p
+  obtain ⟨hm1, hm2, -⟩ := s23_transition_mem (x := p) (y := y) hz hzp
+  obtain ⟨hTd, hT'⟩ := s23_transition p y hz hzp
+  obtain ⟨hw1, hw2⟩ := s23_wirtinger_comp_right (g := localMapExpr f p) hTd
+    (s23_transition y p hm1 hm2).1 (s23_transition_inv p y hz hzp) (s23_transition_inv y p hm1 hm2)
+  have hev : localMapExprAt f y z =ᶠ[𝓝 z] localMapExpr f p ∘ chartTransition p y := by
+    filter_upwards [((chartAt ℂ y).isOpen_inter_preimage_symm (chartAt ℂ p).open_source).mem_nhds ⟨hz, hzp⟩]
+      with w hw
+    simp only [localMapExprAt, localMapExpr, Function.comp_apply, chartTransition]
+    rw [(chartAt ℂ p).left_inv hw.2]
+  have e1 : dz (localMapExprAt f y z) z = dz (localMapExpr f p ∘ chartTransition p y) z := by
+    simp only [dz, hev.fderiv_eq (𝕜 := ℝ)]
+  have e2 : dzbar (localMapExprAt f y z) z = dzbar (localMapExpr f p ∘ chartTransition p y) z := by
+    simp only [dzbar, hev.fderiv_eq (𝕜 := ℝ)]
+  have hτ : chartTransition p y z = chartAt ℂ p p := rfl
+  have hT0 : ‖deriv (chartTransition p y) z‖ ≠ 0 := norm_ne_zero_iff.2 hT'
+  unfold dilatationQuotient complexDilatation
+  rw [e1, e2, hw1, hw2, hτ, norm_div, norm_mul, norm_mul, Complex.norm_conj, mul_div_mul_right _ _ hT0, ← norm_div]
+
+/-- **[stub] Partition independence of the `D`-integral.**  `D_f` read in the chart at the image point is
+chart-independent: for `p = φ_x⁻¹ z`, `D(localMapExprAt f x z) z = D(localMapExprAt f p (φ_p p)) (φ_p p)`, because
+`localMapExprAt f x z = localMapExprAt f p (φ_p p) ∘ τ` near `z` with the holomorphic transition `τ = φ_p ∘ φ_x⁻¹`
+(`s23_wirtinger_comp_right`: `∂(g ∘ τ) = ∂g τ'`, `∂̄(g ∘ τ) = ∂̄g τ̄'`, so the quotient is unchanged; where `g` is not
+differentiable both sides are `D = 1`).  Hence `s26v_surfaceIntegral_eq_tsum` applies to the point function
+`p ↦ D(localMapExprAt f p (φ_p p)) (φ_p p)`: the surface integral is the partition sum over **any** chart partition. -/
+theorem s29_e7_D_partition {X : Type u} [TopologicalSpace X] [ChartedSpace ℂ X] [IsManifold 𝓘(ℂ) ω X]
+    {Y : Type u} [TopologicalSpace Y] [ChartedSpace ℂ Y] (f : X ≃ₜ Y) {q : X → ℂ → ℂ} (hq : IsHolQuadDiff q)
+    {x : ℕ → X} {P : ℕ → Set X} (hP : IsChartPartition X x P) :
+    surfaceIntegral q (fun y z => ENNReal.ofReal (dilatationQuotient (localMapExprAt f y z) z)) =
+      ∑' i, ∫⁻ z in chartAt ℂ (x i) '' P i,
+        ENNReal.ofReal (dilatationQuotient (localMapExprAt f (x i) z) z) * ENNReal.ofReal ‖q (x i) z‖ := by
+  -- the point function `U p = D_f(p)`
+  set U : X → ℝ≥0∞ := fun p => ENNReal.ofReal (dilatationQuotient (localMapExpr f p) (chartAt ℂ p p)) with hU
+  have hpt : ∀ y : X, ∀ p ∈ (chartAt ℂ y).source,
+      ENNReal.ofReal (dilatationQuotient (localMapExprAt f y (chartAt ℂ y p)) (chartAt ℂ y p)) =
+        U ((chartAt ℂ y).symm (chartAt ℂ y p)) := by
+    intro y p hp
+    have hz : chartAt ℂ y p ∈ (chartAt ℂ y).target := (chartAt ℂ y).map_source hp
+    rw [s29_e7_D_inv f y hz]
+  have h1 : surfaceIntegral q (fun y z => ENNReal.ofReal (dilatationQuotient (localMapExprAt f y z) z)) =
+      surfaceIntegral q (fun y z => U ((chartAt ℂ y).symm z)) :=
+    s26v_a_surfaceIntegral_congr_off q ∅ (fun x => by simp) (fun y p hp _ => hpt y p hp)
+  rw [h1, s26v_surfaceIntegral_eq_tsum hq U hP]
+  refine tsum_congr fun i => ?_
+  refine setLIntegral_congr_fun (hP.1 i).2 fun z hz => ?_
+  obtain ⟨a, ha, rfl⟩ := hz
+  rw [hpt (x i) a ((hP.1 i).1 ha)]
+
+/-- The inverse of a homotopic pair is homotopic: `gn ≃ F` gives `gn⁻¹ ≃ F⁻¹`. -/
+theorem s29_e7_homotopic_symm {A B : Type*} [TopologicalSpace A] [TopologicalSpace B] {g F : A ≃ₜ B}
+    (h : ContinuousMap.Homotopic (g : C(A, B)) (F : C(A, B))) :
+    ContinuousMap.Homotopic (g.symm : C(B, A)) (F.symm : C(B, A)) := by
+  have h1 := (ContinuousMap.Homotopic.refl (g.symm : C(B, A))).comp h.symm
+  have h2 := h1.comp (ContinuousMap.Homotopic.refl (F.symm : C(B, A)))
+  have e1 : ((g.symm : C(B, A)).comp (F : C(A, B))).comp (F.symm : C(B, A)) = (g.symm : C(B, A)) := by
+    ext y
+    simp
+  have e2 : ((g.symm : C(B, A)).comp (g : C(A, B))).comp (F.symm : C(B, A)) = (F.symm : C(B, A)) := by
+    ext y
+    simp
+  rw [e1, e2] at h2
+  exact h2
+
 /-- (29.6)–(29.7): for the extremal map `gₙ : Sₙ → S` in the class of `f ∘ fₙ⁻¹` with terminal
 differential `ω̃ₙ'` normalized by `∬_S dA = 1`, `Kₙ = K[gₙ] ≤ ∬_S D[fₙ ∘ f⁻¹] dA_{ω̃ₙ'}`, where `D`
 is the local dilatation quotient; since `D[fₙ ∘ f⁻¹] ≤ K[f] (1+kₙ)/(1-kₙ)` is uniformly bounded and
@@ -668,18 +738,84 @@ theorem eq29_7 {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {S Sn : Type u} [To
     ENNReal.ofReal ((1 + kn) / (1 - kn)) ≤
       surfaceIntegral qn' fun x z =>
         ENNReal.ofReal (dilatationQuotient (localMapExprAt (f.symm.trans fn) x z) z) := by
-  sorry
-
-/-- §29.1, (29.1) ⟹ (29.2): if `kₙ → k` and `ωₙ → ω` (coordinates in `Q(S₀)`, equivalently the
-local coefficients), then `d_T([Sₙ, fₙ], [S, f]) → 0`. -/
-theorem eq29_1_imp_eq29_2 {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) {qn : ℕ → S₀ → ℂ → ℂ}
-    {q : S₀ → ℂ → ℂ} (hqn : ∀ n, IsHolQuadDiff (qn n)) (hq : IsHolQuadDiff q)
-    (hconv : ∀ x z, Tendsto (fun n => qn n x z) atTop (𝓝 (q x z))) {kn : ℕ → ℝ} {k : ℝ}
-    (hkn : ∀ n, 0 ≤ kn n ∧ kn n < 1) (hk : 0 ≤ k) (hk' : k < 1) (hkconv : Tendsto kn atTop (𝓝 k))
-    {pn : ℕ → TeichSpace S₀} {p : TeichSpace S₀} (hpn : ∀ n, IsDeformationPoint (qn n) (kn n) (pn n))
-    (hp : IsDeformationPoint q k p) :
-    Tendsto (fun n => teichDistance (pn n) p) atTop (𝓝 0) := by
-  sorry
+  classical
+  have _ := hg
+  have _ := hS
+  have _ := hS'
+  have : Nonempty S := ConnectedSpace.toNonempty
+  have : Nonempty Sn := ConnectedSpace.toNonempty
+  set K : ℝ := (1 + kn) / (1 - kn) with hK
+  have hK0 : 0 < K := div_pos (by linarith [hgn.k_nonneg]) (by linarith [hgn.k_lt_one])
+  -- `h = fₙ ∘ f⁻¹ : S → Sₙ` is q.c.
+  obtain ⟨K₁, hK₁⟩ := hf
+  obtain ⟨K₂, hK₂⟩ := hfn
+  have hh : IsKQCRS (f.symm.trans fn) (K₁ * K₂) := (eq23_4 (s29_m_isKQCRS_symm hK₁) hK₂).1
+  -- the inverse of `gₙ` is a Teichmüller map with initial differential `-qₙ'` and terminal `-Kₙ² qₙ`
+  have hG : IsTeichmullerMap gn.symm (-qn') ((((-(K ^ 2) : ℝ)) : ℂ) • qn) kn :=
+    utm_x_teichmullerMap_symm hgn
+  have hhomG : ContinuousMap.Homotopic (gn.symm : C(S, Sn)) ((f.symm.trans fn : S ≃ₜ Sn) : C(S, Sn)) := by
+    have h1 := s29_e7_homotopic_symm hhom
+    have e : (fn.symm.trans f).symm = f.symm.trans fn := by
+      ext x
+      simp
+    rwa [e] at h1
+  -- Lemma 26.2 on the target `Sₙ` (uniformized by `s22hg`)
+  obtain ⟨Γ, p, -, -, hp⟩ := s22hg_exists_fuchsian_uniformization hg hSn
+  have hL2 := utm_lemma26_2_target (S₀ := S) (S₁ := Sn) hg hSn hG ⟨_, hh⟩ hhomG hp
+  -- a chart partition of `S` subordinate to `h`, and the chain over it
+  obtain ⟨p₀⟩ : Nonempty S := inferInstance
+  obtain ⟨x, P, hP, hPV, -, -⟩ :=
+    utm_d_good_partition (f.symm.trans fn) (f.symm.trans fn).continuous p₀
+  obtain ⟨hL, hC, -, -⟩ := utm_d_chain hG hh hL2 hP hPV
+  have hq : IsHolQuadDiff (-qn') := hG.initial
+  have hne : (-qn') ≠ 0 := hG.initial_ne
+  have hpiece := fun i => s29_e7_piece (q' := (((-(K ^ 2) : ℝ)) : ℂ) • qn) hh hq hne (x i) (hP.1 i).2 (utm_d_piece_sub _ (hPV i))
+  have hsum : 2 * ∑' i, ∫⁻ z in chartAt ℂ (x i) '' P i,
+        ENNReal.ofReal (lambdaStretch (-qn') ((((-(K ^ 2) : ℝ)) : ℂ) • qn) (f.symm.trans fn) (x i) z) *
+          ENNReal.ofReal ‖(-qn') (x i) z‖ ≤
+      (∑' i, ∫⁻ z in chartAt ℂ (x i) '' P i,
+        ENNReal.ofReal (dilatationQuotient (localMapExprAt (f.symm.trans fn) (x i) z) z) *
+          ENNReal.ofReal ‖(-qn') (x i) z‖) +
+      ∑' i, ∫⁻ z in chartAt ℂ (x i) '' P i,
+        ENNReal.ofReal (jacobianQD (-qn') ((((-(K ^ 2) : ℝ)) : ℂ) • qn) (f.symm.trans fn) (x i) z) *
+          ENNReal.ofReal ‖(-qn') (x i) z‖ := by
+    rw [← ENNReal.tsum_mul_left, ← ENNReal.tsum_add]
+    exact ENNReal.tsum_le_tsum hpiece
+  -- the norm of the terminal differential is `K`
+  have hN : quadDiffNorm ((((-(K ^ 2) : ℝ)) : ℂ) • qn) = ENNReal.ofReal K := by
+    have h1 : quadDiffNorm qn' = ENNReal.ofReal K * quadDiffNorm qn := s26w_quadDiffNorm_teich hgn
+    have h2 : quadDiffNorm ((((-(K ^ 2) : ℝ)) : ℂ) • qn) = ENNReal.ofReal (K ^ 2) * quadDiffNorm qn := by
+      have := s26_surfaceIntegral_smul qn (fun _ _ => (1 : ℝ≥0∞)) (((-(K ^ 2) : ℝ)) : ℂ)
+      rw [Complex.norm_real, Real.norm_eq_abs, abs_neg, abs_of_nonneg (sq_nonneg K)] at this
+      exact this
+    rw [h2, pow_two, ENNReal.ofReal_mul hK0.le, mul_assoc, ← h1, hnorm, mul_one]
+  have hNt : quadDiffNorm ((((-(K ^ 2) : ℝ)) : ℂ) • qn) ≠ ⊤ := by
+    rw [hN]
+    exact ENNReal.ofReal_ne_top
+  have h2 : quadDiffNorm ((((-(K ^ 2) : ℝ)) : ℂ) • qn) + quadDiffNorm ((((-(K ^ 2) : ℝ)) : ℂ) • qn) ≤
+      (∑' i, ∫⁻ z in chartAt ℂ (x i) '' P i,
+        ENNReal.ofReal (dilatationQuotient (localMapExprAt (f.symm.trans fn) (x i) z) z) *
+          ENNReal.ofReal ‖(-qn') (x i) z‖) +
+        quadDiffNorm ((((-(K ^ 2) : ℝ)) : ℂ) • qn) := by
+    calc _ = 2 * quadDiffNorm ((((-(K ^ 2) : ℝ)) : ℂ) • qn) := (two_mul _).symm
+      _ ≤ 2 * ∑' i, ∫⁻ z in chartAt ℂ (x i) '' P i,
+          ENNReal.ofReal (lambdaStretch (-qn') ((((-(K ^ 2) : ℝ)) : ℂ) • qn) (f.symm.trans fn) (x i) z) *
+            ENNReal.ofReal ‖(-qn') (x i) z‖ := mul_le_mul' le_rfl hL
+      _ ≤ _ := hsum
+      _ = _ := by rw [hC]
+  have h3 := ENNReal.le_of_add_le_add_right hNt h2
+  -- the surface integral is the partition sum over this partition (`s29_e7_D_partition`)
+  have hneg : surfaceIntegral (-qn') (fun y z =>
+      ENNReal.ofReal (dilatationQuotient (localMapExprAt (f.symm.trans fn) y z) z)) =
+      surfaceIntegral qn' (fun y z =>
+        ENNReal.ofReal (dilatationQuotient (localMapExprAt (f.symm.trans fn) y z) z)) := by
+    have : Nonempty S := ⟨p₀⟩
+    have := s26_surfaceIntegral_smul qn' (fun y z =>
+      ENNReal.ofReal (dilatationQuotient (localMapExprAt (f.symm.trans fn) y z) z)) (-1)
+    rwa [neg_one_smul, norm_neg, norm_one, ENNReal.ofReal_one, one_mul] at this
+  rw [← hneg, s29_e7_D_partition (f.symm.trans fn) hq hP]
+  rw [hN] at h3
+  exact h3
 
 /-- (29.8): if `d_T([Sₙ, fₙ], [S, f]) → 0` then the distances to `[S₀, id]` are bounded, so
 `kₙ ≤ k₀ < 1` for all `n`. -/
@@ -687,42 +823,41 @@ theorem eq29_8 {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) (hid : IsQCRS (Home
     {pn : ℕ → TeichSpace S₀} {p : TeichSpace S₀} (hconv : Tendsto (fun n => teichDistance (pn n) p) atTop (𝓝 0))
     {qn : ℕ → S₀ → ℂ → ℂ} {kn : ℕ → ℝ} (hpn : ∀ n, IsDeformationPoint (qn n) (kn n) (pn n)) :
     ∃ k₀ : ℝ, k₀ < 1 ∧ ∀ n, kn n ≤ k₀ := by
-  sorry
-
-/-- §29.1, (29.2) ⟹ (29.1): if `d_T([Sₙ, fₙ], [S, f]) → 0` (with `(ωₙ, kₙ)`, `(ω, k)` the
-normalized Teichmüller data, `‖e(ωₙ)‖ = ‖e(ω)‖ = 1`), then `kₙ → k` and, when `k ≠ 0`,
-`ωₙ → ω` (by compactness of the unit sphere and the first part). -/
-theorem eq29_2_imp_eq29_1 {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g)
-    (e : (holQuadDiffSubmodule S₀).restrictScalars ℝ ≃ₗ[ℝ] EuclideanSpace ℝ (Fin (6 * g - 6)))
-    {qn : ℕ → (holQuadDiffSubmodule S₀).restrictScalars ℝ} {q : (holQuadDiffSubmodule S₀).restrictScalars ℝ}
-    (hqn : ∀ n, ‖e (qn n)‖ = 1) (hq : ‖e q‖ = 1) {kn : ℕ → ℝ} {k : ℝ} (hkn : ∀ n, 0 ≤ kn n ∧ kn n < 1)
-    (hk : 0 ≤ k) (hk' : k < 1) {pn : ℕ → TeichSpace S₀} {p : TeichSpace S₀}
-    (hpn : ∀ n, IsDeformationPoint (qn n) (kn n) (pn n)) (hp : IsDeformationPoint q k p)
-    (hconv : Tendsto (fun n => teichDistance (pn n) p) atTop (𝓝 0)) :
-    Tendsto kn atTop (𝓝 k) ∧ (k ≠ 0 → Tendsto (fun n => e (qn n)) atTop (𝓝 (e q))) := by
-  sorry
-
-/-- **Theorem 29.1**: with the Teichmüller metric, `T(S₀)` is homeomorphic to the unit ball of
-`ℝ^{6g-6}` (`g > 1` the genus of `S₀`): the bijection `T̃(S₀) → T(S₀)` is a homeomorphism for the
-ball topology and the Teichmüller metric. -/
-theorem thm29_1 {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g)
-    (e : (holQuadDiffSubmodule S₀).restrictScalars ℝ ≃ₗ[ℝ] EuclideanSpace ℝ (Fin (6 * g - 6))) :
-    ∃ Φ : EuclideanSpace ℝ (Fin (6 * g - 6)) → TeichSpace S₀,
-      InjOn Φ (ball 0 1) ∧ (∀ p : TeichSpace S₀, ∃ v ∈ ball (0 : EuclideanSpace ℝ (Fin (6 * g - 6))) 1, Φ v = p) ∧
-      (∀ (q : (holQuadDiffSubmodule S₀).restrictScalars ℝ) (k : ℝ), ‖e q‖ = 1 → 0 < k → k < 1 →
-        IsDeformationPoint q k (Φ (k • e q))) ∧
-      ∀ (v : EuclideanSpace ℝ (Fin (6 * g - 6))) (vn : ℕ → EuclideanSpace ℝ (Fin (6 * g - 6))),
-        v ∈ ball 0 1 → (∀ n, vn n ∈ ball 0 1) →
-        (Tendsto vn atTop (𝓝 v) ↔ Tendsto (fun n => teichDistance (Φ (vn n)) (Φ v)) atTop (𝓝 0)) := by
-  sorry
+  obtain ⟨B, hB⟩ := hconv.bddAbove_range
+  let M : ℝ := teichDistance (TeichSpace.basePoint hid) p + B
+  let E : ℝ := Real.exp (2 * M)
+  have hE : 0 < E := Real.exp_pos _
+  have hE1 : 0 < E + 1 := by linarith
+  refine ⟨(E - 1) / (E + 1), ?_, ?_⟩
+  · exact (div_lt_iff₀ hE1).2 (by linarith)
+  · intro n
+    have hBn : teichDistance (pn n) p ≤ B := hB ⟨n, rfl⟩
+    have hdist : teichDistance (TeichSpace.basePoint hid) (pn n) ≤ M := by
+      calc
+        teichDistance (TeichSpace.basePoint hid) (pn n) ≤
+            teichDistance (TeichSpace.basePoint hid) p + teichDistance (pn n) p :=
+          s29_m_teichDistance_triangle _ _ _
+        _ ≤ M := by
+          dsimp [M]
+          linarith
+    have hformula := teichDistance_deformation hg hS hid (hpn n)
+    have hparams : 0 ≤ kn n ∧ kn n < 1 := by
+      obtain ⟨X, e, hqc, q', hT, hp⟩ := hpn n
+      exact ⟨hT.k_nonneg, hT.k_lt_one⟩
+    have hden : 0 < 1 - kn n := by linarith [hparams.2]
+    have hnum : 0 < 1 + kn n := by linarith [hparams.1]
+    have hratio : 0 < (1 + kn n) / (1 - kn n) := div_pos hnum hden
+    have hlog : Real.log ((1 + kn n) / (1 - kn n)) ≤ 2 * M := by
+      rw [hformula] at hdist
+      linarith
+    have hquot : (1 + kn n) / (1 - kn n) ≤ E :=
+      (Real.log_le_iff_le_exp hratio).1 hlog
+    have hmul : 1 + kn n ≤ E * (1 - kn n) :=
+      (div_le_iff₀ hden).1 hquot
+    apply (le_div_iff₀ hE1).2
+    nlinarith
 
 /-! ## §29.2 Completeness -/
-
-/-- **Theorem 29.2**: `T(S₀)` with the Teichmüller metric is a complete metric space. -/
-theorem thm29_2_complete {g : ℕ} (hg : 1 < g) (hS : HasGenus S₀ g) (p : ℕ → TeichSpace S₀)
-    (hp : ∀ ε > 0, ∃ N, ∀ m ≥ N, ∀ n ≥ N, teichDistance (p m) (p n) < ε) :
-    ∃ q : TeichSpace S₀, Tendsto (fun n => teichDistance (p n) q) atTop (𝓝 0) := by
-  sorry
 
 /-- A Cauchy sequence for a function `d` with the triangle inequality in the form `d p q ≤ d p r + d q r` is
 bounded as seen from any base point `b`: a finite maximum over the first terms, and the tail bound. -/

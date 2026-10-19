@@ -7172,10 +7172,8 @@ theorem thm36_2_hamilton (hΓ : IsFuchsian Γ) {F : Set ℂ} (hF : IsFundamental
   have h5 := (Real.artanh_lt_artanh_iff haI hkI).1 h4
   linarith
 
-/-- §36.2 (K. Strebel): the Hamilton condition is also sufficient for extremality. -/
-theorem strebel_hamilton_sufficient (hΓ : IsFuchsian Γ) {F : Set ℂ} (hF : IsFundamentalDomainH Γ F)
-    (μ : BeltramiGamma Γ) (h : hamiltonNorm Γ F μ.1.1 = beltramiNormH μ.1.1) : IsExtremalModBoundary Γ μ := by
-  sorry
+-- strebel_hamilton_sufficient is stated and proved in LiZhongQC/Lemmas/S36StrebelFinal.lean
+-- (it uses the complete group Strebel proof downstream of this file).
 
 /-- §36.2: Hamilton's theorem gives a sequence `ωₙ ∈ A(S)`, `‖ωₙ‖ = 1`, with `∫_S κωₙ → ‖κ‖_∞`
 (a Hamilton sequence).

@@ -1101,38 +1101,10 @@ theorem bersFiber_holomorphic_dependence (hΓ : IsFuchsian Γ) {P : Set ℂ} (hP
     · rw [hact, (s34_F_pole (μ t) hγ hc (hne t ht)).2]
     · rw [hact, (s34_F_pole (μ t₀) hγ hc (hne t₀ ht₀)).2]
 
-/-- §34.2: `V(G₀)` is a complex manifold of dimension `3g - 2`: a point `[φ, z]` has the local
-coordinates `(t₁, …, t_{3g-3}, z)` of `(φ, z)` in a neighbourhood `N` on which the action is free,
-`φ = t₁φ₁ + ⋯ + t_{3g-3}φ_{3g-3}`; and `pr` is holomorphic, `(t, z) ↦ t` in these coordinates. -/
-theorem bersQuotient_manifold {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S] [ConnectedSpace S]
-    [IsManifold 𝓘(ℂ) ω S] {g : ℕ} (hg : 1 < g) (hS : HasGenus S g) (hΓ : IsFuchsian Γ) (hfree : ActsFreely Γ)
-    {p : UpperHalfPlane → S} (hp : IsUniformization Γ p) :
-    ∃ (coords : TeichGamma Γ → Fin (3 * g - 3) → ℂ) (_ : Function.Injective coords) (hopen : IsOpen (range coords))
-      (_ : TopologicalSpace (BersQuotient Γ)) (_ : ChartedSpace (Fin (3 * g - 3 + 1) → ℂ) (BersQuotient Γ)),
-      IsManifold 𝓘(ℂ, Fin (3 * g - 3 + 1) → ℂ) ω (BersQuotient Γ) ∧
-      ∃ pr : BersQuotient Γ → (⟨range coords, hopen⟩ : TopologicalSpace.Opens (Fin (3 * g - 3) → ℂ)),
-        MDifferentiable 𝓘(ℂ, Fin (3 * g - 3 + 1) → ℂ) 𝓘(ℂ, Fin (3 * g - 3) → ℂ) pr ∧
-        ∀ (q : TeichGamma Γ) (v : BersQuotient Γ), bersProjection Γ v = bersMapGamma Γ q → (pr v : Fin (3 * g - 3) → ℂ) = coords q := by
-  sorry
+-- bersQuotient_manifold is stated and proved in LiZhongQC/Lemmas/S34Final.lean
+-- (it needs the box-chart atlas of S34mManifold, built on top of this file).
 
-/-- **Theorem 34.1 (Bers)**: `(V(G₀), T_{G₀}, pr)` is a holomorphic family, in the sense of
-Kodaira–Spencer, of closed Riemann surfaces of genus `g > 1`; the fibre over `φ` is `D_φ/G_φ`, the
-Riemann surface corresponding to the point `φ ∈ T_{G₀}`. -/
-theorem thm34_1_bers {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S] [ConnectedSpace S]
-    [IsManifold 𝓘(ℂ) ω S] {g : ℕ} (hg : 1 < g) (hS : HasGenus S g) (hΓ : IsFuchsian Γ) (hfree : ActsFreely Γ)
-    {p : UpperHalfPlane → S} (hp : IsUniformization Γ p) :
-    ∃ (coords : TeichGamma Γ → Fin (3 * g - 3) → ℂ) (_ : Function.Injective coords) (hopen : IsOpen (range coords))
-      (_ : TopologicalSpace (BersQuotient Γ)) (_ : ChartedSpace (Fin (3 * g - 3 + 1) → ℂ) (BersQuotient Γ))
-      (_ : IsManifold 𝓘(ℂ, Fin (3 * g - 3 + 1) → ℂ) ω (BersQuotient Γ))
-      (pr : BersQuotient Γ → (⟨range coords, hopen⟩ : TopologicalSpace.Opens (Fin (3 * g - 3) → ℂ))),
-      IsHolomorphicFamily (n := 3 * g - 3) pr ∧
-      ∀ q : TeichGamma Γ, ∃ (X : ClosedRS.{u}) (j : X.carrier → BersQuotient Γ) (cov : ℂ → X.carrier),
-        HasGenus X.carrier g ∧ Topology.IsEmbedding j ∧
-        (range j = pr ⁻¹' {⟨coords q, mem_range_self q⟩}) ∧
-        (∀ z (hz : z ∈ bersDisc Γ (bersMapGamma Γ q)), j (cov z) = Quot.mk _ ⟨(bersMapGamma Γ q, z), ⟨q, rfl⟩, hz⟩) ∧
-        MDifferentiableOn 𝓘(ℂ) 𝓘(ℂ) cov (bersDisc Γ (bersMapGamma Γ q)) ∧
-        ∀ z ∈ bersDisc Γ (bersMapGamma Γ q), ∀ w ∈ bersDisc Γ (bersMapGamma Γ q),
-          (cov z = cov w ↔ ∃ γ ∈ Γ, w = bersFiberAction Γ γ (bersMapGamma Γ q) z) := by
-  sorry
+-- thm34_1_bers is stated and proved in LiZhongQC/Lemmas/S34Final.lean
+-- (it needs the box-chart atlas of S34mManifold and the fibre surfaces of S34fFibre / S34fProper).
 
 end LiZhongQC

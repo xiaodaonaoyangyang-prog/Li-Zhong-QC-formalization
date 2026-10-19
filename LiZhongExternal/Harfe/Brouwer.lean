@@ -1,0 +1,55 @@
+/-
+Copyright (c) 2026 harfe.
+Released under the MIT license; see LICENSE.harfe in this directory.
+Adapted from fixed-point-theorems-lean4 commit
+770940ddf9878cf61952ed53d910b92bca841838, FixedPointTheorems/brouwer.lean.
+Local changes (2026-10-14): vendor namespace/imports and Lean API migration.
+-/
+
+
+import LiZhongExternal.Harfe.ApplyCubicalSperner
+import LiZhongExternal.Harfe.ConvexHomeos
+import Mathlib.Dynamics.FixedPoints.Basic
+
+namespace LiZhongExternal.Harfe
+
+
+
+/- Brouwer fixed-point theorem:
+Every continuous function mapping a nonempty compact convex set to itself has a fixed point
+(the set should be a subset of a finite dimensional vector space).
+
+https://en.wikipedia.org/wiki/Brouwer_fixed-point_theorem
+-/
+
+
+theorem brouwer_fixed_point {V : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V] [FiniteDimensional ℝ V]
+    : ∀ (s : Set V), Convex ℝ s → IsCompact s → Set.Nonempty s →
+    ∀ (f : C(s, s)), ∃ x, f x = x := by {
+  intro s hcvx hcmpct hne f
+  obtain ⟨k, ⟨e⟩ ⟩ := homeo_unit_cube_of_convex_compact s hcvx hcmpct hne
+  let g := (toContinuousMap e).comp (f.comp (toContinuousMap e.symm))
+  obtain ⟨y, hy⟩ := @fixed_point_unit_cube k g
+  use (toContinuousMap e.symm) y
+  have h1 : e.symm (e (f (e.symm y))) = e.symm y := congrArg e.symm hy
+  rwa [e.symm_apply_apply] at h1
+}
+
+/-- Brouwer's fixed-point theorem stated with mathlib's `Function.IsFixedPt` vocabulary. -/
+theorem brouwer_fixed_point_isFixedPt {V : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V] [FiniteDimensional ℝ V]
+    (s : Set V) (hcvx : Convex ℝ s) (hcmpct : IsCompact s) (hne : Set.Nonempty s)
+    (f : C(s, s)) :
+    ∃ x, Function.IsFixedPt f x := by
+  simpa [Function.IsFixedPt] using brouwer_fixed_point s hcvx hcmpct hne f
+
+/-- The fixed-point set of a continuous self-map on a Brouwer domain is nonempty. -/
+theorem brouwer_fixedPoints_nonempty {V : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V] [FiniteDimensional ℝ V]
+    (s : Set V) (hcvx : Convex ℝ s) (hcmpct : IsCompact s) (hne : Set.Nonempty s)
+    (f : C(s, s)) :
+    (Function.fixedPoints f).Nonempty := by
+  exact brouwer_fixed_point_isFixedPt s hcvx hcmpct hne f
+
+end LiZhongExternal.Harfe

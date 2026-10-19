@@ -1,6 +1,6 @@
 name = "lizhong_quasiconformal_teichmuller"
 version = "0.1.0"
-defaultTargets = ["LiZhongQC"]
+defaultTargets = ["LiZhongQC", "References", "DouadyEarle"]
 
 [leanOptions]
 autoImplicit = false
@@ -18,3 +18,36 @@ name = "JordanCurveTheorem"
 # Vendored from github.com/epfl-lara/jordan-curve-theorem (HOLLight-Lean); see JordanCurveTheorem/PROVENANCE.md.
 # Upstream options: autoImplicit left at its default, relaxedAutoImplicit = false, maxSynthPendingDepth = 3.
 leanOptions = { autoImplicit = true, relaxedAutoImplicit = false, maxSynthPendingDepth = 3 }
+
+[[lean_lib]]
+name = "DouadyEarle"
+# Vendored from the user's sister project (Douady–Earle, Sections 1–4); see DouadyEarle/PROVENANCE.md.
+# Upstream sets no package options, so autoImplicit/relaxedAutoImplicit keep Lean's defaults.
+leanOptions = { autoImplicit = true, relaxedAutoImplicit = true }
+
+[[lean_lib]]
+name = "References"
+# Statement-level formalization of the books and papers used by the project (the archive's `refs` folder):
+# genuine definitions, theorem statements with `sorry` proofs by design. See README.md, section *References*.
+
+# Archived integration candidate; sources and proof migration are pinned in PROVENANCE.md.
+[[lean_lib]]
+name = "RiemannDynamics"
+globs = ["RiemannDynamics.+"]
+leanOptions = { autoImplicit = true, relaxedAutoImplicit = false, maxSynthPendingDepth = 3 }
+
+[[lean_lib]]
+name = "RMT4"
+globs = ["RMT4.+"]
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = false, maxSynthPendingDepth = 3, maxHeartbeats = 2000000 }
+
+[[lean_lib]]
+name = "Jacobians"
+globs = ["Jacobians.+"]
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = true }
+
+# Brouwer and invariance of domain; provenance and licenses are in LiZhongExternal.
+[[lean_lib]]
+name = "LiZhongExternal"
+globs = ["LiZhongExternal.+"]
+leanOptions = { autoImplicit = true, relaxedAutoImplicit = true }

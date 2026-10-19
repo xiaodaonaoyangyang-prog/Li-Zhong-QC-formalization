@@ -1,0 +1,25 @@
+LiZhongExternal/Classification
+
+The 28 modules SchottkyClassification01.lean ... SchottkyClassification28.lean in this directory are
+derived from the Lean project "Classification of Compact Surfaces"
+  https://github.com/mccorvie/classification-of-surfaces
+  commit e3c7230fe78d7b056a415d9ecae6f77887046b32
+Copyright (c) 2026 ClassificationOfSurfaces contributors (SF Lean meetup).
+Licensed under the Apache License, Version 2.0; see LICENSE.Apache-2.0 in this directory.
+
+Modifications (2026-10, LiZhongQC project): the upstream modules of the import closure of
+ClassificationOfSurfaces.EvalStatement were concatenated, in dependency order, into the 28 bundle files;
+each upstream file is kept as one block delimited by "BEGIN <upstream module> | <sha256>" with its
+original copyright header; upstream import lines were removed and replaced by imports of the preceding
+bundles. Local adaptations to Lean v4.35.0-rc2 and the project's Mathlib are proof repairs, plus
+elaboration-only edits that change no statement type and no definition value:
+  - four @[reducible] attributes: PartialTriangulation.toIntrinsic and PartialTriangulation.refine
+    (bundle 17), ChartInductionGeometry.n and ChartInductionGeometry.subdivision (bundle 18);
+  - `letI ... := inferInstance` in the bodies of ofOneFaceWordPreHomeomorph (bundle 22) and
+    twoMonogonPreHomeomorph (bundle 23);
+  - an explicit Decidable instance argument in def chartHalfDiamondMesh and in the private theorem
+    restrictedRightDiamond_support (bundle 14).
+No statement of the public endpoint classification_of_surfaces was changed. The edits are recorded per
+bundle in the archive (prove/claude_r78_cls*, BUNDLE_MAP.json and the acceptance records of the Round78
+registry).
+Namespaces (LeanEval.Topology.ClassificationOfSurfaces, SurfaceCellComplex, ...) are unchanged.

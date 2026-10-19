@@ -1,0 +1,8 @@
+--- a/Jacobians/ProjectiveLine.lean
++++ b/Jacobians/ProjectiveLine.lean
+@@ -619,3 +619,5 @@
+ end RiemannSphere
+ 
+ end Jacobians
++
++attribute [instance 100] Jacobians.RiemannSphere.instTopologicalSpace

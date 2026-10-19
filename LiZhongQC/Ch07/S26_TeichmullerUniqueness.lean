@@ -6,7 +6,6 @@ import LiZhongQC.Ch06.S24_QuasiFuchsian
 
 * §26.1 the Teichmüller extremal problem (26.1), (26.2); Theorem 26.1 (existence of extremal
   maps); the generalized Grötzsch problem (26.3)      — `IsExtremalInHomotopyClass`,
-                                                         `thm26_1_extremal_exists`,
                                                          `grotzsch_generalized`
 * §26.2 Teichmüller deformations `S_{q,k}`: the new parameters at regular points and at zeros,
   (26.4)–(26.6), the terminal differential `q'`, the deformation map `f₀`, the deformation
@@ -17,8 +16,12 @@ import LiZhongQC.Ch06.S24_QuasiFuchsian
                                                        — `IsTeichmullerMap`
 * §26.4 Theorem 26.2 (uniqueness theorem, (26.7)); Lemma 26.1 (26.8); the stretching function
   `λ_f` and (26.9); Lemma 26.2 (26.10); the inequalities (26.11)–(26.16) of the proof
-                                                       — `thm26_2_uniqueness`, `lemma26_1`,
-                                                         `lemma26_2`, `eq26_13`
+                                                       — `eq26_13`
+  (The six statements of this section that need a Fuchsian uniformization (Lemma 26.1, Lemma 26.2, Theorem 26.2, (26.15)–(26.16), the conformal case and the extremality of Teichmüller maps) now live in `LiZhongQC.Lemmas.UniformizedUniqueness`, which imports this file.)
+
+Theorem 26.1 (`thm26_1_extremal_exists`) is stated and proved in `LiZhongQC.Lemmas.UniformizedTeichmuller` (moved
+there by leader decision, 2026-10-13): the extremal map is the Teichmüller map of Theorem 27.2, which this chapter
+cannot import.
 -/
 
 open Complex Set Metric Filter Topology MeasureTheory
@@ -43,28 +46,9 @@ def IsExtremalInHomotopyClass (f : S₀ ≃ₜ S₁) : Prop :=
   IsQCRS f ∧ ∀ g : S₀ ≃ₜ S₁, IsQCRS g → ContinuousMap.Homotopic (f : C(S₀, S₁)) (g : C(S₀, S₁)) →
     maxDilatationRS f ≤ maxDilatationRS g
 
-/-- (26.2): in the homotopy class of `f*` there is a sequence `fₙ` with `K[fₙ] → inf K[f]`; the
-lifts of a sequence with bounded dilatation have a locally uniformly convergent subsequence
-whose limit is a `K`-quasiconformal map homotopic to `f*` (§26.1, the proof of Theorem 26.1). -/
-theorem eq26_2_limit_of_bounded_dilatation [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
-    [T2Space S₁] [ConnectedSpace S₁] [IsManifold 𝓘(ℂ) ω S₁] {g : ℕ} (hg : 1 < g)
-    (h₀ : HasGenus S₀ g) (h₁ : HasGenus S₁ g) (f₀ : S₀ ≃ₜ S₁) {K : ℝ} (fn : ℕ → S₀ ≃ₜ S₁)
-    (hK : ∀ n, IsKQCRS (fn n) K)
-    (hhom : ∀ n, ContinuousMap.Homotopic (f₀ : C(S₀, S₁)) ((fn n : S₀ ≃ₜ S₁) : C(S₀, S₁))) :
-    ∃ (φ : ℕ → ℕ) (f : S₀ ≃ₜ S₁), StrictMono φ ∧ IsKQCRS f K ∧
-      ContinuousMap.Homotopic (f₀ : C(S₀, S₁)) (f : C(S₀, S₁)) ∧
-      (∀ x, Tendsto (fun n => fn (φ n) x) atTop (𝓝 (f x))) ∧
-      maxDilatationRS f ≤ liminf (fun n => maxDilatationRS (fn (φ n))) atTop := by
-  sorry
-
-/-- **Theorem 26.1**: in the Teichmüller extremal problem (closed surfaces of genus `g > 1`,
-`f* : S₀ → S₁` an orientation preserving homeomorphism) an extremal map always exists. -/
-theorem thm26_1_extremal_exists [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
-    [T2Space S₁] [ConnectedSpace S₁] [IsManifold 𝓘(ℂ) ω S₁] {g : ℕ} (hg : 1 < g)
-    (h₀ : HasGenus S₀ g) (h₁ : HasGenus S₁ g) (f₀ : S₀ ≃ₜ S₁) (hf₀ : IsOrientationPreservingRS f₀) :
-    ∃ f : S₀ ≃ₜ S₁, ContinuousMap.Homotopic (f₀ : C(S₀, S₁)) (f : C(S₀, S₁)) ∧
-      IsExtremalInHomotopyClass f := by
-  sorry
+/-! (26.2) `eq26_2_limit_of_bounded_dilatation` is stated in
+`LiZhongQC.Lemmas.UniformizedTeichmuller`, whose closure contains the paired normal-family
+and descent APIs needed for its proof. -/
 
 /-- (26.3): the affine stretch `A : x + iy ↦ (a'/a) x + iy` of the rectangle `R(0, a, a+i, i)` onto
 `R'(0, a', a'+i, i)`. -/
@@ -915,9 +899,6 @@ theorem teichStretchZero_localHomeomorph {k : ℝ} (hk₀ : 0 ≤ k) (hk : k < 1
   refine ⟨hcont, by simp [teichStretchZero], fun U hU => ?_⟩
   rw [← compl_compl U, Set.image_compl_eq hbij]
   exact (isClosedMap_teichStretchZero hk₀ hk m hcont _ hU.isClosed_compl).isOpen_compl
-
-/-- `p ∈ S₀` is a regular point of the quadratic differential `q`. -/
-def IsRegularPoint (q : S₀ → ℂ → ℂ) (p : S₀) : Prop := q p (chartAt ℂ p p) ≠ 0
 
 /-- `p ∈ S₀` is a zero of order `m` of the quadratic differential `q`. -/
 def IsZeroOfOrder (q : S₀ → ℂ → ℂ) (p : S₀) (m : ℕ) : Prop :=
@@ -1773,41 +1754,6 @@ theorem s26u_isKQC_local_of_conj {g A B F : ℂ → ℂ} {z₀ : ℂ} {K : ℝ} 
   rw [← (hUS hw).2.2.2]
   exact (hBi.leftInvOn_invFunOn (hUS hw).2.2.1).symm
 
-/-- The transformation law of a holomorphic quadratic differential `q`, specialised: for `z` in the
-chart target at `x` with `p = φ_x⁻¹ z` in the chart source at `y`, `q_x(z) = q_y(τ z) τ'(z)²`,
-`τ = φ_y ∘ φ_x⁻¹`. -/
-theorem s26u_law {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDiff q) (x y : S₀) {z : ℂ}
-    (hz : z ∈ (chartAt ℂ x).target) (hzy : (chartAt ℂ x).symm z ∈ (chartAt ℂ y).source) :
-    q x z = q y (chartTransition y x z) * deriv (chartTransition y x) z ^ 2 := by
-  have hq' : IsDiffFamily 2 0 q ∧ ∀ x : S₀, DifferentiableOn ℂ (q x) (chartAt ℂ x).target := hq
-  rw [hq'.1.2 y x z hz hzy]
-  norm_num
-
-/-- Regularity in an arbitrary chart: for `z` in the chart target at `x`, the point `φ_x⁻¹ z` is a
-regular point of `q` (a condition in the preferred chart at that point) iff `q_x(z) ≠ 0` (the
-transformation law in both directions). -/
-theorem s26u_isRegularPoint_iff {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDiff q) (x : S₀) {z : ℂ}
-    (hz : z ∈ (chartAt ℂ x).target) :
-    IsRegularPoint q ((chartAt ℂ x).symm z) ↔ q x z ≠ 0 := by
-  set p := (chartAt ℂ x).symm z with hp
-  have hpx : p ∈ (chartAt ℂ x).source := (chartAt ℂ x).map_target hz
-  constructor
-  · intro hr h0
-    have hw : chartAt ℂ p p ∈ (chartAt ℂ p).target := (chartAt ℂ p).map_source (mem_chart_source ℂ p)
-    have hwp : (chartAt ℂ p).symm (chartAt ℂ p p) = p := (chartAt ℂ p).left_inv (mem_chart_source ℂ p)
-    have hlaw := s26u_law hq p x hw (by rw [hwp]; exact hpx)
-    have hT : chartTransition x p (chartAt ℂ p p) = z := by
-      show chartAt ℂ x ((chartAt ℂ p).symm (chartAt ℂ p p)) = z
-      rw [hwp]
-      exact (chartAt ℂ x).right_inv hz
-    rw [hT, h0, zero_mul] at hlaw
-    exact hr hlaw
-  · intro hne h0
-    apply hne
-    have hlaw := s26u_law hq x p hz (mem_chart_source ℂ p)
-    have hT : chartTransition p x z = chartAt ℂ p p := rfl
-    rw [hlaw, hT, h0, zero_mul]
-
 /-- Where `q_x ≠ 0`, the chart transition `τ = φ_y ∘ φ_x⁻¹` is holomorphic with `τ' ≠ 0`: the
 transformation law `q_x = q_y(τ) τ'²` forces `τ' ≠ 0` (hence complex differentiability) at every
 point of a neighbourhood.  No holomorphic atlas on the surface is assumed. -/
@@ -1831,79 +1777,6 @@ theorem s26u_transition_analyticAt {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDif
   refine ⟨DifferentiableOn.analyticAt (fun w hw =>
     (differentiableAt_of_deriv_ne_zero (hd w hw.1 hw.2.1 hw.2.2)).differentiableWithinAt) hN,
     hd z hz hzy hq0⟩
-
-/-- If regular points of `q` accumulate at `φ_x⁻¹ z`, then `q_x` has no zeros in a punctured
-neighbourhood of `z` (isolated zeros of the holomorphic `q_x`). -/
-theorem s26u_eventually_ne_zero {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDiff q) (x : S₀) {z : ℂ}
-    (hz : z ∈ (chartAt ℂ x).target)
-    (hfr : ∃ᶠ p in 𝓝 ((chartAt ℂ x).symm z), IsRegularPoint q p) :
-    ∀ᶠ w in 𝓝[≠] z, q x w ≠ 0 := by
-  have hq' : IsDiffFamily 2 0 q ∧ ∀ x : S₀, DifferentiableOn ℂ (q x) (chartAt ℂ x).target := hq
-  have han : AnalyticAt ℂ (q x) z := (hq'.2 x).analyticAt ((chartAt ℂ x).open_target.mem_nhds hz)
-  refine han.eventually_eq_zero_or_eventually_ne_zero.resolve_left fun h0 => ?_
-  have hpx : (chartAt ℂ x).symm z ∈ (chartAt ℂ x).source := (chartAt ℂ x).map_target hz
-  have hcont : Tendsto (chartAt ℂ x) (𝓝 ((chartAt ℂ x).symm z)) (𝓝 z) := by
-    have h := ((chartAt ℂ x).continuousAt hpx).tendsto
-    rwa [(chartAt ℂ x).right_inv hz] at h
-  refine hfr ?_
-  filter_upwards [hcont.eventually h0, (chartAt ℂ x).open_source.mem_nhds hpx] with p' hp' hsrc hreg
-  have h1 := (s26u_isRegularPoint_iff hq x ((chartAt ℂ x).map_source hsrc)).1
-    (by rw [(chartAt ℂ x).left_inv hsrc]; exact hreg)
-  exact h1 hp'
-
-/-- On a connected (T1) surface, regular points of a holomorphic quadratic differential `q ≠ 0`
-accumulate at every point: the set of points near which no point is regular is clopen
-(`s26u_eventually_ne_zero`), and if it were everything then `q = 0` (`s26u_isRegularPoint_iff`). -/
-theorem s26u_frequently_regular [ConnectedSpace S₀] [T1Space S₀] {q : S₀ → ℂ → ℂ}
-    (hq : IsHolQuadDiff q) (hne : q ≠ 0) (p : S₀) : ∃ᶠ p' in 𝓝 p, IsRegularPoint q p' := by
-  have hq' : IsDiffFamily 2 0 q ∧ ∀ x : S₀, DifferentiableOn ℂ (q x) (chartAt ℂ x).target := hq
-  set B : Set S₀ := {p | ∀ᶠ p' in 𝓝 p, ¬ IsRegularPoint q p'} with hBdef
-  have hBo : IsOpen B := isOpen_setOfPred_eventually_nhds
-  have hBc : IsClosed B := by
-    rw [← isOpen_compl_iff, isOpen_iff_mem_nhds]
-    intro p₀ hp₀
-    have hfr : ∃ᶠ p' in 𝓝 p₀, IsRegularPoint q p' := hp₀
-    have hsrc : (chartAt ℂ p₀).source ∈ 𝓝 p₀ :=
-      (chartAt ℂ p₀).open_source.mem_nhds (mem_chart_source ℂ p₀)
-    have hl : (chartAt ℂ p₀).symm (chartAt ℂ p₀ p₀) = p₀ :=
-      (chartAt ℂ p₀).left_inv (mem_chart_source ℂ p₀)
-    have hw := s26u_eventually_ne_zero hq p₀ ((chartAt ℂ p₀).map_source (mem_chart_source ℂ p₀))
-      (by rw [hl]; exact hfr)
-    have ht : Tendsto (chartAt ℂ p₀) (𝓝[≠] p₀) (𝓝[≠] (chartAt ℂ p₀ p₀)) := by
-      refine tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _
-        (((chartAt ℂ p₀).continuousAt (mem_chart_source ℂ p₀)).tendsto.mono_left nhdsWithin_le_nhds) ?_
-      rw [eventually_nhdsWithin_iff]
-      filter_upwards [hsrc] with p' hp' hne'
-      exact fun heq => hne' ((chartAt ℂ p₀).injOn hp' (mem_chart_source ℂ p₀) heq)
-    have hpunct : ∀ᶠ p' in 𝓝 p₀, p' ≠ p₀ → IsRegularPoint q p' := by
-      have h2 := ht.eventually hw
-      rw [eventually_nhdsWithin_iff] at h2
-      filter_upwards [h2, hsrc] with p' h1 h3 hne'
-      have h4 := (s26u_isRegularPoint_iff hq p₀ ((chartAt ℂ p₀).map_source h3)).2 (h1 hne')
-      rwa [(chartAt ℂ p₀).left_inv h3] at h4
-    filter_upwards [eventually_eventually_nhds.2 hpunct] with p₁ hp₁
-    by_cases hp₁₀ : p₁ = p₀
-    · rw [hp₁₀]
-      exact hp₀
-    · show ∃ᶠ p' in 𝓝 p₁, IsRegularPoint q p'
-      refine Eventually.frequently ?_
-      filter_upwards [hp₁, eventually_ne_nhds hp₁₀] with p'' h1 h2 using h1 h2
-  rcases isClopen_iff.1 ⟨hBc, hBo⟩ with hB | hB
-  · intro hp
-    have hpB : p ∈ B := hp
-    rw [hB] at hpB
-    exact hpB
-  · exfalso
-    apply hne
-    funext x z
-    show q x z = 0
-    by_cases hz : z ∈ (chartAt ℂ x).target
-    · have hB' : (chartAt ℂ x).symm z ∈ B := by
-        rw [hB]
-        exact mem_univ _
-      by_contra h0
-      exact hB'.self_of_nhds ((s26u_isRegularPoint_iff hq x hz).2 h0)
-    · exact hq'.1.1 x z hz
 
 /-- On a connected (T1) surface the zeros of a holomorphic quadratic differential `q ≠ 0` in any
 chart target form a countable set (they are isolated, `s26u_frequently_regular`). -/
@@ -2428,7 +2301,36 @@ theorem teichDeformationSpace_parameters [T2Space S₀] [ConnectedSpace S₀] [I
         ∀ v : EuclideanSpace ℝ (Fin (6 * g - 6)), ‖v‖ < 1 →
           (v = 0 ∨ ∃ (q : (holQuadDiffSubmodule S₀).restrictScalars ℝ) (k : ℝ), 0 < k ∧ k < 1 ∧
             ‖e q‖ = 1 ∧ v = k • e q) := by
-  sorry
+  classical
+  -- Use actual finite dimensionality before interpreting either finrank.
+  letI : FiniteDimensional ℂ (holQuadDiffSubmodule S₀) :=
+    k22q_finite_quadratic (S := S₀)
+  have hcomplex := thm22_5_dim_quadratic_differentials hg hS
+  have hdim : Module.finrank ℝ (holQuadDiffSubmodule S₀) = 6 * g - 6 := by
+    rw [finrank_real_of_complex, hcomplex]
+    omega
+  -- Transport the scalar-restricted subtype through its actual linear equivalence.
+  let er : (holQuadDiffSubmodule S₀).restrictScalars ℝ ≃ₗ[ℝ]
+      (holQuadDiffSubmodule S₀) :=
+    (Submodule.restrictScalarsEquiv ℝ ℂ (S₀ → ℂ → ℂ)
+      (holQuadDiffSubmodule S₀)).restrictScalars ℝ
+  letI : FiniteDimensional ℝ ((holQuadDiffSubmodule S₀).restrictScalars ℝ) :=
+    er.symm.finiteDimensional
+  let e : (holQuadDiffSubmodule S₀).restrictScalars ℝ ≃ₗ[ℝ]
+      EuclideanSpace ℝ (Fin (6 * g - 6)) :=
+    LinearEquiv.ofFinrankEq _ _
+      (er.finrank_eq.trans (hdim.trans (finrank_euclideanSpace_fin (𝕜 := ℝ)).symm))
+  refine ⟨hdim, e, ?_⟩
+  intro v hv
+  by_cases hv0 : v = 0
+  · exact Or.inl hv0
+  · right
+    -- Normalize Euclidean coordinates; no norm on Q is substituted for them.
+    refine ⟨e.symm (‖v‖⁻¹ • v), ‖v‖, norm_pos_iff.mpr hv0, hv, ?_, ?_⟩
+    · rw [e.apply_symm_apply]
+      exact norm_smul_inv_norm hv0
+    · rw [e.apply_symm_apply, smul_smul,
+        mul_inv_cancel₀ (norm_ne_zero_iff.mpr hv0), one_smul]
 
 /-! ## §26.3 Teichmüller maps -/
 
@@ -3385,25 +3287,238 @@ def phiLengthPathInv {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] (q :
   ⨅ (σ : unitInterval → unitInterval) (hσ : Continuous σ) (h0 : σ 0 = 0) (h1 : σ 1 = 1) (_ : Monotone σ),
     phiLengthPath q (γ.reparam σ hσ h0 h1)
 
-/-- **Lemma 26.1** (26.8).  Let `S₀` be a closed Riemann surface, `f : S₀ → S₀` a homeomorphism
-homotopic to the identity, `q ∈ Q(S₀)` not identically zero.  Then there is `M > 0` such that every
-horizontal trajectory arc `α` of finite `q`-length satisfies `l_q(f(α)) ≥ l_q(α) - 2M`.
+/-! ### Helpers for `lemma26_1_track_length_continuous` (`s26tc_`). -/
 
-**Correction.**  The hypothesis `phiLengthPath q α < ⊤` was missing, and the statement was **false**:
-`phiLengthPath` counts only Lipschitz chart pieces, so it depends on the parametrization; an arc
-parametrized like `p + L√t` has length `⊤`, while a quasiconformal `f` homotopic to the identity (a
-radial squaring) straightens it, so `l_q(f(α)) < ⊤` and `⊤ ≤ l_q(f(α)) + 2M` fails.
+/-- The ENNReal infimum in a fixed path class is finite and attained, by the finite
+representative and shortest-path results of S25. -/
+theorem s26tc_class_minimum [T2Space S₀] [ConnectedSpace S₀]
+    [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
+    {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDiff q) (hne : q ≠ 0)
+    {a b : S₀} (α : Path a b) :
+    (⨅ (γ : Path a b) (_ : γ.Homotopic α), phiLengthPath q γ) < ⊤ ∧
+      ∃ γ : Path a b, γ.Homotopic α ∧
+        phiLengthPath q γ = ⨅ (γ' : Path a b) (_ : γ'.Homotopic α),
+          phiLengthPath q γ' := by
+  classical
+  obtain ⟨β, hβα, hβfin⟩ := s25s_finite_rep hq hne α
+  obtain ⟨γ, hγα, hmin⟩ := thm25_4_shortest_exists hq hne α
+  have hfin : (⨅ (δ : Path a b) (_ : δ.Homotopic α), phiLengthPath q δ) < ⊤ :=
+    lt_of_le_of_lt (iInf_le_of_le β (iInf_le _ hβα)) hβfin
+  have heq : phiLengthPath q γ =
+      ⨅ (δ : Path a b) (_ : δ.Homotopic α), phiLengthPath q δ := by
+    apply le_antisymm
+    · exact le_iInf fun δ => le_iInf fun hδ => hmin δ hδ
+    · exact iInf_le_of_le γ (iInf_le _ hγα)
+  exact ⟨hfin, γ, hγα, heq⟩
 
-**Correction (2026-09-26).**  The image `f(α)` is measured by the true length `phiLengthPathInv` (the infimum
-over reparametrizations) instead of `phiLengthPath`: a quasiconformal image is generally not Lipschitz
-parametrized, so `phiLengthPath q (f ∘ α) = ⊤` on exactly the arcs of the averaging argument, and the
-statement said nothing there.  The new statement is stronger (`phiLengthPathInv ≤ phiLengthPath`). -/
-theorem lemma26_1 [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀]
-    (f : S₀ ≃ₜ S₀) (hhom : ContinuousMap.Homotopic (f : C(S₀, S₀)) (ContinuousMap.id S₀))
+/-- Local shortest connectors can be confined to a prescribed neighborhood: the
+whole trace lies in a smaller neighborhood contained in the prescribed one. -/
+theorem s26tc_shortest_within [T2Space S₀] [ConnectedSpace S₀]
+    [IsManifold 𝓘(ℂ) ω S₀] {q : S₀ → ℂ → ℂ}
+    (hq : IsHolQuadDiff q) (hne : q ≠ 0) (p : S₀)
+    (W : Set S₀) (hW : W ∈ 𝓝 p) :
+    ∃ V ∈ 𝓝 p, V ⊆ W ∧ ∀ a ∈ V, ∀ b ∈ V, ∃ α : Path a b,
+      (∀ t, α t ∈ V) ∧ phiLengthPath q α = phiDistRS q a b := by
+  classical
+  obtain ⟨m, ζ, hζ, hζ0, hζd, hζq⟩ := s25e_natural_chart hq hne p
+  obtain ⟨A, hA, hlow⟩ := s25e_surface_lower hq hne p m ζ hζ hζ0 hζd hζq
+  obtain ⟨V, hV, hVsub, hup⟩ :=
+    s25e_surface_upper hq hne p m ζ hζ hζ0 hζd hζq (A ∩ W) (inter_mem hA hW)
+  refine ⟨V, hV, (fun x hx => (hVsub hx).2), ?_⟩
+  intro a ha b hb
+  obtain ⟨α, hαV, hαupper⟩ := hup a ha b hb
+  refine ⟨α, hαV, le_antisymm ?_ ?_⟩
+  · change phiLengthPath q α ≤ ⨅ β : Path a b, phiLengthPath q β
+    exact le_iInf fun β => hαupper.trans (hlow a (hVsub ha).1 b (hVsub hb).1 β)
+  · change (⨅ β : Path a b, phiLengthPath q β) ≤ phiLengthPath q α
+    exact iInf_le _ α
+
+/-- Transport a representative of the moving track class along endpoint connectors.
+Full traces of the mapped source connector and the target connector lie in one
+preferred chart disc; S25 disc homotopy and naturality cancel the endpoint motion. -/
+theorem s26tc_track_transport (f : S₀ ≃ₜ S₀)
+    (F : ContinuousMap.Homotopy (ContinuousMap.id S₀) (f : C(S₀, S₀)))
+    (c : S₀) {r : ℝ}
+    (hr : ball (chartAt ℂ c c) r ⊆ (chartAt ℂ c).target)
+    {p x : S₀} (α : Path p x) (δ : Path (f x) (f p))
+    (hα : ∀ t, f (α t) ∈ (chartAt ℂ c).source ∩
+      chartAt ℂ c ⁻¹' ball (chartAt ℂ c c) r)
+    (hδ : ∀ t, δ t ∈ (chartAt ℂ c).source ∩
+      chartAt ℂ c ⁻¹' ball (chartAt ℂ c c) r)
+    (γ : Path x (f x)) (hγ : γ.Homotopic (F.evalAt x)) :
+    ((α.trans γ).trans δ).Homotopic (F.evalAt p) := by
+  have hdisc : (α.map f.continuous).Homotopic δ.symm := by
+    apply s25s_disc_homotopic c hr (α.map f.continuous) δ.symm
+    · intro t
+      exact hα t
+    · intro t
+      exact hδ (unitInterval.symm t)
+  have hnat : (α.trans (F.evalAt x)).Homotopic
+      ((F.evalAt p).trans (α.map f.continuous)) := by
+    have h := Path.Homotopic.map_trans_evalAt F α
+    change ((α.map continuous_id).trans (F.evalAt x)).Homotopic
+      ((F.evalAt p).trans (α.map f.continuous)) at h
+    simpa only [Path.map_id] using h
+  have hreplace :=
+    ((Path.Homotopic.refl α).hcomp hγ).hcomp (Path.Homotopic.refl δ)
+  have hcancel : ((F.evalAt p).trans ((α.map f.continuous).trans δ)).Homotopic
+      (F.evalAt p) :=
+    ((Path.Homotopic.refl (F.evalAt p)).hcomp
+      (hdisc.hcomp (Path.Homotopic.refl δ))).trans
+      (((Path.Homotopic.refl (F.evalAt p)).hcomp (Path.Homotopic.symm_trans δ)).trans
+        (Path.Homotopic.trans_refl (F.evalAt p)))
+  exact hreplace.trans ((hnat.hcomp (Path.Homotopic.refl δ)).trans
+    ((Path.Homotopic.trans_assoc (F.evalAt p) (α.map f.continuous) δ).trans hcancel))
+
+/-- Near each point, the two track-class minima bound one another by the two
+ordered endpoint distances. Four independently chosen shortest connectors avoid
+any assumption about the length of a mapped or reversed connector. -/
+theorem s26tc_local_comparison [T2Space S₀] [ConnectedSpace S₀]
+    [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀] (f : S₀ ≃ₜ S₀)
+    (F : ContinuousMap.Homotopy (ContinuousMap.id S₀) (f : C(S₀, S₀)))
     {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDiff q) (hne : q ≠ 0) :
-    ∃ M : ℝ, 0 < M ∧ ∀ (a b : S₀) (α : Path a b), IsHorizontalArcRS q α → phiLengthPath q α < ⊤ →
-      phiLengthPath q α ≤ phiLengthPathInv q (α.map f.continuous) + ENNReal.ofReal (2 * M) := by
-  sorry
+    let L : S₀ → ℝ≥0∞ := fun p =>
+      ⨅ (γ : Path p (f p)) (_ : γ.Homotopic (F.evalAt p)), phiLengthPath q γ
+    ∀ p : S₀, ∀ᶠ x in 𝓝 p,
+      L p ≤ L x + phiDistRS q p x + phiDistRS q (f x) (f p) ∧
+      L x ≤ L p + phiDistRS q x p + phiDistRS q (f p) (f x) := by
+  classical
+  let L : S₀ → ℝ≥0∞ := fun p =>
+    ⨅ (γ : Path p (f p)) (_ : γ.Homotopic (F.evalAt p)), phiLengthPath q γ
+  change ∀ p : S₀, ∀ᶠ x in 𝓝 p,
+    L p ≤ L x + phiDistRS q p x + phiDistRS q (f x) (f p) ∧
+    L x ≤ L p + phiDistRS q x p + phiDistRS q (f p) (f x)
+  intro p
+  obtain ⟨r, hr, hrt, V, hV, hVD, hshort⟩ := s25i_local hq hne (f p)
+  let D : Set S₀ := (chartAt ℂ (f p)).source ∩
+    chartAt ℂ (f p) ⁻¹' ball (chartAt ℂ (f p) (f p)) r
+  have hDo : IsOpen D :=
+    (chartAt ℂ (f p)).continuousOn.isOpen_inter_preimage
+      (chartAt ℂ (f p)).open_source isOpen_ball
+  have hfpD : f p ∈ D := ⟨mem_chart_source ℂ (f p), mem_ball_self hr⟩
+  have hpre : f ⁻¹' D ∈ 𝓝 p :=
+    f.continuous.continuousAt.preimage_mem_nhds (hDo.mem_nhds hfpD)
+  obtain ⟨U, hU, hUD, hsource⟩ := s26tc_shortest_within hq hne p (f ⁻¹' D) hpre
+  have hpU : p ∈ U := mem_of_mem_nhds hU
+  have hfpV : f p ∈ V := mem_of_mem_nhds hV
+  have hbound : ∀ a ∈ U, ∀ b ∈ U, f a ∈ V → f b ∈ V →
+      L a ≤ L b + phiDistRS q a b + phiDistRS q (f b) (f a) := by
+    intro a ha b hb hfa hfb
+    obtain ⟨α, hαU, hαlen⟩ := hsource a ha b hb
+    obtain ⟨δ, hδD, hδlen⟩ := hshort (f b) hfb (f a) hfa
+    obtain ⟨γ, hγ, hγlen⟩ := (s26tc_class_minimum hq hne (F.evalAt b)).2
+    change phiLengthPath q γ = L b at hγlen
+    have hαD : ∀ t, f (α t) ∈ (chartAt ℂ (f p)).source ∩
+        chartAt ℂ (f p) ⁻¹' ball (chartAt ℂ (f p) (f p)) r := by
+      intro t
+      exact hUD (hαU t)
+    have hclass : ((α.trans γ).trans δ).Homotopic (F.evalAt a) :=
+      s26tc_track_transport f F (f p) hrt α δ hαD hδD γ hγ
+    calc
+      L a ≤ phiLengthPath q ((α.trans γ).trans δ) := by
+        exact iInf_le_of_le ((α.trans γ).trans δ) (iInf_le _ hclass)
+      _ ≤ phiLengthPath q (α.trans γ) + phiLengthPath q δ :=
+        s25s_length_trans_le (q := q) (α.trans γ) δ
+      _ ≤ (phiLengthPath q α + phiLengthPath q γ) + phiLengthPath q δ :=
+        add_le_add (s25s_length_trans_le (q := q) α γ) le_rfl
+      _ = L b + phiDistRS q a b + phiDistRS q (f b) (f a) := by
+        rw [hαlen, hγlen, hδlen]
+        ac_rfl
+  have hpreV : f ⁻¹' V ∈ 𝓝 p := f.continuous.continuousAt.preimage_mem_nhds hV
+  filter_upwards [hU, hpreV] with x hxU hfxV
+  exact ⟨hbound p hpU x hxU hfpV hfxV, hbound x hxU p hpU hfxV hfpV⟩
+
+/-- The ordered distance has zero diagonal and is locally finite with a real-continuous
+expression at each diagonal point. No nonzero differential or separation hypothesis is needed. -/
+theorem s26tc_cont_distance_diagonal [IsManifold 𝓘(ℂ) ω S₀]
+    {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDiff q) (p : S₀) :
+    phiDistRS q p p = 0 ∧
+      ContinuousAt (fun z : S₀ × S₀ => (phiDistRS q z.1 z.2).toReal) (p, p) ∧
+      ∀ᶠ z : S₀ × S₀ in 𝓝 (p, p), phiDistRS q z.1 z.2 < ⊤ := by
+  obtain ⟨U, hU, _hUsrc, C, _hC, hupper⟩ := s25s_chart_upper hq p
+  have hpU : p ∈ U := mem_of_mem_nhds hU
+  have hzero : phiDistRS q p p = 0 := by
+    refine le_antisymm ?_ zero_le
+    simpa only [dist_self, mul_zero, ENNReal.ofReal_zero] using hupper p hpU p hpU
+  obtain ⟨W, hW, hcont, hfinite⟩ := s25s_distance_local_control hq p
+  have hpW : p ∈ W := mem_of_mem_nhds hW
+  have hWW : W ×ˢ W ∈ 𝓝 ((p, p) : S₀ × S₀) := prod_mem_nhds hW hW
+  have hc : ContinuousAt (fun z : S₀ × S₀ => phiDistRS q z.1 z.2) (p, p) :=
+    (hcont (p, p) ⟨hpW, hpW⟩).continuousAt hWW
+  have hreal : ContinuousAt ENNReal.toReal (phiDistRS q p p) :=
+    ENNReal.continuousAt_toReal (hfinite p hpW p hpW).ne
+  refine ⟨hzero, hreal.comp (f := fun z : S₀ × S₀ => phiDistRS q z.1 z.2)
+    (g := ENNReal.toReal) (x := (p, p)) hc, ?_⟩
+  filter_upwards [hWW] with z hz
+  exact hfinite z.1 hz.1 z.2 hz.2
+
+/-- Convert a three-term upper bound only after all terms on its right are finite. -/
+theorem s26tc_cont_toReal_le_add {a b c d : ℝ≥0∞}
+    (hb : b ≠ ⊤) (hc : c ≠ ⊤) (hd : d ≠ ⊤) (h : a ≤ b + c + d) :
+    a.toReal ≤ b.toReal + c.toReal + d.toReal := by
+  have hbc : b + c ≠ ⊤ := ENNReal.add_ne_top.mpr ⟨hb, hc⟩
+  have hreal := ENNReal.toReal_mono (ENNReal.add_ne_top.mpr ⟨hbc, hd⟩) h
+  rwa [ENNReal.toReal_add hbc hd, ENNReal.toReal_add hb hc] at hreal
+
+/-- A finite ENNReal function satisfying the local endpoint-distance comparisons
+is continuous. Local joint continuity of the S25 distance makes all four error
+terms tend to zero; finiteness is required before converting to real values. -/
+theorem s26tc_continuous_of_local_comparison [IsManifold 𝓘(ℂ) ω S₀]
+    (f : S₀ ≃ₜ S₀) {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDiff q)
+    (L : S₀ → ℝ≥0∞) (hfin : ∀ p, L p < ⊤)
+    (hcomp : ∀ p : S₀, ∀ᶠ x in 𝓝 p,
+      L p ≤ L x + phiDistRS q p x + phiDistRS q (f x) (f p) ∧
+      L x ≤ L p + phiDistRS q x p + phiDistRS q (f p) (f x)) :
+    Continuous L := by
+  have hreal : Continuous (fun p => (L p).toReal) := by
+    apply continuous_iff_continuousAt.mpr
+    intro p
+    obtain ⟨hpzero, hpc, hpf⟩ := s26tc_cont_distance_diagonal hq p
+    obtain ⟨hfpzero, hfpc, hfpf⟩ := s26tc_cont_distance_diagonal hq (f p)
+    let A : S₀ → ℝ≥0∞ := fun x => phiDistRS q p x
+    let B : S₀ → ℝ≥0∞ := fun x => phiDistRS q x p
+    let C : S₀ → ℝ≥0∞ := fun x => phiDistRS q (f x) (f p)
+    let D : S₀ → ℝ≥0∞ := fun x => phiDistRS q (f p) (f x)
+    have hpairA : ContinuousAt (fun x : S₀ => (p, x)) p :=
+      continuousAt_const.prodMk continuousAt_id
+    have hpairB : ContinuousAt (fun x : S₀ => (x, p)) p :=
+      continuousAt_id.prodMk continuousAt_const
+    have hpairC : ContinuousAt (fun x : S₀ => (f x, f p)) p :=
+      f.continuous.continuousAt.prodMk continuousAt_const
+    have hpairD : ContinuousAt (fun x : S₀ => (f p, f x)) p :=
+      continuousAt_const.prodMk f.continuous.continuousAt
+    have hAc : ContinuousAt (fun x => (A x).toReal) p := hpc.comp (f := fun x : S₀ => (p, x)) hpairA
+    have hBc : ContinuousAt (fun x => (B x).toReal) p := hpc.comp (f := fun x : S₀ => (x, p)) hpairB
+    have hCc : ContinuousAt (fun x => (C x).toReal) p := hfpc.comp (f := fun x : S₀ => (f x, f p)) hpairC
+    have hDc : ContinuousAt (fun x => (D x).toReal) p := hfpc.comp (f := fun x : S₀ => (f p, f x)) hpairD
+    have hAfin : ∀ᶠ x in 𝓝 p, A x < ⊤ := hpairA.tendsto.eventually hpf
+    have hBfin : ∀ᶠ x in 𝓝 p, B x < ⊤ := hpairB.tendsto.eventually hpf
+    have hCfin : ∀ᶠ x in 𝓝 p, C x < ⊤ := hpairC.tendsto.eventually hfpf
+    have hDfin : ∀ᶠ x in 𝓝 p, D x < ⊤ := hpairD.tendsto.eventually hfpf
+    let E : S₀ → ℝ := fun x =>
+      (A x).toReal + (B x).toReal + (C x).toReal + (D x).toReal
+    have hEc : ContinuousAt E p := ((hAc.add hBc).add hCc).add hDc
+    have hEzero : E p = 0 := by
+      simp only [E, A, B, C, D, hpzero, hfpzero, ENNReal.toReal_zero, add_zero]
+    apply Metric.continuousAt_iff'.mpr
+    intro ε hε
+    have hsmall : ∀ᶠ x in 𝓝 p, E x < ε :=
+      hEc.tendsto.eventually (gt_mem_nhds (by rw [hEzero]; exact hε))
+    filter_upwards [hcomp p, hAfin, hBfin, hCfin, hDfin, hsmall]
+      with x hx hAx hBx hCx hDx hEx
+    have hlo : (L p).toReal ≤ (L x).toReal + (A x).toReal + (C x).toReal :=
+      s26tc_cont_toReal_le_add (hfin x).ne hAx.ne hCx.ne hx.1
+    have hup : (L x).toReal ≤ (L p).toReal + (B x).toReal + (D x).toReal :=
+      s26tc_cont_toReal_le_add (hfin p).ne hBx.ne hDx.ne hx.2
+    have hA0 := ENNReal.toReal_nonneg (a := A x)
+    have hB0 := ENNReal.toReal_nonneg (a := B x)
+    have hC0 := ENNReal.toReal_nonneg (a := C x)
+    have hD0 := ENNReal.toReal_nonneg (a := D x)
+    change (A x).toReal + (B x).toReal + (C x).toReal + (D x).toReal < ε at hEx
+    rw [Real.dist_eq]
+    exact (abs_le.mpr ⟨by linarith, by linarith⟩).trans_lt hEx
+  exact (ENNReal.continuous_ofReal.comp hreal).congr
+    (fun p => ENNReal.ofReal_toReal (hfin p).ne)
 
 /-- §26.4 (the proof of Lemma 26.1): for `F` a homotopy from the identity to `f`, `β_p` the track
 `t ↦ F(p, t)` and `β̄_p` the shortest curve in `[β_p]` (Theorem 25.4), `p ↦ l_q(β̄_p)` is continuous,
@@ -3421,7 +3536,19 @@ theorem lemma26_1_track_length_continuous [T2Space S₀] [ConnectedSpace S₀] [
         γ.Homotopic ⟨⟨fun t => F (t, p), by fun_prop⟩, by simp, by simp⟩ ∧
           phiLengthPath q γ = ⨅ (γ' : Path p (f p))
             (_ : γ'.Homotopic ⟨⟨fun t => F (t, p), by fun_prop⟩, by simp, by simp⟩), phiLengthPath q γ' := by
-  sorry
+  let L : S₀ → ℝ≥0∞ := fun p =>
+    ⨅ (γ : Path p (f p)) (_ : γ.Homotopic (F.evalAt p)), phiLengthPath q γ
+  have hmin : ∀ p : S₀, L p < ⊤ ∧ ∃ γ : Path p (f p),
+      γ.Homotopic (F.evalAt p) ∧ phiLengthPath q γ = L p := by
+    intro p
+    exact s26tc_class_minimum hq hne (F.evalAt p)
+  constructor
+  · change Continuous L
+    exact s26tc_continuous_of_local_comparison f hq L (fun p => (hmin p).1)
+      (s26tc_local_comparison f F hq hne)
+  · intro p
+    change ∃ γ : Path p (f p), γ.Homotopic (F.evalAt p) ∧ phiLengthPath q γ = L p
+    exact (hmin p).2
 
 /-- The stretching function `λ_f` (§26.4) of a map `g` between plane domains carrying the
 quadratic differentials `φ dz²` (source) and `φ' dw²` (target): in natural parameters
@@ -3453,82 +3580,6 @@ def jacobianQD (q : S₀ → ℂ → ℂ) (q' : S₁ → ℂ → ℂ) (f : S₀ 
   ‖q' (f ((chartAt ℂ x).symm z)) (localMapExprAt f x z z)‖ * jacobian (localMapExprAt f x z) z / ‖q x z‖
 
 /-! ### Helpers for `eq26_9` (`s26n_`): (26.9), length of the image of a horizontal arc -/
-
-/-- Chart invariance of the `q`-density times the speed of a curve `c` at a time `u`, for two charts at
-`y` and `y'` whose sources contain `c u`: the transition is holomorphic with a holomorphic local inverse,
-and the transformation law of `q` absorbs its derivative (both sides vanish where neither chart
-expression of `c` is differentiable). -/
-theorem s26n_density_speed_chart [IsManifold 𝓘(ℂ) ω S₀] {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDiff q)
-    (y y' : S₀) {c : ℝ → S₀} {u : ℝ} (hc : ContinuousAt c u) (hy : c u ∈ (chartAt ℂ y).source)
-    (hy' : c u ∈ (chartAt ℂ y').source) :
-    phiDensity (q y) (chartAt ℂ y (c u)) * ‖deriv (fun v => chartAt ℂ y (c v)) u‖ₑ =
-      phiDensity (q y') (chartAt ℂ y' (c u)) * ‖deriv (fun v => chartAt ℂ y' (c v)) u‖ₑ := by
-  have hw : chartAt ℂ y (c u) ∈ (chartAt ℂ y).target := (chartAt ℂ y).map_source hy
-  have hws : (chartAt ℂ y).symm (chartAt ℂ y (c u)) = c u := (chartAt ℂ y).left_inv hy
-  have hw' : chartAt ℂ y' (c u) ∈ (chartAt ℂ y').target := (chartAt ℂ y').map_source hy'
-  have hws' : (chartAt ℂ y').symm (chartAt ℂ y' (c u)) = c u := (chartAt ℂ y').left_inv hy'
-  obtain ⟨hT, -⟩ := s23_transition y' y hw (by rw [hws]; exact hy')
-  obtain ⟨hS, -⟩ := s23_transition y y' hw' (by rw [hws']; exact hy)
-  have hlaw := s26u_law hq y y' hw (by rw [hws]; exact hy')
-  have hTw : chartTransition y' y (chartAt ℂ y (c u)) = chartAt ℂ y' (c u) := by
-    show chartAt ℂ y' ((chartAt ℂ y).symm (chartAt ℂ y (c u))) = chartAt ℂ y' (c u)
-    rw [hws]
-  have hev : (fun v => chartAt ℂ y' (c v)) =ᶠ[𝓝 u]
-      chartTransition y' y ∘ fun v => chartAt ℂ y (c v) := by
-    filter_upwards [hc.preimage_mem_nhds ((chartAt ℂ y).open_source.mem_nhds hy)] with v hv
-    show chartAt ℂ y' (c v) = chartAt ℂ y' ((chartAt ℂ y).symm (chartAt ℂ y (c v)))
-    rw [(chartAt ℂ y).left_inv hv]
-  have hev' : (fun v => chartAt ℂ y (c v)) =ᶠ[𝓝 u]
-      chartTransition y y' ∘ fun v => chartAt ℂ y' (c v) := by
-    filter_upwards [hc.preimage_mem_nhds ((chartAt ℂ y').open_source.mem_nhds hy')] with v hv
-    show chartAt ℂ y (c v) = chartAt ℂ y ((chartAt ℂ y').symm (chartAt ℂ y' (c v)))
-    rw [(chartAt ℂ y').left_inv hv]
-  by_cases hd : DifferentiableAt ℝ (fun v => chartAt ℂ y (c v)) u
-  · have hder : deriv (fun v => chartAt ℂ y' (c v)) u =
-        deriv (chartTransition y' y) (chartAt ℂ y (c u)) * deriv (fun v => chartAt ℂ y (c v)) u := by
-      rw [hev.deriv_eq]
-      exact (hT.hasDerivAt.comp u hd.hasDerivAt).deriv
-    simp only [phiDensity]
-    rw [hder, hlaw, hTw, norm_mul, norm_pow, Real.sqrt_mul (norm_nonneg _), Real.sqrt_sq (norm_nonneg _),
-      ENNReal.ofReal_mul (Real.sqrt_nonneg _), enorm_mul, ofReal_norm, mul_assoc]
-  · have hd' : ¬ DifferentiableAt ℝ (fun v => chartAt ℂ y' (c v)) u := by
-      intro hg
-      exact hd ((hS.hasDerivAt.comp u hg.hasDerivAt).differentiableAt.congr_of_eventuallyEq hev')
-    rw [deriv_zero_of_not_differentiableAt hd, deriv_zero_of_not_differentiableAt hd']
-    simp
-
-/-- For a monotone subdivision `τ`, the integral over `(τ 0, τ n)` is at most the sum of the integrals over
-the pieces `(τ i, τ (i + 1))`. -/
-theorem s26n_lintegral_le_sum (G : ℝ → ℝ≥0∞) :
-    ∀ (n : ℕ) (τ : Fin (n + 1) → ℝ), Monotone τ →
-      ∫⁻ u in Ioo (τ 0) (τ (Fin.last n)), G u ≤
-        ∑ i : Fin n, ∫⁻ u in Ioo (τ i.castSucc) (τ i.succ), G u := by
-  intro n
-  induction n with
-  | zero => intro τ _; simp
-  | succ n ih =>
-    intro τ hτ
-    have hτ' : Monotone fun i : Fin (n + 1) => τ i.castSucc := fun i j hij =>
-      hτ (Fin.castSucc_le_castSucc_iff.2 hij)
-    have h1 := ih (fun i => τ i.castSucc) hτ'
-    simp only [Fin.castSucc_zero, ← Fin.succ_castSucc] at h1
-    rw [Fin.sum_univ_castSucc, Fin.succ_last]
-    have hsub : Ioo (τ 0) (τ (Fin.last (n + 1))) ⊆
-        Ioo (τ 0) (τ (Fin.last n).castSucc) ∪ Icc (τ (Fin.last n).castSucc) (τ (Fin.last (n + 1))) := by
-      intro u hu
-      rcases lt_or_ge u (τ (Fin.last n).castSucc) with h | h
-      · exact Or.inl ⟨hu.1, h⟩
-      · exact Or.inr ⟨h, hu.2.le⟩
-    calc ∫⁻ u in Ioo (τ 0) (τ (Fin.last (n + 1))), G u
-        ≤ ∫⁻ u in Ioo (τ 0) (τ (Fin.last n).castSucc) ∪
-            Icc (τ (Fin.last n).castSucc) (τ (Fin.last (n + 1))), G u := lintegral_mono_set hsub
-      _ ≤ (∫⁻ u in Ioo (τ 0) (τ (Fin.last n).castSucc), G u) +
-            ∫⁻ u in Icc (τ (Fin.last n).castSucc) (τ (Fin.last (n + 1))), G u := lintegral_union_le _ _ _
-      _ = (∫⁻ u in Ioo (τ 0) (τ (Fin.last n).castSucc), G u) +
-            ∫⁻ u in Ioo (τ (Fin.last n).castSucc) (τ (Fin.last (n + 1))), G u := by
-          congr 1
-          exact (setLIntegral_congr Ioo_ae_eq_Icc).symm
-      _ ≤ _ := add_le_add_left h1 _
 
 /-- On a horizontal direction (`Q w² > 0`) the conjugate direction is `w̄ = w · Q/|Q|`. -/
 theorem s26n_conj_eq {Q w : ℂ} (hw : w ≠ 0) (him : (Q * w ^ 2).im = 0) (hre : 0 < (Q * w ^ 2).re) :
@@ -3747,16 +3798,6 @@ theorem eq26_9 [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S�
   refine lintegral_congr_ae ?_
   filter_upwards [hdiff, ae_restrict_mem measurableSet_Ioo] with t ht htm
   exact s26n_pointwise f hq hα x hx hfx htm ht
-
-/-- **Lemma 26.2** (26.10).  Let `S₀` be a closed Riemann surface of genus `g > 1`, `f` a
-quasiconformal self-map of `S₀` homotopic to the identity, and `q ≢ 0` a holomorphic quadratic
-differential.  Then `∬_{S₀} dA_q ≤ ∬_{S₀} λ_f(p) dA_q`. -/
-theorem lemma26_2 [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀] {g : ℕ} (hg : 1 < g)
-    (hS : HasGenus S₀ g) (f : S₀ ≃ₜ S₀) (hf : IsQCRS f)
-    (hhom : ContinuousMap.Homotopic (f : C(S₀, S₀)) (ContinuousMap.id S₀))
-    {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDiff q) (hne : q ≠ 0) :
-    quadDiffNorm q ≤ surfaceIntegral q fun x z => ENNReal.ofReal (lambdaStretch q q f x z) := by
-  sorry
 
 /-! ### Stage P8 (coordinator 553e2d): the averaging identity behind Lemma 26.2 (`s26v_`)
 
@@ -10256,53 +10297,5 @@ theorem eq26_14 [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S�
     quadDiffNorm q' = ENNReal.ofReal ((1 + k) / (1 - k)) * quadDiffNorm q ∧
       quadDiffNorm q' = surfaceIntegral q fun x z => ENNReal.ofReal (jacobianQD q q' f x z) := by
   exact ⟨s26w_quadDiffNorm_teich hf₀, s26w_quadDiffNorm_qc hf₀.initial hf₀.initial_ne hf₀.terminal hf⟩
-
-/-- **Theorem 26.2 (Teichmüller 唯一性定理)** (26.7).  Let `S₀` and `S` be closed Riemann surfaces of
-genus `g > 1` and `f₀ : S₀ → S` a Teichmüller map (dilatation `K[f₀] = (1+k)/(1-k)`).  Then `f₀` is
-the unique extremal map of its homotopy class: every `f ∈ [f₀]` satisfies `K[f] ≥ K[f₀]`, with
-equality only for `f = f₀`. -/
-theorem thm26_2_uniqueness [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
-    [T2Space S₁] [ConnectedSpace S₁] [IsManifold 𝓘(ℂ) ω S₁] {g : ℕ} (hg : 1 < g)
-    (h₀ : HasGenus S₀ g) (h₁ : HasGenus S₁ g) {f₀ : S₀ ≃ₜ S₁} {q : S₀ → ℂ → ℂ} {q' : S₁ → ℂ → ℂ}
-    {k : ℝ} (hf₀ : IsTeichmullerMap f₀ q q' k) {f : S₀ ≃ₜ S₁} (hf : IsQCRS f)
-    (hhom : ContinuousMap.Homotopic (f₀ : C(S₀, S₁)) (f : C(S₀, S₁))) :
-    ENNReal.ofReal ((1 + k) / (1 - k)) ≤ maxDilatationRS f ∧
-      (maxDilatationRS f = ENNReal.ofReal ((1 + k) / (1 - k)) → ⇑f = ⇑f₀) := by
-  sorry
-
-/-- (26.15)–(26.16) (the equality case of Theorem 26.2): if `K[f] = K[f₀]`, then almost everywhere
-`|∂_ξ f̃| = |∂_ζ f̃| + |∂_ζ̄ f̃|` and `K₀ = (1 + |∂_ζ̄ f̃/∂_ζ f̃|)/(1 - |∂_ζ̄ f̃/∂_ζ f̃|)`, so
-`∂_ζ̄ f̃/∂_ζ f̃ = k₀ = (K₀-1)/(K₀+1)` is a non-negative real constant: `f` has the same complex
-dilatation as `f₀`, `f ∘ f₀⁻¹` is conformal and homotopic to the identity, hence the identity
-(Corollary of Theorem 23.1). -/
-theorem eq26_15_16 [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
-    [T2Space S₁] [ConnectedSpace S₁] [IsManifold 𝓘(ℂ) ω S₁] {g : ℕ} (hg : 1 < g)
-    (h₀ : HasGenus S₀ g) (h₁ : HasGenus S₁ g) {f₀ : S₀ ≃ₜ S₁} {q : S₀ → ℂ → ℂ} {q' : S₁ → ℂ → ℂ}
-    {k : ℝ} (hf₀ : IsTeichmullerMap f₀ q q' k) {f : S₀ ≃ₜ S₁} (hf : IsQCRS f)
-    (hhom : ContinuousMap.Homotopic (f₀ : C(S₀, S₁)) (f : C(S₀, S₁)))
-    (heq : maxDilatationRS f = ENNReal.ofReal ((1 + k) / (1 - k))) :
-    (∀ x : S₀, ∀ᵐ z ∂(volume.restrict (localMapDomain f x)),
-      complexDilatation (localMapExpr f x) z = teichmullerBeltrami k q x z) ∧
-      IsBiholomorphic (f₀.symm.trans f) := by
-  sorry
-
-/-- §26.4 (the conformal case, `k = 0`): a conformal map is the unique extremal map in its
-homotopy class; a quasiconformal map homotopic to a conformal map `c` with `K[h] = 1` equals `c`. -/
-theorem conformal_unique_extremal [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
-    [T2Space S₁] [ConnectedSpace S₁] [IsManifold 𝓘(ℂ) ω S₁] {g : ℕ} (hg : 1 < g)
-    (h₀ : HasGenus S₀ g) (h₁ : HasGenus S₁ g) {c h : S₀ ≃ₜ S₁} (hc : IsBiholomorphic c)
-    (hh : IsQCRS h) (hhom : ContinuousMap.Homotopic (c : C(S₀, S₁)) (h : C(S₀, S₁)))
-    (h1 : maxDilatationRS h = 1) : ⇑h = ⇑c := by
-  sorry
-
-/-- §26.4: a Teichmüller map is extremal in its homotopy class (and it is the unique extremal
-map there). -/
-theorem teichmullerMap_isExtremal [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
-    [T2Space S₁] [ConnectedSpace S₁] [IsManifold 𝓘(ℂ) ω S₁] {g : ℕ} (hg : 1 < g)
-    (h₀ : HasGenus S₀ g) (h₁ : HasGenus S₁ g) {f : S₀ ≃ₜ S₁} {q : S₀ → ℂ → ℂ} {q' : S₁ → ℂ → ℂ}
-    {k : ℝ} (hf : IsTeichmullerMap f q q' k) :
-    IsExtremalInHomotopyClass f ∧ ∀ h : S₀ ≃ₜ S₁, IsExtremalInHomotopyClass h →
-      ContinuousMap.Homotopic (f : C(S₀, S₁)) (h : C(S₀, S₁)) → ⇑h = ⇑f := by
-  sorry
 
 end LiZhongQC

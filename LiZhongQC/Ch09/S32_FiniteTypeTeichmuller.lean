@@ -15,6 +15,10 @@ import LiZhongQC.Lemmas.LocalRoots
   `T_{g,n,m}` has no complex structure when its dimension is odd
                                        — `MarkedFiniteTypeRS`, `TeichSpaceFiniteType`,
                                          `teichSpaceFiniteType_ball`, `teichDistanceFT`
+
+The symmetric lift (32.2) (`eq32_2_symmetric_lift`) is stated and proved in
+`LiZhongQC.Lemmas.UniformizedTeichmuller` (moved there by leader decision, 2026-10-12): its proof is the
+uniqueness half of Theorem 26.2 on the uniformized double cover, which this chapter cannot import.
 -/
 
 open Complex Set Metric Filter Topology MeasureTheory
@@ -30,10 +34,17 @@ variable {S₀ : Type u} [TopologicalSpace S₀] [ChartedSpace ℂ S₀]
 variable {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S]
 
 /-- The pull-back `q ∘ ι` (in charts) of a quadratic differential on the closed surface `X` of a
-finite type structure `F` to the interior `S`. -/
+finite type structure `F` to the interior `S`, read in the chart of `X` at the image point `ι(φ_x⁻¹ z)`,
+and `0` off the chart target.
+
+**Correction (2026-09-27).**  The pull-back was read in the fixed chart at `ι x` and evaluated `φ_x⁻¹` also
+off the chart target, where both have junk values, which in a suitable atlas made every admissible
+Teichmüller map impossible (refuted in Lean, s31t); it now uses the image-point chart and vanishes off the
+target. -/
 def pullbackQD {g n m : ℕ} (F : FiniteTypeStructure S g n m) (q : F.X.carrier → ℂ → ℂ) : S → ℂ → ℂ :=
-  fun x z => q (F.ι x) (chartAt ℂ (F.ι x) (F.ι ((chartAt ℂ x).symm z))) *
-    deriv (fun w => chartAt ℂ (F.ι x) (F.ι ((chartAt ℂ x).symm w))) z ^ 2
+  fun x => (chartAt ℂ x).target.indicator fun z =>
+    q (F.ι ((chartAt ℂ x).symm z)) (chartAt ℂ (F.ι ((chartAt ℂ x).symm z)) (F.ι ((chartAt ℂ x).symm z))) *
+      deriv (fun w => chartAt ℂ (F.ι ((chartAt ℂ x).symm z)) (F.ι ((chartAt ℂ x).symm w))) z ^ 2
 
 /-- The pull-back is real linear. -/
 def pullbackQDLinear {g n m : ℕ} (F : FiniteTypeStructure S g n m) :
@@ -42,16 +53,271 @@ def pullbackQDLinear {g n m : ℕ} (F : FiniteTypeStructure S g n m) :
   map_add' q₁ q₂ := by
     funext x z
     simp only [pullbackQD, Pi.add_apply]
-    ring
+    by_cases hz : z ∈ (chartAt ℂ x).target
+    · simp only [indicator_of_mem hz]
+      ring
+    · simp only [indicator_of_notMem hz, add_zero]
   map_smul' c q := by
     funext x z
     simp only [pullbackQD, Pi.smul_apply, Complex.real_smul, RingHom.id_apply]
-    ring
+    by_cases hz : z ∈ (chartAt ℂ x).target
+    · simp only [indicator_of_mem hz]
+      ring
+    · simp only [indicator_of_notMem hz, mul_zero]
 
 /-- §32.1: the admissible quadratic differentials of `S₀`, viewed on the interior `S₀` itself: the
 pull-backs of the elements of `Q̃(S₀)`. -/
 def admissibleQDInterior {g n m : ℕ} (F : FiniteTypeStructure S g n m) : Submodule ℝ (S → ℂ → ℂ) :=
   (admissibleQDSpace F).map (pullbackQDLinear F)
+
+/-- The chart transfer `T = φ_x ∘ ι ∘ φ_y⁻¹` is holomorphic at `w` when `ι(φ_y⁻¹ w)` lies in the chart source at
+`x`. -/
+theorem s32p_T_differentiableAt [IsManifold 𝓘(ℂ) ω S] {g n m : ℕ} (F : FiniteTypeStructure S g n m)
+    (x : F.X.carrier) (y : S) {w : ℂ} (hw : w ∈ (chartAt ℂ y).target)
+    (hwx : F.ι ((chartAt ℂ y).symm w) ∈ (chartAt ℂ x).source) :
+    DifferentiableAt ℂ (fun v => chartAt ℂ x (F.ι ((chartAt ℂ y).symm v))) w := by
+  have h := ((s23_mdifferentiableAt_iff (f := F.ι) (y := x) ((chartAt ℂ y).map_target hw) hwx).1
+    (F.holomorphic ((chartAt ℂ y).symm w))).2
+  rwa [(chartAt ℂ y).right_inv hw] at h
+
+/-- Local form of the pull-back: in any chart `x` of `X` at the image point, `(ι^* q)_y(w) = q_x(T w) T'(w)²`
+with `T = φ_x ∘ ι ∘ φ_y⁻¹` (the transformation law of `q` and the chain rule). -/
+theorem s32p_pullbackQD_local [IsManifold 𝓘(ℂ) ω S] {g n m : ℕ} (F : FiniteTypeStructure S g n m)
+    {q : F.X.carrier → ℂ → ℂ} (hq : q ∈ admissibleQDSpace F) (y : S) (x : F.X.carrier) {w : ℂ}
+    (hw : w ∈ (chartAt ℂ y).target) (hwx : F.ι ((chartAt ℂ y).symm w) ∈ (chartAt ℂ x).source) :
+    pullbackQD F q y w = q x (chartAt ℂ x (F.ι ((chartAt ℂ y).symm w))) *
+      deriv (fun v => chartAt ℂ x (F.ι ((chartAt ℂ y).symm v))) w ^ 2 := by
+  have hlawq : IsDiffFamily 2 0 q := hq.1
+  set s := F.ι ((chartAt ℂ y).symm w)
+  show (chartAt ℂ y).target.indicator _ w = _
+  rw [indicator_of_mem hw]
+  show q s (chartAt ℂ s s) * deriv (fun v => chartAt ℂ s (F.ι ((chartAt ℂ y).symm v))) w ^ 2 = _
+  have hst : chartAt ℂ s s ∈ (chartAt ℂ s).target := (chartAt ℂ s).map_source (mem_chart_source ℂ s)
+  have hss : (chartAt ℂ s).symm (chartAt ℂ s s) = s := (chartAt ℂ s).left_inv (mem_chart_source ℂ s)
+  have hlaw : q s (chartAt ℂ s s) = q x (chartTransition x s (chartAt ℂ s s)) *
+      deriv (chartTransition x s) (chartAt ℂ s s) ^ 2 := by
+    rw [hlawq.2 x s _ hst (by rw [hss]; exact hwx)]
+    norm_num
+  have hT : chartTransition x s (chartAt ℂ s s) = chartAt ℂ x s := by
+    show chartAt ℂ x ((chartAt ℂ s).symm (chartAt ℂ s s)) = chartAt ℂ x s
+    rw [hss]
+  rw [hT] at hlaw
+  have hTd : DifferentiableAt ℂ (chartTransition x s) (chartAt ℂ s s) :=
+    s23_transition_differentiableAt x s hst (by rw [hss]; exact hwx)
+  have hgd : DifferentiableAt ℂ (fun v => chartAt ℂ s (F.ι ((chartAt ℂ y).symm v))) w :=
+    s32p_T_differentiableAt F s y hw (mem_chart_source ℂ s)
+  have hcont : ContinuousAt (fun v => F.ι ((chartAt ℂ y).symm v)) w :=
+    F.embedding.continuous.continuousAt.comp ((chartAt ℂ y).continuousAt_symm hw)
+  have hev : (fun v => chartAt ℂ x (F.ι ((chartAt ℂ y).symm v))) =ᶠ[𝓝 w]
+      chartTransition x s ∘ fun v => chartAt ℂ s (F.ι ((chartAt ℂ y).symm v)) := by
+    filter_upwards [hcont.preimage_mem_nhds ((chartAt ℂ s).open_source.mem_nhds (mem_chart_source ℂ s))]
+      with v hv
+    show chartAt ℂ x (F.ι ((chartAt ℂ y).symm v)) =
+      chartAt ℂ x ((chartAt ℂ s).symm (chartAt ℂ s (F.ι ((chartAt ℂ y).symm v))))
+    rw [(chartAt ℂ s).left_inv hv]
+  have hder : deriv (fun v => chartAt ℂ x (F.ι ((chartAt ℂ y).symm v))) w =
+      deriv (chartTransition x s) (chartAt ℂ s s) *
+        deriv (fun v => chartAt ℂ s (F.ι ((chartAt ℂ y).symm v))) w := by
+    rw [hev.deriv_eq]
+    exact (hTd.hasDerivAt.comp w hgd.hasDerivAt).deriv
+  rw [hder, hlaw]
+  ring
+
+/-- The pull-back of an admissible differential is a holomorphic quadratic differential: `0` off the chart targets
+by definition, the transformation law and holomorphy from the local form (with the chart at the image point). -/
+theorem s32p_pullbackQD_isHolQuadDiff [IsManifold 𝓘(ℂ) ω S] {g n m : ℕ} (F : FiniteTypeStructure S g n m)
+    {q : F.X.carrier → ℂ → ℂ} (hq : q ∈ admissibleQDSpace F) : IsHolQuadDiff (pullbackQD F q) := by
+  have key : IsDiffFamily 2 0 (pullbackQD F q) ∧
+      ∀ y : S, DifferentiableOn ℂ (pullbackQD F q y) (chartAt ℂ y).target := by
+    refine ⟨⟨fun y w hw => indicator_of_notMem hw _, fun y y' w hw hwy => ?_⟩, fun y w hw => ?_⟩
+    · rw [zpow_zero, mul_one, zpow_two]
+      obtain ⟨hτt, -, hτeq⟩ := s23_transition_mem hw hwy
+      have hsx : F.ι ((chartAt ℂ y).symm (chartTransition y y' w)) = F.ι ((chartAt ℂ y').symm w) := by
+        rw [hτeq]
+      have hsrc : F.ι ((chartAt ℂ y).symm (chartTransition y y' w)) ∈
+          (chartAt ℂ (F.ι ((chartAt ℂ y').symm w))).source := by
+        rw [hsx]
+        exact mem_chart_source ℂ _
+      rw [s32p_pullbackQD_local F hq y' (F.ι ((chartAt ℂ y').symm w)) hw (mem_chart_source ℂ _),
+        s32p_pullbackQD_local F hq y (F.ι ((chartAt ℂ y').symm w)) hτt hsrc]
+      have hτd := (s23_transition y y' hw hwy).1
+      have hTd := s32p_T_differentiableAt F (F.ι ((chartAt ℂ y').symm w)) y hτt hsrc
+      have hev : (fun v => chartAt ℂ (F.ι ((chartAt ℂ y').symm w)) (F.ι ((chartAt ℂ y').symm v))) =ᶠ[𝓝 w]
+          (fun v => chartAt ℂ (F.ι ((chartAt ℂ y').symm w)) (F.ι ((chartAt ℂ y).symm v))) ∘
+            chartTransition y y' := by
+        filter_upwards [((chartAt ℂ y').isOpen_inter_preimage_symm (chartAt ℂ y).open_source).mem_nhds
+          ⟨hw, hwy⟩] with v hv
+        show chartAt ℂ (F.ι ((chartAt ℂ y').symm w)) (F.ι ((chartAt ℂ y').symm v)) =
+          chartAt ℂ (F.ι ((chartAt ℂ y').symm w)) (F.ι ((chartAt ℂ y).symm (chartAt ℂ y ((chartAt ℂ y').symm v))))
+        rw [(chartAt ℂ y).left_inv hv.2]
+      have hder : deriv (fun v => chartAt ℂ (F.ι ((chartAt ℂ y').symm w)) (F.ι ((chartAt ℂ y').symm v))) w =
+          deriv (fun v => chartAt ℂ (F.ι ((chartAt ℂ y').symm w)) (F.ι ((chartAt ℂ y).symm v)))
+            (chartTransition y y' w) * deriv (chartTransition y y') w := by
+        rw [hev.deriv_eq]
+        exact (hTd.hasDerivAt.comp w hτd.hasDerivAt).deriv
+      rw [hder, hsx]
+      ring
+    · set s := F.ι ((chartAt ℂ y).symm w)
+      have hWo : IsOpen ((chartAt ℂ y).target ∩ (chartAt ℂ y).symm ⁻¹' (F.ι ⁻¹' (chartAt ℂ s).source)) :=
+        (chartAt ℂ y).isOpen_inter_preimage_symm
+          (F.embedding.continuous.isOpen_preimage _ (chartAt ℂ s).open_source)
+      have hwW : w ∈ (chartAt ℂ y).target ∩ (chartAt ℂ y).symm ⁻¹' (F.ι ⁻¹' (chartAt ℂ s).source) :=
+        ⟨hw, mem_chart_source ℂ s⟩
+      have hTd : DifferentiableOn ℂ (fun v => chartAt ℂ s (F.ι ((chartAt ℂ y).symm v)))
+          ((chartAt ℂ y).target ∩ (chartAt ℂ y).symm ⁻¹' (F.ι ⁻¹' (chartAt ℂ s).source)) :=
+        fun v hv => (s32p_T_differentiableAt F s y hv.1 hv.2).differentiableWithinAt
+      have hdd := hTd.deriv hWo
+      -- `q s` is holomorphic near `φ_s(s)`: the open set `φ_s(U_s ∩ ι(S))` lies in the admissible set
+      have hsι : (chartAt ℂ s).symm (chartAt ℂ s s) ∈ range F.ι := by
+        rw [(chartAt ℂ s).left_inv (mem_chart_source ℂ s)]
+        exact ⟨_, rfl⟩
+      have hnhds : (chartAt ℂ s).target ∩ (chartAt ℂ s).symm ⁻¹' range F.ι ∈ 𝓝 (chartAt ℂ s s) :=
+        ((chartAt ℂ s).isOpen_inter_preimage_symm F.embedding.isOpen_range).mem_nhds
+          ⟨(chartAt ℂ s).map_source (mem_chart_source ℂ s), hsι⟩
+      have h1 : DifferentiableAt ℂ (q s) (chartAt ℂ s (F.ι ((chartAt ℂ y).symm w))) :=
+        ((hq.2.1 s) _ (mem_of_mem_nhds hnhds)).differentiableAt hnhds
+      have hF : DifferentiableAt ℂ (fun v => q s (chartAt ℂ s (F.ι ((chartAt ℂ y).symm v))) *
+          deriv (fun v => chartAt ℂ s (F.ι ((chartAt ℂ y).symm v))) v ^ 2) w :=
+        (h1.comp w ((hTd w hwW).differentiableAt (hWo.mem_nhds hwW))).mul
+          ((hdd.differentiableAt (hWo.mem_nhds hwW)).pow 2)
+      have heq : pullbackQD F q y =ᶠ[𝓝 w] fun v => q s (chartAt ℂ s (F.ι ((chartAt ℂ y).symm v))) *
+          deriv (fun v => chartAt ℂ s (F.ι ((chartAt ℂ y).symm v))) v ^ 2 :=
+        Filter.eventuallyEq_of_mem (hWo.mem_nhds hwW) fun v hv => s32p_pullbackQD_local F hq y s hv.1 hv.2
+      exact (hF.congr_of_eventuallyEq heq).differentiableWithinAt
+  exact key
+
+/-- A closed disc `IsClosedDiscIn` in a Hausdorff surface is closed: it is the image of the compact `closure J` under
+the inverse chart. -/
+theorem s32p_isClosed_disc {X : Type u} [TopologicalSpace X] [ChartedSpace ℂ X] [T2Space X] {D : Set X}
+    (hD : IsClosedDiscIn D) : IsClosed D := by
+  obtain ⟨x, hDs, J, -, hJb, hJt, himg, -⟩ := hD
+  have hDeq : D = (chartAt ℂ x).symm '' closure J := by
+    ext y
+    constructor
+    · intro hy
+      exact ⟨chartAt ℂ x y, himg ▸ mem_image_of_mem _ hy, (chartAt ℂ x).left_inv (hDs hy)⟩
+    · rintro ⟨z, hz, rfl⟩
+      rw [← himg] at hz
+      obtain ⟨d, hd, rfl⟩ := hz
+      rw [(chartAt ℂ x).left_inv (hDs hd)]
+      exact hd
+  rw [hDeq]
+  exact (hJb.isCompact_closure.image_of_continuousOn ((chartAt ℂ x).continuousOn_symm.mono hJt)).isClosed
+
+/-- An admissible differential whose pull-back vanishes is `0`: on `ι(S)` by the local form at the chart centres
+(`T' ≠ 0`, `T = φ_{ι y} ∘ ι ∘ φ_y⁻¹` injective), at the punctures by the normalization `q_x(φ_x p) = 0`, inside the
+holes because admissible differentials vanish there, and on the boundary curves by continuity from `ι(S)`. -/
+theorem s32p_pullbackQD_eq_zero [IsManifold 𝓘(ℂ) ω S] {g n m : ℕ} (F : FiniteTypeStructure S g n m)
+    {q : F.X.carrier → ℂ → ℂ} (hq : q ∈ admissibleQDSpace F) (h0 : pullbackQD F q = 0) : q = 0 := by
+  have hlawq : IsDiffFamily 2 0 q := hq.1
+  -- the value at the centre of the chart at a point of `ι(S)`
+  have hcenter : ∀ y : S, q (F.ι y) (chartAt ℂ (F.ι y) (F.ι y)) = 0 := by
+    intro y
+    have hw : chartAt ℂ y y ∈ (chartAt ℂ y).target := (chartAt ℂ y).map_source (mem_chart_source ℂ y)
+    have hsy : (chartAt ℂ y).symm (chartAt ℂ y y) = y := (chartAt ℂ y).left_inv (mem_chart_source ℂ y)
+    have hval : pullbackQD F q y (chartAt ℂ y y) = 0 := by rw [h0]; rfl
+    have hloc : pullbackQD F q y (chartAt ℂ y y) = q (F.ι y) (chartAt ℂ (F.ι y) (F.ι y)) *
+        deriv (fun v => chartAt ℂ (F.ι y) (F.ι ((chartAt ℂ y).symm v))) (chartAt ℂ y y) ^ 2 := by
+      show (chartAt ℂ y).target.indicator _ (chartAt ℂ y y) = _
+      rw [indicator_of_mem hw]
+      simp only [hsy]
+    set W := (chartAt ℂ y).target ∩ (chartAt ℂ y).symm ⁻¹' (F.ι ⁻¹' (chartAt ℂ (F.ι y)).source)
+    have hWo : IsOpen W := (chartAt ℂ y).isOpen_inter_preimage_symm
+      (F.embedding.continuous.isOpen_preimage _ (chartAt ℂ (F.ι y)).open_source)
+    have hwW : chartAt ℂ y y ∈ W := ⟨hw, by
+      show F.ι ((chartAt ℂ y).symm (chartAt ℂ y y)) ∈ (chartAt ℂ (F.ι y)).source
+      rw [hsy]
+      exact mem_chart_source ℂ _⟩
+    have hTd : DifferentiableOn ℂ (fun v => chartAt ℂ (F.ι y) (F.ι ((chartAt ℂ y).symm v))) W :=
+      fun v hv => (s32p_T_differentiableAt F (F.ι y) y hv.1 hv.2).differentiableWithinAt
+    have hinj : InjOn (fun v => chartAt ℂ (F.ι y) (F.ι ((chartAt ℂ y).symm v))) W := by
+      intro v₁ hv₁ v₂ hv₂ h12
+      have h1 := (chartAt ℂ (F.ι y)).injOn hv₁.2 hv₂.2 h12
+      have h2 := F.embedding.injective h1
+      rw [← (chartAt ℂ y).right_inv hv₁.1, ← (chartAt ℂ y).right_inv hv₂.1, h2]
+    have hd := deriv_ne_zero_of_injOn hWo hTd hinj hwW
+    rw [hloc] at hval
+    exact (mul_eq_zero.1 hval).resolve_right (pow_ne_zero 2 hd)
+  -- in any chart, at a point of `ι(S)`
+  have hrange : ∀ (x : F.X.carrier) (z : ℂ), z ∈ (chartAt ℂ x).target →
+      (chartAt ℂ x).symm z ∈ range F.ι → q x z = 0 := by
+    rintro x z hz ⟨y, hy⟩
+    have hsrc : (chartAt ℂ x).symm z ∈ (chartAt ℂ (F.ι y)).source := by
+      rw [← hy]
+      exact mem_chart_source ℂ _
+    have hT : chartTransition (F.ι y) x z = chartAt ℂ (F.ι y) (F.ι y) := by
+      show chartAt ℂ (F.ι y) ((chartAt ℂ x).symm z) = _
+      rw [← hy]
+    rw [hlawq.2 (F.ι y) x z hz hsrc, hT, hcenter y]
+    simp
+  funext x z
+  show q x z = 0
+  by_cases hz : z ∈ (chartAt ℂ x).target
+  · set p := (chartAt ℂ x).symm z
+    have hp : p ∈ (chartAt ℂ x).source := (chartAt ℂ x).map_target hz
+    have hpz : chartAt ℂ x p = z := (chartAt ℂ x).right_inv hz
+    by_cases hι : p ∈ range F.ι
+    · exact hrange x z hz hι
+    by_cases hP : p ∈ (F.P : Finset F.X.carrier)
+    · have h := (hq.2.2.1 x p hP hp).1
+      rwa [hpz] at h
+    -- `p` lies in a disc `D j`
+    have hD : p ∈ ⋃ j, F.D j := by
+      rw [F.range_ι] at hι
+      simp only [mem_compl_iff, not_not, mem_union, Finset.mem_coe] at hι
+      exact hι.resolve_left hP
+    obtain ⟨j, hj⟩ := mem_iUnion.1 hD
+    by_cases hint : p ∈ interior (F.D j)
+    · exact hq.2.2.2.2.2 x j z hz hint
+    -- `p` lies on the boundary curve of `D j`: continuity from `ι(S)`
+    have hfr : p ∈ frontier (F.D j) := ⟨subset_closure hj, hint⟩
+    have hC : IsClosed ((↑F.P : Set F.X.carrier) ∪ ⋃ i ∈ {i | i ≠ j}, F.D i) :=
+      F.P.finite_toSet.isClosed.union
+        ((Set.toFinite _).isClosed_biUnion fun i _ => s32p_isClosed_disc (F.disc i))
+    have hpC : p ∉ (↑F.P : Set F.X.carrier) ∪ ⋃ i ∈ {i | i ≠ j}, F.D i := by
+      rintro (h | h)
+      · exact Set.disjoint_left.1 (F.disjoint_P j) hj h
+      · obtain ⟨i, hi, hpi⟩ := mem_iUnion₂.1 h
+        exact Set.disjoint_left.1 (F.disjoint hi) hpi hj
+    have hcl : p ∈ closure (range F.ι) := by
+      rw [mem_closure_iff_nhds]
+      intro t ht
+      have ht' : t ∩ ((↑F.P : Set F.X.carrier) ∪ ⋃ i ∈ {i | i ≠ j}, F.D i)ᶜ ∈ 𝓝 p :=
+        Filter.inter_mem ht (hC.isOpen_compl.mem_nhds hpC)
+      have hfr' : p ∈ closure (F.D j)ᶜ := frontier_subset_closure (by rw [frontier_compl]; exact hfr)
+      obtain ⟨y, ⟨hyt, hyC⟩, hyD⟩ := mem_closure_iff_nhds.1 hfr' _ ht'
+      refine ⟨y, hyt, ?_⟩
+      rw [F.range_ι]
+      rintro (hyP | hyU)
+      · exact hyC (Or.inl hyP)
+      · obtain ⟨i, hi⟩ := mem_iUnion.1 hyU
+        by_cases hij : i = j
+        · exact hyD (hij ▸ hi)
+        · exact hyC (Or.inr (mem_iUnion₂.2 ⟨i, hij, hi⟩))
+    have hzA : z ∈ closure ((chartAt ℂ x).target ∩ (chartAt ℂ x).symm ⁻¹' range F.ι) := by
+      have hp' : p ∈ closure ((chartAt ℂ x).source ∩ range F.ι) := by
+        rw [mem_closure_iff_nhds] at hcl ⊢
+        intro t ht
+        obtain ⟨y, ⟨hyt, hys⟩, hyr⟩ :=
+          hcl _ (Filter.inter_mem ht ((chartAt ℂ x).open_source.mem_nhds hp))
+        exact ⟨y, hyt, hys, hyr⟩
+      have himg := ((chartAt ℂ x).continuousAt hp).continuousWithinAt.mem_closure_image hp'
+      rw [hpz] at himg
+      refine closure_mono ?_ himg
+      rintro _ ⟨y, ⟨hys, hyr⟩, rfl⟩
+      refine ⟨(chartAt ℂ x).map_source hys, ?_⟩
+      show (chartAt ℂ x).symm (chartAt ℂ x y) ∈ range F.ι
+      rw [(chartAt ℂ x).left_inv hys]
+      exact hyr
+    have hcontq : ContinuousWithinAt (q x) ((chartAt ℂ x).target ∩ (chartAt ℂ x).symm ⁻¹' range F.ι) z :=
+      ((hq.2.2.2.1 x j) z ⟨hz, Or.inr hfr⟩).mono
+        (inter_subset_inter_right _ (preimage_mono subset_union_left))
+    have hsub : q x '' ((chartAt ℂ x).target ∩ (chartAt ℂ x).symm ⁻¹' range F.ι) ⊆ {0} := by
+      rintro _ ⟨w, ⟨hw, hwr⟩, rfl⟩
+      exact hrange x w hw hwr
+    have h0' := closure_mono hsub (hcontq.mem_closure_image hzA)
+    rwa [closure_singleton, mem_singleton_iff] at h0'
+  · exact hlawq.1 x z hz
 
 /-- §32.1: the pull-back of an admissible differential is a holomorphic quadratic differential on the
 interior, and `q ↦ q ∘ ι` is injective on `Q̃(S₀)`. -/
@@ -59,7 +325,15 @@ theorem admissibleQDInterior_holomorphic [T2Space S] [ConnectedSpace S] [IsManif
     (F : FiniteTypeStructure S g n m) :
     (∀ q ∈ admissibleQDInterior F, IsHolQuadDiff q) ∧
       InjOn (pullbackQDLinear F) (admissibleQDSpace F) := by
-  sorry
+  refine ⟨fun q hq => ?_, fun q₁ hq₁ q₂ hq₂ h12 => ?_⟩
+  · obtain ⟨q₀, hq₀, rfl⟩ := Submodule.mem_map.1 hq
+    exact s32p_pullbackQD_isHolQuadDiff F hq₀
+  · have hsub : q₁ - q₂ ∈ admissibleQDSpace F := (admissibleQDSpace F).sub_mem hq₁ hq₂
+    have h0 : pullbackQD F (q₁ - q₂) = 0 := by
+      have := map_sub (pullbackQDLinear F) q₁ q₂
+      rw [h12, sub_self] at this
+      exact this
+    exact sub_eq_zero.1 (s32p_pullbackQD_eq_zero F hsub h0)
 
 /-- §32.1: a Teichmüller map `f₀ : S₀ → S` between surfaces of finite type whose initial differential
 is an admissible quadratic differential (its Beltrami differential is `k ω̄/|ω|`). -/
@@ -69,19 +343,8 @@ def IsAdmissibleTeichmullerMap {g n m : ℕ} (F : FiniteTypeStructure S₀ g n m
 
 /-! ## §32.1 Surfaces of type `(g, n)` -/
 
-/-- §32.1 (the two-sheeted covering): a closed surface `X` with an even number `2n` of marked points
-`P` has a two-sheeted covering `X̃ → X` (a closed surface of genus `2g + n - 1`) branched exactly
-at `P` (branching order `1`); it is obtained by cutting along `n` disjoint arcs joining the points
-of `P` in pairs and gluing two copies crosswise. -/
-theorem exists_branched_double_cover {X : Type u} [TopologicalSpace X] [ChartedSpace ℂ X] [T2Space X]
-    [ConnectedSpace X] [IsManifold 𝓘(ℂ) ω X] [CompactSpace X] {g n : ℕ} (hX : HasGenus X g) (P : Finset X)
-    (hP : P.card = 2 * n) :
-    ∃ (X' : ClosedRS.{u}) (pr : X'.carrier → X), HasGenus X'.carrier (2 * g + n - 1) ∧
-      MDifferentiable 𝓘(ℂ) 𝓘(ℂ) pr ∧ Function.Surjective pr ∧
-      (∀ x ∉ P, (pr ⁻¹' {x}).ncard = 2) ∧ (∀ x ∈ P, (pr ⁻¹' {x}).ncard = 1) ∧
-      ∃ h : X'.carrier ≃ₜ X'.carrier, IsBiholomorphic h ∧ (∀ y, h (h y) = y) ∧ (∀ y, pr (h y) = pr y) ∧
-        ∀ y, h y = y ↔ pr y ∈ P := by
-  sorry
+-- exists_branched_double_cover is stated and proved in LiZhongQC/Lemmas/SchottkyBranchedFinal.lean
+-- (it needs the Hurwitz machinery downstream of this file).
 
 /-- §32.1: the lift of an admissible differential to the branched double cover: if `ω = φ(z) dz²`
 near a puncture (`z = 0`), then in the parameter `ζ = √z` of the point above it,
@@ -141,45 +404,11 @@ theorem lift_admissibleQD_order {φ : ℂ → ℂ} {N : ℤ} (hφ0 : Meromorphic
 variable [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ) ω S₀]
 variable [T2Space S] [ConnectedSpace S] [IsManifold 𝓘(ℂ) ω S]
 
-/-- §32.1: the Teichmüller map `f₀` and any `f ≃ f₀` lift to the branched double covers; the lift of
-`f₀` is again a Teichmüller map, with the holomorphic lifted differential, and the lift of `f` can be
-chosen homotopic to the lift of `f₀` (by lifting the track of a point under the homotopy). -/
-theorem lift_teichmullerMap_double_cover {g n : ℕ} (F₀ : FiniteTypeStructure S₀ g (2 * n) 0)
-    (F₁ : FiniteTypeStructure S g (2 * n) 0) {X₀' X₁' : ClosedRS.{u}} {pr₀ : X₀'.carrier → F₀.X.carrier}
-    {pr₁ : X₁'.carrier → F₁.X.carrier} (hpr₀ : MDifferentiable 𝓘(ℂ) 𝓘(ℂ) pr₀ ∧ ∀ x, (pr₀ ⁻¹' {x}).ncard ≤ 2)
-    (hpr₁ : MDifferentiable 𝓘(ℂ) 𝓘(ℂ) pr₁ ∧ ∀ x, (pr₁ ⁻¹' {x}).ncard ≤ 2) {f₀ f : S₀ ≃ₜ S}
-    {q : S₀ → ℂ → ℂ} {q' : S → ℂ → ℂ} {k : ℝ} (hf₀ : IsAdmissibleTeichmullerMap F₀ f₀ q q' k)
-    (hf : IsQCRS f) (hhom : ContinuousMap.Homotopic (f₀ : C(S₀, S)) (f : C(S₀, S))) :
-    ∃ (f₀' f' : X₀'.carrier ≃ₜ X₁'.carrier) (qtil : X₀'.carrier → ℂ → ℂ) (qtil' : X₁'.carrier → ℂ → ℂ),
-      IsTeichmullerMap f₀' qtil qtil' k ∧ IsQCRS f' ∧ maxDilatationRS f' = maxDilatationRS f ∧
-      ContinuousMap.Homotopic (f₀' : C(X₀'.carrier, X₁'.carrier)) (f' : C(X₀'.carrier, X₁'.carrier)) := by
-  sorry
+-- lift_teichmullerMap_double_cover is stated and proved in LiZhongQC/Lemmas/BranchedLiftBook.lean
+-- (it needs the branched covers and the Teichmüller lifting machinery downstream of this file).
 
-/-- **Theorem 32.1** (32.1).  Let `S₀` be a non-exceptional surface of type `(g, n)` and
-`f₀ : S₀ → S` a Teichmüller map with Beltrami differential `k ω̄/|ω|`, `ω` an admissible quadratic
-differential, `k ∈ [0, 1)`.  Then `f₀` is the unique extremal map of its homotopy class: every
-quasiconformal `f ≃ f₀` satisfies `K[f₀] ≤ K[f]`, with equality only for `f = f₀`.
-(The cases `n` even, `n` odd, and `(0, 4)` are reduced to Theorem 26.2 by branched double
-coverings.) -/
-theorem thm32_1_uniqueness_gn {g n : ℕ} (hex : ¬ IsExceptionalType g n 0) (F₀ : FiniteTypeStructure S₀ g n 0)
-    (F₁ : FiniteTypeStructure S g n 0) {f₀ : S₀ ≃ₜ S} {q : S₀ → ℂ → ℂ} {q' : S → ℂ → ℂ} {k : ℝ}
-    (hf₀ : IsAdmissibleTeichmullerMap F₀ f₀ q q' k) {f : S₀ ≃ₜ S} (hf : IsQCRS f)
-    (hhom : ContinuousMap.Homotopic (f₀ : C(S₀, S)) (f : C(S₀, S))) :
-    maxDilatationRS f₀ ≤ maxDilatationRS f ∧ (maxDilatationRS f = maxDilatationRS f₀ → ⇑f = ⇑f₀) := by
-  sorry
-
-/-- (32.2): with `h₀`, `h₁` the non-trivial covering transformations of the double covers, the
-Teichmüller map `ftil₀ : S̃₀ → S̃` obtained from Theorem 27.2 satisfies `h₁ ∘ ftil₀ ∘ h₀⁻¹ = ftil₀`, i.e.
-`h₁ ∘ ftil₀ = ftil₀ ∘ h₀` (by uniqueness, since `h₁ ∘ ftil₀ ∘ h₀⁻¹` is a Teichmüller map of the same dilatation
-homotopic to `ftil₀`); hence `ftil₀` and its Beltrami differential descend to `S₀ → S`. -/
-theorem eq32_2_symmetric_lift {X₀' X₁' : ClosedRS.{u}} {g' : ℕ} (hg' : 1 < g') (h₀' : HasGenus X₀'.carrier g')
-    (h₁' : HasGenus X₁'.carrier g') {h₀ : X₀'.carrier ≃ₜ X₀'.carrier} {h₁ : X₁'.carrier ≃ₜ X₁'.carrier}
-    (hh₀ : IsBiholomorphic h₀) (hh₁ : IsBiholomorphic h₁) {ftil ftil₀ : X₀'.carrier ≃ₜ X₁'.carrier}
-    (hsym : ∀ y, ftil (h₀ y) = h₁ (ftil y)) {q : X₀'.carrier → ℂ → ℂ} {q' : X₁'.carrier → ℂ → ℂ} {k : ℝ}
-    (hftil₀ : IsTeichmullerMap ftil₀ q q' k)
-    (hhom : ContinuousMap.Homotopic (ftil : C(X₀'.carrier, X₁'.carrier)) (ftil₀ : C(X₀'.carrier, X₁'.carrier))) :
-    ∀ y, ftil₀ (h₀ y) = h₁ (ftil₀ y) := by
-  sorry
+-- thm32_1_uniqueness_gn is stated and proved in LiZhongQC/Lemmas/Thm321.lean
+-- (it needs the branched double covers downstream of this file).
 
 /-- The lift formula of `lift_admissibleQD_order` without the side condition `-1 ≤ N`, which its
 proof never uses: for `φ` meromorphic at `0` of order `N ∈ ℤ`, `4ζ²φ(ζ²)` has order `2N + 2`. -/
@@ -279,14 +508,8 @@ theorem project_admissibleQD_order {φ : ℂ → ℂ} {N : ℤ} (hN : 0 ≤ N)
     have h3 : m = N := by omega
     rw [h3]
 
-/-- **Theorem 32.2**: let `S₀`, `S₁` be non-exceptional surfaces of type `(g, n)` and `f : S₀ → S₁`
-a quasiconformal homeomorphism.  Then the homotopy class of `f` contains a Teichmüller map `f₀`
-whose associated quadratic differential is admissible (or `f₀` is conformal). -/
-theorem thm32_2_existence_gn {g n : ℕ} (hex : ¬ IsExceptionalType g n 0) (F₀ : FiniteTypeStructure S₀ g n 0)
-    (F₁ : FiniteTypeStructure S g n 0) (f : S₀ ≃ₜ S) (hf : IsQCRS f) :
-    ∃ f₀ : S₀ ≃ₜ S, ContinuousMap.Homotopic (f : C(S₀, S)) (f₀ : C(S₀, S)) ∧
-      (IsBiholomorphic f₀ ∨ ∃ (q : S₀ → ℂ → ℂ) (q' : S → ℂ → ℂ) (k : ℝ), IsAdmissibleTeichmullerMap F₀ f₀ q q' k) := by
-  sorry
+-- thm32_2_existence_gn is stated and proved in LiZhongQC/Lemmas/SchottkyDirectFinal.lean
+-- (it needs the branched double covers and Theorem 32.1 downstream of this file).
 
 /-! ## §32.2 Surfaces of type `(g, n, m)`, `m ≠ 0` -/
 
@@ -296,55 +519,17 @@ def IsSymmetricExtension {Xd₀ Xd₁ : ClosedRS.{u}} (J₀ : Xd₀.carrier ≃�
     (ιd₀ : S₀ → Xd₀.carrier) (ιd₁ : S → Xd₁.carrier) (f : S₀ → S) (fd : Xd₀.carrier ≃ₜ Xd₁.carrier) : Prop :=
   (∀ x, fd (ιd₀ x) = ιd₁ (f x)) ∧ ∀ y, fd (J₀ y) = J₁ (fd y)
 
-/-- §32.2: quasiconformal maps, homotopies and admissible differentials extend symmetrically to the
-doubles; `K[f^d] = K[f]`, `f ≃ f₀` implies `f^d ≃ f₀^d`, and the extension of a Teichmüller map with
-admissible differential `ω` is a Teichmüller map with differential `ω^d`. -/
-theorem symmetric_extension_properties {g n m : ℕ} (hm : m ≠ 0) (F₀ : FiniteTypeStructure S₀ g n m)
-    (F₁ : FiniteTypeStructure S g n m) {Xd₀ Xd₁ : ClosedRS.{u}} {J₀ : Xd₀.carrier ≃ₜ Xd₀.carrier}
-    {J₁ : Xd₁.carrier ≃ₜ Xd₁.carrier} {ιd₀ : S₀ → Xd₀.carrier} {ιd₁ : S → Xd₁.carrier} {Pd₀ : Finset Xd₀.carrier}
-    {Pd₁ : Finset Xd₁.carrier} (hd₀ : IsSchottkyDouble F₀ Xd₀ J₀ ιd₀ Pd₀) (hd₁ : IsSchottkyDouble F₁ Xd₁ J₁ ιd₁ Pd₁)
-    (f : S₀ ≃ₜ S) (hf : IsQCRS f) :
-    ∃ fd : Xd₀.carrier ≃ₜ Xd₁.carrier, IsSymmetricExtension J₀ J₁ ιd₀ ιd₁ f fd ∧ IsQCRS fd ∧
-      maxDilatationRS fd = maxDilatationRS f ∧
-      ∀ f' : S₀ ≃ₜ S, ∀ fd' : Xd₀.carrier ≃ₜ Xd₁.carrier, IsSymmetricExtension J₀ J₁ ιd₀ ιd₁ f' fd' →
-        ContinuousMap.Homotopic (f : C(S₀, S)) (f' : C(S₀, S)) →
-        ContinuousMap.Homotopic (fd : C(Xd₀.carrier, Xd₁.carrier)) (fd' : C(Xd₀.carrier, Xd₁.carrier)) := by
-  sorry
+-- symmetric_extension_properties is stated and proved in LiZhongQC/Lemmas/S32wSymmExtProperties.lean
+-- (it needs the Schottky double machinery downstream of this file).
 
-/-- **Theorem 32.3**: let `S₀` be a non-exceptional surface of type `(g, n, m)`, `ω` an admissible
-quadratic differential on `S₀`, and `f : S₀ → S` a Teichmüller map with associated differential `ω`.
-Then `f` is the unique extremal map of its homotopy class. -/
-theorem thm32_3_uniqueness_gnm {g n m : ℕ} (hex : ¬ IsExceptionalType g n m) (F₀ : FiniteTypeStructure S₀ g n m)
-    (F₁ : FiniteTypeStructure S g n m) {f₀ : S₀ ≃ₜ S} {q : S₀ → ℂ → ℂ} {q' : S → ℂ → ℂ} {k : ℝ}
-    (hf₀ : IsAdmissibleTeichmullerMap F₀ f₀ q q' k) {f : S₀ ≃ₜ S} (hf : IsQCRS f)
-    (hhom : ContinuousMap.Homotopic (f₀ : C(S₀, S)) (f : C(S₀, S))) :
-    maxDilatationRS f₀ ≤ maxDilatationRS f ∧ (maxDilatationRS f = maxDilatationRS f₀ → ⇑f = ⇑f₀) := by
-  sorry
+-- thm32_3_uniqueness_gnm is stated and proved in LiZhongQC/Lemmas/S32wThm323.lean
+-- (it needs Theorem 32.1 and the symmetric extension downstream of this file).
 
-/-- (32.3): the Teichmüller map `f₀ : S₀^d → S₁^d` in the class of `f^d` commutes with the
-reflections, `g₁ ∘ f₀ = f₀ ∘ g₀` (uniqueness applied to `g₁ ∘ f₀ ∘ g₀⁻¹`, which is again a Teichmüller
-map homotopic to `f^d`); hence `f₀` maps the boundary curves of `S₀` (the fixed curves of `g₀`) onto
-those of `S₁`, so `f₀(S₀) = S₁`. -/
-theorem eq32_3_teichmuller_commutes_reflection {g n m : ℕ} (hm : m ≠ 0) (hex : ¬ IsExceptionalType g n m)
-    (F₀ : FiniteTypeStructure S₀ g n m) (F₁ : FiniteTypeStructure S g n m) {Xd₀ Xd₁ : ClosedRS.{u}}
-    {J₀ : Xd₀.carrier ≃ₜ Xd₀.carrier} {J₁ : Xd₁.carrier ≃ₜ Xd₁.carrier} {ιd₀ : S₀ → Xd₀.carrier}
-    {ιd₁ : S → Xd₁.carrier} {Pd₀ : Finset Xd₀.carrier} {Pd₁ : Finset Xd₁.carrier}
-    (hd₀ : IsSchottkyDouble F₀ Xd₀ J₀ ιd₀ Pd₀) (hd₁ : IsSchottkyDouble F₁ Xd₁ J₁ ιd₁ Pd₁) (f : S₀ ≃ₜ S)
-    {fd : Xd₀.carrier ≃ₜ Xd₁.carrier} (hfd : IsSymmetricExtension J₀ J₁ ιd₀ ιd₁ f fd)
-    {f₀ : Xd₀.carrier ≃ₜ Xd₁.carrier} {q : Xd₀.carrier → ℂ → ℂ} {q' : Xd₁.carrier → ℂ → ℂ} {k : ℝ}
-    (hf₀ : IsTeichmullerMap f₀ q q' k)
-    (hhom : ContinuousMap.Homotopic (fd : C(Xd₀.carrier, Xd₁.carrier)) (f₀ : C(Xd₀.carrier, Xd₁.carrier))) :
-    (∀ y, f₀ (J₀ y) = J₁ (f₀ y)) ∧ f₀ '' range ιd₀ = range ιd₁ := by
-  sorry
+-- eq32_3_teichmuller_commutes_reflection is stated and proved in LiZhongQC/Lemmas/TeichmullerCommutesReflection.lean
+-- (it needs Theorem 32.1 and the Schottky double machinery downstream of this file).
 
-/-- **Theorem 32.4**: let `S₀`, `S₁` be non-exceptional surfaces of type `(g, n, m)` and
-`f : S₀ → S₁` a quasiconformal map.  Then the homotopy class of `f` contains a Teichmüller map whose
-associated quadratic differential is admissible (or a conformal map).  (Method of Ahlfors.) -/
-theorem thm32_4_existence_gnm {g n m : ℕ} (hex : ¬ IsExceptionalType g n m) (F₀ : FiniteTypeStructure S₀ g n m)
-    (F₁ : FiniteTypeStructure S g n m) (f : S₀ ≃ₜ S) (hf : IsQCRS f) :
-    ∃ f₀ : S₀ ≃ₜ S, ContinuousMap.Homotopic (f : C(S₀, S)) (f₀ : C(S₀, S)) ∧
-      (IsBiholomorphic f₀ ∨ ∃ (q : S₀ → ℂ → ℂ) (q' : S → ℂ → ℂ) (k : ℝ), IsAdmissibleTeichmullerMap F₀ f₀ q q' k) := by
-  sorry
+-- thm32_4_existence_gnm is stated and proved in LiZhongQC/Lemmas/S32wThm324.lean
+-- (it needs Theorems 32.2, 32.3 and the symmetric extension downstream of this file).
 
 /-! ## §32.3 The Teichmüller space of a surface of finite type -/
 
@@ -378,30 +563,11 @@ def MarkedFiniteTypeRS.Equiv {g n m : ℕ} (m₁ m₂ : MarkedFiniteTypeRS S₀ 
 def TeichSpaceFiniteType (S₀ : Type u) [TopologicalSpace S₀] [ChartedSpace ℂ S₀] (g n m : ℕ) : Type (u + 1) :=
   Quot (MarkedFiniteTypeRS.Equiv (S₀ := S₀) (g := g) (n := n) (m := m))
 
-/-- §32.3: every marked surface `(S, f)` corresponds to a Teichmüller map `f₀ : S₀ → S` in the class
-of `f` with admissible differential `ω`, unique up to a positive factor, and to `k ∈ [0, 1)`;
-equivalent marked surfaces give the same `(ω, k)` (the Beltrami differential is unchanged by
-composition with a conformal map). -/
-theorem markedFiniteType_teichmuller_data {g n m : ℕ} (hex : ¬ IsExceptionalType g n m)
-    (F₀ : FiniteTypeStructure S₀ g n m) (m₁ : MarkedFiniteTypeRS S₀ g n m) :
-    ∃ (f₀ : S₀ ≃ₜ m₁.X.carrier) (k : ℝ), 0 ≤ k ∧ k < 1 ∧
-      ContinuousMap.Homotopic (m₁.marking : C(S₀, m₁.X.carrier)) (f₀ : C(S₀, m₁.X.carrier)) ∧
-      ((k = 0 ∧ IsBiholomorphic f₀) ∨ (0 < k ∧ ∃ (q : S₀ → ℂ → ℂ) (q' : m₁.X.carrier → ℂ → ℂ),
-        IsAdmissibleTeichmullerMap F₀ f₀ q q' k ∧
-        ∀ (q₂ : S₀ → ℂ → ℂ) (q₂' : m₁.X.carrier → ℂ → ℂ) (k₂ : ℝ) (f₂ : S₀ ≃ₜ m₁.X.carrier),
-          IsAdmissibleTeichmullerMap F₀ f₂ q₂ q₂' k₂ →
-          ContinuousMap.Homotopic (m₁.marking : C(S₀, m₁.X.carrier)) (f₂ : C(S₀, m₁.X.carrier)) →
-          k₂ = k ∧ ∃ c : ℝ, 0 < c ∧ q₂ = (c : ℂ) • q)) := by
-  sorry
+-- markedFiniteType_teichmuller_data is stated and proved in LiZhongQC/Lemmas/FiniteTypeTeichSpace.lean
+-- (it needs the existence and uniqueness theorems 32.1 and 32.4 downstream of this file).
 
-/-- **§32.3**: `T_{g,n,m}` is in bijection with the open unit ball of `ℝ^{6g-6+2n+3m}`, via the
-Teichmüller data `(k, ω)`, `ω` normalized on the unit sphere of `Q̃(S₀)` (in a basis). -/
-theorem teichSpaceFiniteType_ball {g n m : ℕ} (hex : ¬ IsExceptionalType g n m)
-    (F₀ : FiniteTypeStructure S₀ g n m) :
-    (Module.finrank ℝ (admissibleQDInterior F₀) : ℤ) = 6 * g - 6 + 2 * n + 3 * m ∧
-      ∃ Φ : EuclideanSpace ℝ (Fin (Module.finrank ℝ (admissibleQDInterior F₀))) → TeichSpaceFiniteType S₀ g n m,
-        InjOn Φ (ball 0 1) ∧ ∀ p, ∃ v ∈ ball (0 : EuclideanSpace ℝ (Fin (Module.finrank ℝ (admissibleQDInterior F₀)))) 1, Φ v = p := by
-  sorry
+-- teichSpaceFiniteType_ball is stated and proved in LiZhongQC/Lemmas/FiniteTypeTeichSpace.lean
+-- (it needs the existence and uniqueness theorems 32.1 and 32.4 downstream of this file).
 
 /-- §32.3: the Teichmüller distance `d_T(τ₁, τ₂) = ½ ln K[f₀]`, `f₀` the extremal map in the class of
 `f₂ ∘ f₁⁻¹`.
@@ -416,16 +582,8 @@ def teichDistanceFT {g n m : ℕ} (p q : TeichSpaceFiniteType S₀ g n m) : ℝ 
         (m₂.marking : C(S₀, m₂.X.carrier)) ∧
     d = (1 / 2) * Real.log (maxDilatationRS h).toReal}
 
-/-- §32.3: `d_T` is a complete metric on `T_{g,n,m}`, and the bijection with the unit ball of
-`ℝ^{6g-6+2n+3m}` is a homeomorphism (the proof repeats Chapter 7 without essential change). -/
-theorem teichDistanceFT_complete_metric {g n m : ℕ} (hex : ¬ IsExceptionalType g n m)
-    (F₀ : FiniteTypeStructure S₀ g n m) :
-    (∀ p q : TeichSpaceFiniteType S₀ g n m, teichDistanceFT p q = 0 ↔ p = q) ∧
-      (∀ p q : TeichSpaceFiniteType S₀ g n m, teichDistanceFT p q = teichDistanceFT q p) ∧
-      (∀ p q r : TeichSpaceFiniteType S₀ g n m, teichDistanceFT p r ≤ teichDistanceFT p q + teichDistanceFT q r) ∧
-      ∀ p : ℕ → TeichSpaceFiniteType S₀ g n m, (∀ ε > 0, ∃ N, ∀ i ≥ N, ∀ j ≥ N, teichDistanceFT (p i) (p j) < ε) →
-        ∃ q, Tendsto (fun i => teichDistanceFT (p i) q) atTop (𝓝 0) := by
-  sorry
+-- teichDistanceFT_complete_metric is stated and proved in LiZhongQC/Lemmas/FiniteTypeTeichMetric.lean
+-- (it needs the Teichmüller data of §32.3 downstream of this file).
 
 /-- §32.3: the modular group `Mod_{g,n,m}` (quasiconformal self-maps `σ` of `S₀` acting by
 `[S, f] ↦ [S, f ∘ σ]`), and `R_{g,n,m} = T_{g,n,m}/Mod_{g,n,m}`: two marked surfaces have conformally
@@ -435,7 +593,31 @@ theorem moduliFiniteType_eq_quotient {g n m : ℕ} (hex : ¬ IsExceptionalType g
     RSConformallyEquivalent m₁.X.carrier m₂.X.carrier ↔
       ∃ (σ : S₀ ≃ₜ S₀) (hσ : IsQCRS (σ.trans m₂.marking)),
         MarkedFiniteTypeRS.Equiv ⟨m₂.X, σ.trans m₂.marking, hσ⟩ m₁ := by
-  sorry
+  have _ := hex
+  have _ := F₀
+  have _ : T2Space S₀ := inferInstance
+  have _ : ConnectedSpace S₀ := inferInstance
+  constructor
+  · rintro ⟨φ, hφ⟩
+    obtain ⟨e, heb, _he⟩ := s28q_exists_homeomorph_of_isBiholomorphic hφ
+    set σ : S₀ ≃ₜ S₀ := (m₁.marking.trans e).trans m₂.marking.symm
+    have hσeq : σ.trans m₂.marking = m₁.marking.trans e := by
+      ext x
+      simp [σ]
+    obtain ⟨K, hK⟩ := m₁.qc
+    have he1 : IsKQCRS e 1 := (isKQCRS_one_iff e).2 heb
+    have hσ : IsQCRS (σ.trans m₂.marking) := by
+      rw [hσeq]
+      exact ⟨_, (eq23_4 hK he1).1⟩
+    refine ⟨σ, hσ, e.symm, IsBiholomorphic.homeomorph_symm heb, ?_⟩
+    have hc : ((((σ.trans m₂.marking).trans e.symm : S₀ ≃ₜ m₁.X.carrier)) : C(S₀, m₁.X.carrier)) =
+        (m₁.marking : C(S₀, m₁.X.carrier)) := by
+      ext x
+      simp [σ]
+    exact hc ▸ ContinuousMap.Homotopic.refl _
+  · rintro ⟨σ, hσ, c, hc, _hhom⟩
+    have _ := hσ
+    exact ⟨_, IsBiholomorphic.homeomorph_symm hc⟩
 
 /-- §32.3 (remark): for `m ≠ 0` the dimension `6g - 6 + 2n + 3m` of `T_{g,n,m}` can be odd, so
 `T_{g,n,m}` cannot be a complex manifold in general (e.g. type `(0, 0, 3)` has dimension `3`). -/

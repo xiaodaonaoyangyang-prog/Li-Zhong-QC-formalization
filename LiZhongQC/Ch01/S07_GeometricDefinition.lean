@@ -12,7 +12,8 @@ import LiZhongQC.Lemmas.AnnulusQC
 * Theorem 7.1 (composition), Theorem 7.2 (inverse)
 * Theorem 7.3 (`1`-quasiconformal maps are conformal)
 * Theorem 7.4 (quasi-invariance of the modulus of doubly connected domains)
-* the converse of Theorem 7.4 (Lehto)                             — `isKQC_of_dcModulus_bound`
+* the converse of Theorem 7.4 (Lehto)                             — `isKQC_of_dcModulus_bound`, stated in
+                                                                   `Lemmas/RingCharacterization.lean`
 
 ## Orientation
 
@@ -1386,18 +1387,5 @@ theorem thm7_4_dcModulus_quasi_invariance {f : ℂ → ℂ} {D : Set ℂ} {K : �
     closure_toExt_image_subset hhom.1 hBD subset_rfl
   have h := dcModulus_image_le_of_isKQC (thm7_2_inv hf) hB' hB'D (by rw [hinvB]; exact hB)
   rwa [hinvB] at h
-
-/-- The converse of Theorem 7.4 (Lehto–Virtanen): an orientation preserving homeomorphism
-satisfying `M(B)/K ≤ M(f(B)) ≤ K M(B)` for all doubly connected `B` with `B̄ ⊆ D` is
-`K`-quasiconformal.
-
-Not proved (kept as `sorry`): the book refers to Lehto's monograph for the proof. -/
-theorem isKQC_of_dcModulus_bound {f : ℂ → ℂ} {D : Set ℂ} {K : ℝ} (hD : IsOpen D) (hK : 1 ≤ K)
-    (hhom : IsHomeomorphOnto f D (f '' D)) (hsense : IsSensePreserving f D)
-    (hbound : ∀ B : Set ℂ, IsDoublyConnected B → closure (toExt B) ⊆ toExt D →
-      dcModulus B ≤ ENNReal.ofReal K * dcModulus (f '' B) ∧
-        dcModulus (f '' B) ≤ ENNReal.ofReal K * dcModulus B) :
-    IsKQC f D K := by
-  sorry
 
 end LiZhongQC
