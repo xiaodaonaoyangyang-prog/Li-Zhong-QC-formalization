@@ -1,12 +1,12 @@
-# 李忠《拟共形映射与Teichmuller空间》— Lean 4 formalization (statement level)
+# 李忠《拟共形映射与Teichmuller空间》— Lean 4 formalization
 
-A statement-level ("skeleton") formalization of
+A complete, machine-checked formalization of
 
 > 李忠, *拟共形映射及其在黎曼曲面论中的应用* (Li Zhong, *Quasiconformal Mappings and
 > Teichmüller Spaces*).
 
 Every definition of the book is a genuine Lean definition, and every theorem, lemma,
-corollary and numbered formula is stated.
+corollary and numbered formula is stated and proved.
 - **As of 2026-10-18 every statement of `LiZhongQC` is proved.** After a full clean rebuild, `Audit.lean`
   reports 10857 theorems, all depending only on the standard axioms (`propext`, `Classical.choice`, `Quot.sound`):
   0 `sorry`, 0 carriers.
