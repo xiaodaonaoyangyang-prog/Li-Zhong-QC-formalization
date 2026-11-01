@@ -327,7 +327,7 @@ theorem s83sg_deck_pi1 [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(ℂ
     rw [hρ γ]
     show _ = hq.fundamentalGroupToMulOpposite e _
     symm
-    rw [hq.fundamentalGroupToMulOpposite_apply_eq_Iff]
+    rw [hq.fundamentalGroupToMulOpposite_apply_eq_iff]
     have hey : p₀ ((γ : Matrix.SpecialLinearGroup (Fin 2) ℝ)⁻¹ • τ₀) = p₀ τ₀ :=
       (hfib _ _).2 ⟨γ, γ.2, smul_inv_smul _ _⟩
     have eq : (Path.Homotopic.Quotient.mk c).map ⟨p₀, hcov.continuous⟩ =

@@ -57,7 +57,7 @@ variable (D : CoordDisk M)
 
 /-- The closed disk on the surface: the inverse-chart image of the closed
 chart ball. -/
-def closedCarrier : Set M :=
+noncomputable def closedCarrier : Set M :=
   (chartAt ℂ D.center).symm '' closedBall (chartAt ℂ D.center D.center) D.radius
 
 /-- Shrinking a coordinate disk by a factor `t ∈ (0, 1]`. -/
@@ -77,7 +77,7 @@ theorem isCompact_closedCarrier : IsCompact D.closedCarrier :=
 
 /-- The complementary piece of a coordinate disk, as an open set of the
 surface. -/
-def compl [T2Space M] : Opens M :=
+noncomputable def compl [T2Space M] : Opens M :=
   ⟨D.closedCarrierᶜ, D.isCompact_closedCarrier.isClosed.isOpen_compl⟩
 
 end CoordDisk

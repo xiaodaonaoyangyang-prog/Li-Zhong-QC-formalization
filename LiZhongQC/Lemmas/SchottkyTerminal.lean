@@ -195,6 +195,7 @@ theorem s78fa_side_true_eq_flip {S : Type u} [TopologicalSpace S] [ChartedSpace 
       FundamentalGroup.mapOfEq (s31dt_flipHomeomorph F : C(s31dt_Double F, s31dt_Double F)) hx
         (FundamentalGroup.mapOfEq (⟨s31dt_side F false, s31dt_continuous_side F false⟩ :
           C(s31dt_Core F, s31dt_Double F)) rfl γ) := by
+  obtain ⟨γ⟩ := γ
   refine Quotient.inductionOn γ (fun p => ?_)
   let sT : C(s31dt_Core F, s31dt_Double F) := ⟨s31dt_side F true, s31dt_continuous_side F true⟩
   let sF : C(s31dt_Core F, s31dt_Double F) := ⟨s31dt_side F false, s31dt_continuous_side F false⟩
@@ -225,6 +226,7 @@ theorem s78fa_fold_injective {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ
   let σ := FundamentalGroup.mapOfEq σc hσ0
   have hπσ : ∀ γ, π (σ γ) = γ := by
     intro γ
+    obtain ⟨γ⟩ := γ
     refine Quotient.inductionOn γ (fun p => ?_)
     have e1 := s78fa_mapOfEq_fromPath σc hσ0 p
     have e2 := s78fa_mapOfEq_fromPath πc hpr ((p.map σc.continuous).cast hσ0.symm hσ0.symm)
@@ -232,6 +234,7 @@ theorem s78fa_fold_injective {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ
   have hπJ : ∀ γ, π (FundamentalGroup.mapOfEq
       (s31dt_flipHomeomorph F : C(s31dt_Double F, s31dt_Double F)) hx γ) = π γ := by
     intro γ
+    obtain ⟨γ⟩ := γ
     refine Quotient.inductionOn γ (fun p => ?_)
     let Jc : C(s31dt_Double F, s31dt_Double F) := s31dt_flipHomeomorph F
     have e1 := s78fa_mapOfEq_fromPath Jc hx p

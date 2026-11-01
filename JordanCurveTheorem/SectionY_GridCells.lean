@@ -31,7 +31,8 @@ planar graph with bounded degree is rectagonal.
 -/
 
 namespace JordanCurveTheorem
-open Set Metric
+open Set hiding up
+open Metric
 
 /-! ## §Y.1 Edge containment in balls -/
 

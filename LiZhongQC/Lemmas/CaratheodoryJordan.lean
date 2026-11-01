@@ -2144,7 +2144,7 @@ theorem exists_tendsto_nhdsLT_of_integrableOn_norm_deriv
       hint.mono_set (Ioo_subset_Ioo_left hsa.le)
     have hmono : ∫ x in Ioc s t, ‖g' x‖ ≤ ∫ x in Ioo s b, ‖g' x‖ :=
       setIntegral_mono_set hTint (Filter.Eventually.of_forall fun x => norm_nonneg _)
-        (HasSubset.Subset.eventuallyLE hIoc_sub)
+        (LE.le.eventuallySubset hIoc_sub)
     have heq : ∫ x in s..t, ‖g' x‖ = ∫ x in Ioc s t, ‖g' x‖ := intervalIntegral.integral_of_le hst
     calc dist (g s) (g t) = ‖g t - g s‖ := by rw [dist_comm]; exact Complex.dist_eq _ _
       _ ≤ ∫ x in s..t, ‖g' x‖ := hnorm
@@ -2568,7 +2568,7 @@ theorem dist_le_integral_norm_deriv {g g' : ℝ → ℂ} {l r : ℝ}
     hftc ▸ intervalIntegral.norm_integral_le_integral_norm hst
   have hmono : ∫ x in Ioc s t, ‖g' x‖ ≤ ∫ x in Ioo l r, ‖g' x‖ :=
     setIntegral_mono_set hint (Filter.Eventually.of_forall fun x => norm_nonneg _)
-      (HasSubset.Subset.eventuallyLE (fun x hx => hIcc_sub ⟨hx.1.le, hx.2⟩))
+      (LE.le.eventuallySubset (fun x hx => hIcc_sub ⟨hx.1.le, hx.2⟩))
   have heq : ∫ x in s..t, ‖g' x‖ = ∫ x in Ioc s t, ‖g' x‖ := intervalIntegral.integral_of_le hst
   calc dist (g s) (g t) = ‖g t - g s‖ := by rw [dist_comm]; exact Complex.dist_eq _ _
     _ ≤ ∫ x in s..t, ‖g' x‖ := hnorm
@@ -3423,7 +3423,7 @@ theorem exists_clusterSet_eq_singleton_of_isJordanCurve_frontier {f : ℂ → �
   -- Conclude via `clusterSet ⊆ closure (image of a small ball)` for every n.
   have hsub : ∀ n, clusterSet f unitDisc z₀ ⊆ closure (f '' (unitDisc ∩ ball z₀ (ρ n))) := by
     intro n
-    exact Set.biInter_subset_of_mem (hρpos n)
+    exact Set.iInter₂_subset (ρ n) (hρpos n)
   have hdiamcl0 : Tendsto (fun n => Metric.diam (closure (f '' (unitDisc ∩ ball z₀ (ρ n)))))
       atTop (𝓝 0) := by
     simpa [Metric.diam_closure] using hdiam0

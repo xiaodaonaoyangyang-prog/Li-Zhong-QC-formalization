@@ -9,6 +9,8 @@ import LiZhongExternal.Classification.SchottkyClassification02
 import Mathlib.Topology.Compactness.LocallyFinite
 
 /- BEGIN ClassificationOfSurfaces.Moise.Anchors | 176ef9b5a42b320df1b4356be89615dbc62f1673f2be0ca80c38db90524522a2 -/
+noncomputable section
+
 section schottkyclassification04_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.
@@ -5002,7 +5004,7 @@ theorem closedRegion_subset_arrangementMesh_support :
   exact J.closedRegion_subset_enclosingMesh_support
 
 /-- Carrier of one maximal triangle in the supporting-line arrangement. -/
-def arrangementTriangleCarrier (t : Finset J.arrangementMesh.Vertex) : Set Plane :=
+noncomputable def arrangementTriangleCarrier (t : Finset J.arrangementMesh.Vertex) : Set Plane :=
   convexHull ℝ (J.arrangementMesh.position '' (t : Set _))
 
 theorem convex_arrangementTriangleCarrier (t : Finset J.arrangementMesh.Vertex) :

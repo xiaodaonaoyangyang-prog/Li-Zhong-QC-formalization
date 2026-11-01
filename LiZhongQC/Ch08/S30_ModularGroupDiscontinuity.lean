@@ -1672,7 +1672,10 @@ theorem s30l_normalize {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} (
       refine ⟨m, hm.2.1, Set.disjoint_left.2 fun t ht ⟨h0, hlt⟩ => ?_⟩
       exact absurd (hmin t ⟨ht, h0, hlt.trans hm.2.2⟩) (not_le.2 hlt)
     · exact ⟨1, one_pos, Set.disjoint_left.2 fun t ht ⟨h0, hlt⟩ => hP ⟨t, ht, h0, hlt⟩⟩
-  obtain ⟨t₀, ht₀⟩ := AddSubgroup.cyclic_of_isolated_zero hε0 hεdisj
+  obtain ⟨t₀, ht₀⟩ : ∃ t₀ : ℝ, T = AddSubgroup.closure {t₀} := by
+    obtain ⟨g, hg⟩ := T.isAddCyclic_iff_exists_zmultiples_eq_top.mp
+      (AddSubgroup.isAddCyclic_of_disjoint_Ioo_zero hε0 hεdisj)
+    exact ⟨g, by rw [← hg, AddSubgroup.zmultiples_eq_closure]⟩
   have ht₀mem : t₀ ∈ T := by
     rw [ht₀]
     exact AddSubgroup.subset_closure rfl

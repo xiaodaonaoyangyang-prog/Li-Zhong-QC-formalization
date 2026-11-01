@@ -16,13 +16,15 @@ theorem s78dg_pi1_deformation_bijective {A X : Type*} [TopologicalSpace A] [Topo
     Function.Bijective (FundamentalGroup.map i a) := by
   constructor
   · intro x y hxy
+    obtain ⟨x⟩ := x
+    obtain ⟨y⟩ := y
     induction x using Quotient.inductionOn with
     | h δ₁ =>
     induction y using Quotient.inductionOn with
     | h δ₂ =>
     have h1 : (δ₁.map i.continuous).Homotopic (δ₂.map i.continuous) := by
       rw [← Path.Homotopic.Quotient.eq]
-      exact hxy
+      exact congrArg CategoryTheory.End.asHom hxy
     have h2 := (h1.map r).pathCast (hri a).symm (hri a).symm
     have e1 : (((δ₁.map i.continuous).map r.continuous).cast (hri a).symm (hri a).symm) = δ₁ := by
       ext t
@@ -31,12 +33,14 @@ theorem s78dg_pi1_deformation_bijective {A X : Type*} [TopologicalSpace A] [Topo
       ext t
       simp [hri]
     rw [e1, e2] at h2
-    exact Path.Homotopic.Quotient.eq.mpr h2
+    exact congrArg CategoryTheory.End.of (Path.Homotopic.Quotient.eq.mpr h2)
   · intro g
+    obtain ⟨g⟩ := g
     induction g using Quotient.inductionOn with
     | h γ =>
     let δ : Path a a := (γ.map r.continuous).cast (hri a).symm (hri a).symm
-    refine ⟨Path.Homotopic.Quotient.mk δ, ?_⟩
+    refine ⟨FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk δ), ?_⟩
+    apply CategoryTheory.End.ext
     change Path.Homotopic.Quotient.mk (δ.map i.continuous) = Path.Homotopic.Quotient.mk γ
     rw [Path.Homotopic.Quotient.eq]
     have hγ0 : ∀ s : I, H (s, γ 0) = γ 0 := by

@@ -296,7 +296,7 @@ theorem eq12_1_solution_tendsto {μn : ℕ → ℂ → ℂ} {μ : ℂ → ℂ} {
   set gInd : ℂ → ℂ := (closedBall (0 : ℂ) R').indicator
       (fun z => (2 * k : ℝ) • ((1 : ℂ) + hilbertH ω z)) with hgInddef
   have hgMemLp : MemLp gInd (ENNReal.ofReal p) volume := by
-    rw [hgInddef, memLp_indicator_iff_restrict measurableSet_closedBall]
+    rw [hgInddef, memLp_indicator_iff_restrict measurableSet_closedBall.nullMeasurableSet]
     exact h1Hω.const_smul (2 * k : ℝ)
   have hp0 : (0 : ℝ) < p := by linarith
   have hgfin : (∫⁻ z, ENNReal.ofReal ‖gInd z‖ ^ p) ≠ ⊤ := by
@@ -429,8 +429,8 @@ theorem eq12_1_solution_tendsto_cauchyT {μn : ℕ → ℂ → ℂ} {μ : ℂ �
     t2_omega_ae_eq_indicator (hsuppn' n) (hsoln n)
   have hωRas : ω =ᵐ[volume] ωR := t2_omega_ae_eq_indicator hsupp' hsol
   have hωnRmem : ∀ n, MemLp (ωnR n) (ENNReal.ofReal p) := fun n =>
-    (hωn n).indicator measurableSet_closedBall
-  have hωRmem : MemLp ωR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall
+    (hωn n).indicator measurableSet_closedBall.nullMeasurableSet
+  have hωRmem : MemLp ωR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall.nullMeasurableSet
   have hωnRsupp : ∀ n, ∀ z : ℂ, max R 1 < ‖z‖ → ωnR n z = 0 := fun n z hz =>
     Set.indicator_of_notMem (by simpa [mem_closedBall_zero_iff, not_le] using hz) _
   have hωRsupp : ∀ z : ℂ, max R 1 < ‖z‖ → ωR z = 0 := fun z hz =>
@@ -477,7 +477,7 @@ theorem cauchyT_bounded_of_solution {μ ω : ℂ → ℂ} {k p : ℝ} (hμ : IsC
   set omR : ℂ → ℂ := (closedBall (0 : ℂ) R').indicator ω with homRdef
   have homs : ω =ᵐ[volume] omR := t2_omega_ae_eq_indicator hRR' hsol
   have hcT : cauchyT ω = cauchyT omR := cauchyT_congr_ae homs
-  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall
+  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall.nullMeasurableSet
   have homRsupp : ∀ z : ℂ, R' < ‖z‖ → omR z = 0 := by
     intro z hz
     rw [homRdef]
@@ -933,7 +933,7 @@ theorem t3_memLp_of_compactBeltrami {μ : ℂ → ℂ} {k p : ℝ} (hμ : IsComp
     · rw [indicator_of_mem hz]
     · rw [indicator_of_notMem hz]
       exact hR' z (by rwa [mem_closedBall_zero_iff, not_le] at hz)
-  rw [hind, memLp_indicator_iff_restrict measurableSet_closedBall]
+  rw [hind, memLp_indicator_iff_restrict measurableSet_closedBall.nullMeasurableSet]
   haveI : IsFiniteMeasure (volume.restrict (closedBall (0 : ℂ) R')) :=
     isFiniteMeasure_restrict.2 measure_closedBall_lt_top.ne
   refine MemLp.of_bound ?_ k ?_
@@ -1592,7 +1592,7 @@ theorem wd_D2 {μ : ℂ → ℂ} {k : ℝ} (_hk : k < 1) (hμs : ContDiff ℝ ((
       rw [mem_closedBall_zero_iff, not_le] at hmem
       rw [hz, hRμ z hmem, hRdzμ z hmem]
       ring
-  have homtMemLp : MemLp omt (ENNReal.ofReal p) := homt0MemLp.indicator measurableSet_closedBall
+  have homtMemLp : MemLp omt (ENNReal.ofReal p) := homt0MemLp.indicator measurableSet_closedBall.nullMeasurableSet
   have homtSupp : Function.support omt ⊆ closedBall (0 : ℂ) R := fun z hz => by
     by_contra hz'
     exact hz (homtdef ▸ indicator_of_notMem hz' omt0)
@@ -2825,7 +2825,7 @@ theorem thm12_1 {μ : ℂ → ℂ} {k : ℝ} (hk₀ : 0 ≤ k) (hk : k < 1) (hμ
   have homs : ω =ᵐ[volume] omR := t2_omega_ae_eq_indicator hRR' hsol
   have hcT : cauchyT ω = cauchyT omR := cauchyT_congr_ae homs
   have hHT : hilbertH ω = hilbertH omR := hilbertH_congr_ae homs
-  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall
+  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall.nullMeasurableSet
   have homRbdd : Bornology.IsBounded (Function.support omR) := t3_isBounded_support_indicator
   obtain ⟨hgp, heqbar, heqz⟩ := thm11_1 hp homRmem homRbdd
   have hgp' := t3_hasGenPartials_add_id hgp
@@ -2859,7 +2859,7 @@ theorem t2_tendsto_div_one {μ ω : ℂ → ℂ} {p R : ℝ} (hp : 2 < p) (hR : 
   set omR : ℂ → ℂ := (closedBall (0 : ℂ) R).indicator ω with homRdef
   have homs : ω =ᵐ[volume] omR := t2_omega_ae_eq_indicator hRvanish hsol
   have hcT : cauchyT ω = cauchyT omR := cauchyT_congr_ae homs
-  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall
+  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall.nullMeasurableSet
   have homRsupp : ∀ z : ℂ, R < ‖z‖ → omR z = 0 := by
     intro z hz
     rw [homRdef]

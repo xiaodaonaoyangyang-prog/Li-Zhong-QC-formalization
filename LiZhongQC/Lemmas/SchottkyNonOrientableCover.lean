@@ -33,17 +33,17 @@ variable {S : Type u} [TopologicalSpace S] (x₀ : S)
 
 /-- Deck transformations by inverses compose like a left action. -/
 theorem s78no_deck_inv_mul (g h : FundamentalGroup S x₀) (pc : PathCover x₀) :
-    pathCoverDeck x₀ ((g * h)⁻¹ : FundamentalGroup S x₀) pc =
-      pathCoverDeck x₀ (g⁻¹ : FundamentalGroup S x₀) (pathCoverDeck x₀ (h⁻¹ : FundamentalGroup S x₀) pc) := by
+    pathCoverDeck x₀ ((g * h)⁻¹ : FundamentalGroup S x₀).asHom pc =
+      pathCoverDeck x₀ (g⁻¹ : FundamentalGroup S x₀).asHom (pathCoverDeck x₀ (h⁻¹ : FundamentalGroup S x₀).asHom pc) := by
   obtain ⟨pt, cls⟩ := pc
   simp only [pathCoverDeck, PathCover.mk.injEq, heq_eq_eq, true_and]
   rw [mul_inv_rev, FundamentalGroup.mul_def]
-  exact Path.Homotopic.Quotient.trans_assoc (g⁻¹ : FundamentalGroup S x₀)
-    (h⁻¹ : FundamentalGroup S x₀) cls
+  exact Path.Homotopic.Quotient.trans_assoc (g⁻¹ : FundamentalGroup S x₀).asHom
+    (h⁻¹ : FundamentalGroup S x₀).asHom cls
 
 /-- The deck transformation of the trivial loop is the identity. -/
 theorem s78no_deck_one (pc : PathCover x₀) :
-    pathCoverDeck x₀ ((1 : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc = pc := by
+    pathCoverDeck x₀ ((1 : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc = pc := by
   obtain ⟨pt, cls⟩ := pc
   simp only [pathCoverDeck, FundamentalGroup.one_def]
   congr 1
@@ -51,21 +51,21 @@ theorem s78no_deck_one (pc : PathCover x₀) :
 
 /-- Deck transformations act freely. -/
 theorem s78no_deck_free (γ : FundamentalGroup S x₀) (pc : PathCover x₀)
-    (h : pathCoverDeck x₀ γ pc = pc) : γ = 1 := by
+    (h : pathCoverDeck x₀ γ.asHom pc = pc) : γ = 1 := by
   obtain ⟨pt, cls⟩ := pc
   simp only [pathCoverDeck, PathCover.mk.injEq, heq_eq_eq, true_and] at h
   have h2 := congrArg (fun c => Path.Homotopic.Quotient.trans c cls.symm) h
   simp only [Path.Homotopic.Quotient.trans_assoc, Path.Homotopic.Quotient.trans_symm,
     Path.Homotopic.Quotient.trans_refl] at h2
-  exact h2
+  exact CategoryTheory.End.ext h2
 
 /-- Deck transformations compose (with the group law of `π₁`). -/
 theorem s78no_deck_deck (a b : FundamentalGroup S x₀) (pc : PathCover x₀) :
-    pathCoverDeck x₀ a (pathCoverDeck x₀ b pc) = pathCoverDeck x₀ (b * a) pc := by
+    pathCoverDeck x₀ a.asHom (pathCoverDeck x₀ b.asHom pc) = pathCoverDeck x₀ (b * a).asHom pc := by
   obtain ⟨pt, cls⟩ := pc
   simp only [pathCoverDeck, PathCover.mk.injEq, heq_eq_eq, true_and]
   rw [FundamentalGroup.mul_def]
-  exact (Path.Homotopic.Quotient.trans_assoc a b cls).symm
+  exact (Path.Homotopic.Quotient.trans_assoc a.asHom b.asHom cls).symm
 
 end Action
 
@@ -78,14 +78,14 @@ variable {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [T2Space S]
 /-- The action preserves the projection. -/
 theorem s78no_proj_smul
     (hsmul : ∀ (g : K) (pc : PathCover x₀),
-      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc)
+      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc)
     (g : K) (pc : PathCover x₀) : pathCoverProj x₀ (g • pc) = pathCoverProj x₀ pc := by
   rw [hsmul]; rfl
 
 /-- The action is free. -/
 theorem s78no_smul_free
     (hsmul : ∀ (g : K) (pc : PathCover x₀),
-      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc)
+      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc)
     (g : K) (pc : PathCover x₀) (h : g • pc = pc) : g = 1 := by
   rw [hsmul] at h
   have h1 := s78no_deck_free x₀ _ pc h
@@ -95,16 +95,16 @@ theorem s78no_smul_free
 /-- Each group element acts by an analytic diffeomorphism, in particular continuously. -/
 theorem s78no_continuous_smul
     (hsmul : ∀ (g : K) (pc : PathCover x₀),
-      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc)
+      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc)
     (g : K) : ∃ e : PathCover x₀ ≃ₘ^ω⟮𝓘(ℂ), 𝓘(ℂ)⟯ PathCover x₀, ∀ pc, e pc = g • pc := by
   obtain ⟨e, he⟩ := exists_pathCoverDeck_diffeomorph x₀
-    ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀)
+    ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom
   exact ⟨e, fun pc => by rw [he, hsmul]⟩
 
 /-- **The quotient of the path cover by `K` is a quotient covering map.** -/
 theorem s78no_isQuotientCoveringMap
     (hsmul : ∀ (g : K) (pc : PathCover x₀),
-      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc) :
+      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc) :
     IsQuotientCoveringMap (Quotient.mk (MulAction.orbitRel K (PathCover x₀))) K where
   toIsQuotientMap := isQuotientMap_quotient_mk'
   toContinuousConstSMul := ⟨fun g => by
@@ -126,7 +126,7 @@ theorem s78no_isQuotientCoveringMap
 /-- The fundamental group of the quotient is `Kᵐᵒᵖ` (the path cover is simply connected). -/
 theorem s78no_quotient_pi1 [ConnectedSpace S]
     (hsmul : ∀ (g : K) (pc : PathCover x₀),
-      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc) :
+      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc) :
     ∃ x : Quotient (MulAction.orbitRel K (PathCover x₀)),
       Nonempty (FundamentalGroup (Quotient (MulAction.orbitRel K (PathCover x₀))) x ≃* Kᵐᵒᵖ) := by
   haveI := simplyConnectedSpace_pathCover x₀
@@ -144,7 +144,7 @@ base; two points over the same base point are separated by the images of local s
 uniqueness of path lifting for the covering `PathCover x₀ → S`. -/
 theorem s78no_quotient_t2
     (hsmul : ∀ (g : K) (pc : PathCover x₀),
-      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc) :
+      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc) :
     T2Space (Quotient (MulAction.orbitRel K (PathCover x₀))) := by
   haveI : LocallyPathConnectedSpace S := ChartedSpace.locallyPathConnectedSpace ℂ S
   have hq := s78no_isQuotientCoveringMap hsmul
@@ -224,7 +224,7 @@ theorem s78no_quotient_t2
 cover `S`, and finitely many coset representatives move them onto every `K`-orbit. -/
 theorem s78no_quotient_compact [CompactSpace S] [ConnectedSpace S] [K.FiniteIndex]
     (hsmul : ∀ (g : K) (pc : PathCover x₀),
-      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc) :
+      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc) :
     CompactSpace (Quotient (MulAction.orbitRel K (PathCover x₀))) := by
   classical
   haveI : LocallyCompactSpace S := ChartedSpace.locallyCompactSpace ℂ S
@@ -253,29 +253,30 @@ theorem s78no_quotient_compact [CompactSpace S] [ConnectedSpace S] [K.FiniteInde
     obtain ⟨s, hs, hz⟩ := mem_iUnion₂.mp (ht (mem_univ z))
     obtain ⟨f, hf, hfz⟩ := hCF s (interior_subset hz)
     exact ⟨f, mem_biUnion hs hf, hfz⟩
-  have hdeckc : ∀ γ : FundamentalGroup S x₀, Continuous (pathCoverDeck x₀ γ) := by
+  have hdeckc : ∀ γ : FundamentalGroup S x₀, Continuous (pathCoverDeck x₀ γ.asHom) := by
     intro γ
-    obtain ⟨d, hd⟩ := exists_pathCoverDeck_diffeomorph x₀ γ
-    rw [show pathCoverDeck x₀ γ = d from funext fun pc => (hd pc).symm]
+    obtain ⟨d, hd⟩ := exists_pathCoverDeck_diffeomorph x₀ γ.asHom
+    rw [show pathCoverDeck x₀ γ.asHom = d from funext fun pc => (hd pc).symm]
     exact d.continuous
   have hcover : (univ : Set (Quotient (MulAction.orbitRel K (PathCover x₀)))) ⊆
       ⋃ q : FundamentalGroup S x₀ ⧸ K,
-        Quotient.mk _ '' (pathCoverDeck x₀ (Quotient.out q) '' F0) := by
+        Quotient.mk _ '' (pathCoverDeck x₀ (Quotient.out q).asHom '' F0) := by
     intro y _
     obtain ⟨e, rfl⟩ := Quotient.exists_rep y
     obtain ⟨f, hf, hfe⟩ := hF0cov (pathCoverProj x₀ e)
     obtain ⟨γ0, hγ⟩ := pathCoverDeck_transitive x₀ f e hfe
-    set γ : FundamentalGroup S x₀ := γ0 with hγdef
+    set γ : FundamentalGroup S x₀ := FundamentalGroup.fromPath γ0 with hγdef
+    have hγ' : pathCoverDeck x₀ γ.asHom f = e := hγ
     set q : FundamentalGroup S x₀ ⧸ K := (γ : FundamentalGroup S x₀ ⧸ K) with hqdef
     have hq : (Quotient.out q)⁻¹ * γ ∈ K := by
       apply QuotientGroup.eq.mp
       rw [QuotientGroup.out_eq']
     refine mem_iUnion.mpr ⟨q, ⟨_, ⟨f, hf, rfl⟩, ?_⟩⟩
     apply Quotient.sound
-    change pathCoverDeck x₀ (Quotient.out q) f ∈ MulAction.orbit K e
+    change pathCoverDeck x₀ (Quotient.out q).asHom f ∈ MulAction.orbit K e
     refine ⟨⟨(Quotient.out q)⁻¹ * γ, hq⟩, ?_⟩
     change (⟨(Quotient.out q)⁻¹ * γ, hq⟩ : K) • e = _
-    rw [hsmul, ← hγ, s78no_deck_deck]
+    rw [hsmul, ← hγ', s78no_deck_deck]
     congr 1
     simp only [mul_inv_rev, inv_inv, mul_inv_cancel_left]
   exact ⟨(isCompact_iUnion fun q =>
@@ -286,7 +287,7 @@ followed by charts of the path cover; the transition maps agree locally with tra
 an analytic deck transformation. -/
 theorem s78no_quotient_manifold
     (hsmul : ∀ (g : K) (pc : PathCover x₀),
-      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc) :
+      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc) :
     ∃ _ : ChartedSpace ℂ (Quotient (MulAction.orbitRel K (PathCover x₀))),
       IsManifold 𝓘(ℂ) ω (Quotient (MulAction.orbitRel K (PathCover x₀))) := by
   classical
@@ -365,7 +366,7 @@ theorem s78no_quotient_manifold
     PartialEquiv.coe_trans_symm, ModelWithCorners.toPartialEquiv_coe,
     ModelWithCorners.toPartialEquiv_coe_symm, modelWithCornersSelf_coe,
     modelWithCornersSelf_coe_symm, range_id, Function.comp_id, Function.id_comp,
-    OpenPartialHomeomorph.coe_coe, OpenPartialHomeomorph.coe_coe_symm] at h
+    OpenPartialHomeomorph.coe_toPartialEquiv, OpenPartialHomeomorph.coe_toPartialEquiv_symm] at h
   rw [ha, (chartAt ℂ e).right_inv hz1] at h
   exact h.contDiffAt univ_mem
 
@@ -382,17 +383,17 @@ theorem s78no_finiteIndex_cover (S : Type u) [TopologicalSpace S] [T2Space S] [C
       ∃ x : X, Nonempty (FundamentalGroup X x ≃* Kᵐᵒᵖ) := by
   letI : MulAction K (PathCover x₀) :=
     { smul := fun g pc =>
-        pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc
+        pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc
       one_smul := fun pc => by
         change pathCoverDeck x₀ (((1 : K) : FundamentalGroup S x₀)⁻¹ :
-          FundamentalGroup S x₀) pc = pc
+          FundamentalGroup S x₀).asHom pc = pc
         rw [OneMemClass.coe_one]; exact s78no_deck_one x₀ pc
       mul_smul := fun g h pc => by
         change pathCoverDeck x₀ (((g * h : K) : FundamentalGroup S x₀)⁻¹ :
-          FundamentalGroup S x₀) pc = _
+          FundamentalGroup S x₀).asHom pc = _
         rw [Subgroup.coe_mul]; exact s78no_deck_inv_mul x₀ g h pc }
   have hsmul : ∀ (g : K) (pc : PathCover x₀),
-      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀) pc :=
+      g • pc = pathCoverDeck x₀ ((g : FundamentalGroup S x₀)⁻¹ : FundamentalGroup S x₀).asHom pc :=
     fun _ _ => rfl
   obtain ⟨cs, hman⟩ := s78no_quotient_manifold hsmul
   exact ⟨Quotient (MulAction.orbitRel K (PathCover x₀)), inferInstance, cs,

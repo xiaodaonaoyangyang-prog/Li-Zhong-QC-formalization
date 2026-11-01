@@ -20,7 +20,7 @@ every `L^p` (`p > 0`) and has nonzero `eLpNorm`. Reused by RT2 and RT3b. -/
 theorem unitDiscIndicator_eLpNorm_ne_zero {p : ℝ} (hp0 : 0 < p) :
     MemLp ((ball (0:ℂ) 1).indicator fun _ => (1:ℂ)) (ENNReal.ofReal p) ∧
       eLpNorm ((ball (0:ℂ) 1).indicator fun _ => (1:ℂ)) (ENNReal.ofReal p) ≠ 0 := by
-  refine ⟨memLp_indicator_const _ measurableSet_ball 1 (Or.inr measure_ball_lt_top.ne), ?_⟩
+  refine ⟨memLp_indicator_const _ measurableSet_ball.nullMeasurableSet 1 (Or.inr measure_ball_lt_top.ne), ?_⟩
   have hsupp : {z : ℂ | (ball (0:ℂ) 1).indicator (fun _ => (1:ℂ)) z ≠ 0} = ball 0 1 := by
     ext z
     constructor

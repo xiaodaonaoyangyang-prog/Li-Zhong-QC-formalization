@@ -47,7 +47,7 @@ noncomputable def gridPathIntegral (f : ℂ → ℂ) (δ : ℝ) :
 
 /-- The `δ`-realization of a grid path as a set: the union of its closed
 segments. -/
-def gridPathTrace (δ : ℝ) : List (ℤ × ℤ) → Set ℂ
+noncomputable def gridPathTrace (δ : ℝ) : List (ℤ × ℤ) → Set ℂ
   | [] => ∅
   | [p] => {gridPoint δ p}
   | p :: q :: L =>

@@ -1821,7 +1821,7 @@ theorem pe6_exists_radius_sq_arcLength_lt_notMem {Ω : Set ℂ} (hΩ : Bornology
       _ ≤ ENNReal.ofReal (2 * π) * ∫⁻ ρ in Ioi (0 : ℝ),
             ∫⁻ θ in {θ : ℝ | θ ∈ Ioc (-π) π ∧ circleMap z₀ ρ θ ∈ unitDisc},
               ‖deriv f (circleMap z₀ ρ θ)‖ₑ ^ 2 * ENNReal.ofReal ρ :=
-          mul_le_mul_right (lintegral_mono_set fun ρ hρ => hδ0.trans hρ.1) _
+          mul_le_mul_right (lintegral_mono_set fun ρ (hρ : ρ ∈ Ioo δ (Real.sqrt δ)) => hδ0.trans hρ.1) _
       _ = ENNReal.ofReal (2 * π) * volume Ω := by rw [← hpolar]
   have hb0 : 0 ≤ b := le_trans (by positivity) hb.le
   have hleft : ∫⁻ ρ in Ioo δ (Real.sqrt δ), ENNReal.ofReal b * ENNReal.ofReal (1 / ρ)
@@ -2897,7 +2897,7 @@ theorem pe9_exists_radius_sq_arcLength_lt_window {Ω : Set ℂ} {f : ℂ → ℂ
       _ ≤ ENNReal.ofReal (2 * π) * ∫⁻ ρ in Ioi (0 : ℝ),
             ∫⁻ θ in {θ : ℝ | θ ∈ Ioc (-π) π ∧ circleMap z₀ ρ θ ∈ unitDisc},
               (ball z₀ b).indicator (fun z => ‖deriv f z‖ₑ ^ 2) (circleMap z₀ ρ θ) * ENNReal.ofReal ρ :=
-          mul_le_mul_right (lintegral_mono_set fun ρ hρ => ha.trans hρ.1) _
+          mul_le_mul_right (lintegral_mono_set fun ρ (hρ : ρ ∈ Ioo a b) => ha.trans hρ.1) _
       _ = ENNReal.ofReal (2 * π) * volume (f '' (unitDisc ∩ ball z₀ b)) := by rw [← hpolar]
   have hB0 : 0 ≤ B := le_trans (by positivity) hB.le
   have hleft : ∫⁻ ρ in Ioo a b, ENNReal.ofReal B * ENNReal.ofReal (1 / ρ)

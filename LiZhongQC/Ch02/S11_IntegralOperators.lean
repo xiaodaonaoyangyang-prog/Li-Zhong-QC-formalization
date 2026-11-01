@@ -2631,7 +2631,7 @@ theorem t5Mollify_tendsto {p : ℝ} (hp1 : 1 ≤ p) (hp' : ENNReal.ofReal p ≠ 
         (volume.restrict (closedBall (0 : ℂ) (R + 1)))) := by
     funext n
     conv_lhs => rw [heq n]
-    exact eLpNorm_indicator_eq_eLpNorm_restrict hSm
+    exact eLpNorm_indicator_eq_eLpNorm_restrict hSm.nullMeasurableSet
   rw [hgoal]
   exact hrestrict
 
@@ -3108,7 +3108,7 @@ def hilbertHApprox (ω : ℂ → ℂ) (n : ℕ) : ℂ → ℂ :=
 
 theorem hilbertHTrunc_memLp {ω : ℂ → ℂ} {p : ℝ} (hω : MemLp ω (ENNReal.ofReal p))
     (n : ℕ) : MemLp (hilbertHTrunc ω n) (ENNReal.ofReal p) :=
-  hω.indicator measurableSet_closedBall
+  hω.indicator measurableSet_closedBall.nullMeasurableSet
 
 theorem hilbertHTrunc_hasCompactSupport (ω : ℂ → ℂ) (n : ℕ) :
     Bornology.IsBounded (Function.support (hilbertHTrunc ω n)) := by
@@ -3245,7 +3245,7 @@ theorem eLpNorm_indicator_compl_closedBall_tendsto_zero {ω : ℂ → ℂ} {p : 
   filter_upwards [hkey (ε ^ p) (by positivity)] with n hn
   have heq : eLpNorm ((closedBall (0:ℂ) (n:ℝ))ᶜ.indicator ω) (ENNReal.ofReal p) =
       (∫⁻ z in (closedBall (0:ℂ) (n:ℝ))ᶜ, ‖ω z‖ₑ ^ p) ^ (1 / p) := by
-    rw [eLpNorm_indicator_eq_eLpNorm_restrict measurableSet_closedBall.compl,
+    rw [eLpNorm_indicator_eq_eLpNorm_restrict measurableSet_closedBall.compl.nullMeasurableSet,
       eLpNorm_eq_lintegral_rpow_enorm_toReal hp0ne hp'e hω.aestronglyMeasurable.restrict, htop]
   rw [heq]
   calc (∫⁻ z in (closedBall (0:ℂ) (n:ℝ))ᶜ, ‖ω z‖ₑ ^ p) ^ (1 / p) ≤ (ε ^ p) ^ (1 / p) :=
@@ -3329,7 +3329,7 @@ theorem t5Mollify_tendsto_global {p : ℝ} (hp1 : 1 ≤ p) (hp' : ENNReal.ofReal
           (volume.restrict (closedBall (0:ℂ) (R_H + 1)))) := by
       funext n
       conv_lhs => rw [heq n]
-      exact eLpNorm_indicator_eq_eLpNorm_restrict measurableSet_closedBall
+      exact eLpNorm_indicator_eq_eLpNorm_restrict measurableSet_closedBall.nullMeasurableSet
     rw [hgoal]
     exact hrestrict
   rw [ENNReal.tendsto_nhds_zero] at hHtendsto
@@ -3416,7 +3416,7 @@ theorem hilbertHApprox_tendsto {ω : ℂ → ℂ} {p : ℝ} (hp : 1 ≤ p)
       · rw [Set.indicator_of_notMem hw, Set.indicator_of_mem (by simp [hw]), zero_sub]
     rw [heq1, heq2]
     have hmeas : AEStronglyMeasurable (fun w => -((closedBall (0:ℂ) (n:ℝ))ᶜ.indicator ω w)) volume :=
-      (hω.indicator (s := (closedBall (0:ℂ) (n:ℝ))ᶜ) measurableSet_closedBall.compl).aestronglyMeasurable.neg
+      (hω.indicator (s := (closedBall (0:ℂ) (n:ℝ))ᶜ) measurableSet_closedBall.compl.nullMeasurableSet).aestronglyMeasurable.neg
     have hY : eLpNorm (t5Mollify (fun w => -((closedBall (0:ℂ) (n:ℝ))ᶜ.indicator ω w)) n)
         (ENNReal.ofReal p) ≤
         eLpNorm (fun w => -((closedBall (0:ℂ) (n:ℝ))ᶜ.indicator ω w)) (ENNReal.ofReal p) :=
@@ -4232,7 +4232,7 @@ theorem offsupp_hilbertHSmooth_eq_integral {ψ : ℂ → ℂ}
       (μ := volume) MeasurableSet.univ (subset_univ {ζ : ℂ | r < ‖ζ - z‖})
       (fun ζ hζ => by
         have h1 : ‖ζ - z‖ ≤ r := by
-          rw [mem_diff, mem_setOf_eq, not_lt] at hζ
+          replace hζ : ζ ∈ univ ∧ ‖ζ - z‖ ≤ r := ⟨hζ.1, not_lt.mp hζ.2⟩
           exact hζ.2
         have hζnot : ζ ∉ tsupport ψ := fun hmem => by linarith [hbd ζ hmem, hr.2]
         rw [image_eq_zero_of_notMem_tsupport hζnot]; simp)
@@ -5041,7 +5041,7 @@ theorem cz_enorm_hilbertH_le_tsum {ι : Type} [Countable ι] {Q : ι → Set ℂ
   set Fn : ℕ → Finset ι := fun n =>
     (Set.Finite.preimage he.injOn (Set.finite_Iio n) : Set.Finite {i : ι | e i < n}).toFinset
     with hFndef
-  have hbi : ∀ i, MemLp ((Q i).indicator b) 2 volume := fun i => hbL2.indicator (hQmeas i)
+  have hbi : ∀ i, MemLp ((Q i).indicator b) 2 volume := fun i => hbL2.indicator (hQmeas i).nullMeasurableSet
   have hsfun : ∀ n, s n = ∑ i ∈ Fn n, (Q i).indicator b := by
     intro n
     rw [Finset.sum_fn]
@@ -5365,7 +5365,7 @@ theorem cz_badpart_weakL1 {ι : Type} [Countable ι] {Q : ι → Set ℂ} {c : �
       ∫⁻ z in Eᶜ, ‖hilbertH b z‖ₑ :=
     (mul_le_mul_right (measure_mono hsetsub) _).trans hmarkov
   -- Step C: the tail sum bound on the exterior integral.
-  have hbi : ∀ i, MemLp ((Q i).indicator b) 2 volume := fun i => hb_L2.indicator (hQmeas i)
+  have hbi : ∀ i, MemLp ((Q i).indicator b) 2 volume := fun i => hb_L2.indicator (hQmeas i).nullMeasurableSet
   have hbi_int : ∀ i, Integrable ((Q i).indicator b) volume := fun i => hb_int.indicator (hQmeas i)
   have hbi_mean : ∀ i, ∫ ζ in Q i, (Q i).indicator b ζ = 0 := by
     intro i
@@ -7630,7 +7630,7 @@ theorem thm11_3_cor1 : hilbertNorm 2 = 1 := by
   have h2 : ENNReal.ofReal (2 : ℝ) = 2 := by norm_num
   -- a witness: the indicator of the unit disc
   have hmem : MemLp ((ball (0 : ℂ) 1).indicator fun _ => (1 : ℂ)) (ENNReal.ofReal 2) :=
-    memLp_indicator_const _ measurableSet_ball 1 (Or.inr measure_ball_lt_top.ne)
+    memLp_indicator_const _ measurableSet_ball.nullMeasurableSet 1 (Or.inr measure_ball_lt_top.ne)
   have hsupp : {z : ℂ | (ball (0 : ℂ) 1).indicator (fun _ => (1 : ℂ)) z ≠ 0} = ball 0 1 := by
     ext z
     constructor

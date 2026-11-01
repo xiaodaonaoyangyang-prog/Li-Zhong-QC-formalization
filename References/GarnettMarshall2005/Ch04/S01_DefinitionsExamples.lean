@@ -722,7 +722,7 @@ theorem gm4b_lintegral_sphere {s : ℝ} (hs : 0 < s) {ρ : ℂ → ℝ≥0∞} (
       rw [h, hz] at this
       simpa using this.symm
     set θ : ℝ := if 0 < arg z then arg z else arg z + 2 * π with hθ
-    have hθI : Ioo 0 (2 * π) θ := by
+    have hθI : θ ∈ Ioo 0 (2 * π) := by
       have h1 := neg_pi_lt_arg z
       have h2 := arg_le_pi z
       rw [hθ]
@@ -1603,7 +1603,7 @@ theorem gm4b_annulus_radial_mem {r R : ℝ} (hr : 0 < r) (hrR : r < R) {u : ℂ}
 theorem gm4b_lintegral_inv {a b : ℝ} (ha : 0 < a) (hab : a < b) :
     ∫⁻ s in Ioo a b, ENNReal.ofReal (1 / s) = ENNReal.ofReal (Real.log (b / a)) := by
   have hint : IntegrableOn (fun t : ℝ => 1 / t) (Ioo a b) :=
-    ((continuousOn_const.div continuousOn_id (fun t ht => (ha.trans_le ht.1).ne')).integrableOn_Icc).mono_set
+    ((continuousOn_const.div continuousOn_id (fun t (ht : t ∈ Icc a b) => (ha.trans_le ht.1).ne')).integrableOn_Icc).mono_set
       Ioo_subset_Icc_self
   rw [← ofReal_integral_eq_lintegral_ofReal hint
     (ae_restrict_of_forall_mem measurableSet_Ioo fun t ht => (one_div_pos.2 (ha.trans ht.1)).le)]
@@ -1779,7 +1779,7 @@ theorem gm4b_annulus_metric {r R : ℝ} (hr : 0 < r) (hrR : r < R) {c : ℝ} (hc
         setLIntegral_congr_fun measurableSet_Ioo fun t ht => by
           rw [zero_add, mul_one, Complex.norm_real, Real.norm_of_nonneg (hr.le.trans ht.1.le)]
       have hint : IntegrableOn (fun t : ℝ => c / t) (Ioo r R) :=
-        ((continuousOn_const.div continuousOn_id (fun t ht => (hr.trans_le ht.1).ne')).integrableOn_Icc).mono_set
+        ((continuousOn_const.div continuousOn_id (fun t (ht : t ∈ Icc r R) => (hr.trans_le ht.1).ne')).integrableOn_Icc).mono_set
           Ioo_subset_Icc_self
       rw [hcongr, ← ofReal_integral_eq_lintegral_ofReal hint
         (ae_restrict_of_forall_mem measurableSet_Ioo fun t ht => div_nonneg hc.le (hr.trans ht.1).le)]
@@ -2101,7 +2101,7 @@ theorem gm4b_lintegral_sphere_sym {s : ℝ} (hs : 0 < s) {ρ : ℂ → ℝ≥0�
       rw [← this]
       ring
     left
-    have hθI : Ioo (-π) π (arg z) := ⟨neg_pi_lt_arg z, lt_of_le_of_ne (arg_le_pi z) hzs⟩
+    have hθI : arg z ∈ Ioo (-π) π := ⟨neg_pi_lt_arg z, lt_of_le_of_ne (arg_le_pi z) hzs⟩
     refine ⟨(0 : ℂ) + (arg z) * 1, ⟨arg z, hθI, rfl⟩, ?_⟩
     simp only [hφdef]
     rw [show ((0 : ℂ) + (arg z : ℝ) * 1) * I = ((arg z : ℝ) : ℂ) * I by ring, ← hz]

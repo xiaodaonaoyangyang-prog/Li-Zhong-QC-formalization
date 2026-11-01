@@ -132,15 +132,15 @@ noncomputable abbrev modOZ (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] 
   modO X ⋙ ModuleCat.restrictScalars (Int.castRingHom ℂ)
 
 /-- The image `d″𝓔(X)` in the space of 1-forms. -/
-def dBarImage (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] : Submodule ℂ (Form1 X) :=
+noncomputable def dBarImage (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] : Submodule ℂ (Form1 X) :=
   Submodule.span ℂ (dFormBar '' (smoothFunOn X ⊤ : Set (X → ℂ)))
 
 /-- The image `dℰ^{1,0}(X)` in the space of 2-forms. -/
-def dImage (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] : Submodule ℂ (Form2 X) :=
+noncomputable def dImage (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] : Submodule ℂ (Form2 X) :=
   Submodule.span ℂ (Form1.d '' (smoothForms10On X ⊤ : Set (Form1 X)))
 
 /-- The space `dℰ(X)` of exact 1-forms. -/
-def exactForms (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] : Submodule ℂ (Form1 X) :=
+noncomputable def exactForms (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] : Submodule ℂ (Form1 X) :=
   Submodule.span ℂ (dForm '' (smoothFunOn X ⊤ : Set (X → ℂ)))
 
 /-- **The de Rham group** `Rh¹(X) = 𝓩(X)/dℰ(X)` (15.15, Ch. 2 §15, F1:5534). -/

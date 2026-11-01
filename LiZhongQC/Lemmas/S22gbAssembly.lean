@@ -218,7 +218,7 @@ theorem s22gb_assembly {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
       inter_eq_right.2 inter_subset_left]
   -- the two sums
   have hsum1 : ∑ i, ∫ y, g1 i y ∂μ = (μ A).toReal := by
-    rw [← integral_finset_sum _ (fun i _ => hg1i i)]
+    rw [← integral_finsetSum _ (fun i _ => hg1i i)]
     have : (fun y => ∑ i, g1 i y) = A.indicator 1 := by
       funext y
       by_cases hy : y ∈ A
@@ -229,7 +229,7 @@ theorem s22gb_assembly {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)}
       integral_indicator_one hAm]
     rfl
   have hsum2 : ∑ i, ∫ y, g2 i y ∂μ = 0 := by
-    rw [← integral_finset_sum _ (fun i _ => hg2i i)]
+    rw [← integral_finsetSum _ (fun i _ => hg2i i)]
     have : (fun y => ∑ i, g2 i y) = fun _ => (0 : ℝ) := by
       funext y
       by_cases hy : y ∈ A

@@ -1868,7 +1868,8 @@ theorem s82td_u_local {q : S₀ → ℂ → ℂ} {k : ℝ} {X : Type u} [Topolog
     rw [hgs]
     exact mem_chart_source ℂ (e p)
   have hσan : AnalyticAt ℂ (chartTransition (e p) (e x)) (localMapExpr e x z₀) :=
-    DifferentiableOn.analyticAt (fun w hw => (s23_transition (e p) (e x) hw.1 hw.2).1.differentiableWithinAt)
+    DifferentiableOn.analyticAt
+      (by exact fun w hw => (s23_transition (e p) (e x) hw.1 hw.2).1.differentiableWithinAt)
       (((chartAt ℂ (e x)).isOpen_inter_preimage_symm (chartAt ℂ (e p)).open_source).mem_nhds ⟨hgt, hgs'⟩)
   have hσd : deriv (chartTransition (e p) (e x)) (localMapExpr e x z₀) ≠ 0 :=
     (s23_transition (e p) (e x) hgt hgs').2

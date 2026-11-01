@@ -17,7 +17,8 @@ This section develops the theory of 2-connected subgraphs of the grid:
 - Key results: rectagons are conn2, rectangle grids are conn2, conn2 sets contain rectagons
 -/
 
-open Set Metric Topology Function
+open Set hiding up
+open Metric Topology Function
 
 -- Helper: numClosure additivity for disjoint unions
 private theorem numClosure_disjoint_union {A B : Finset (Set E2)} (hDisj : Disjoint A B)

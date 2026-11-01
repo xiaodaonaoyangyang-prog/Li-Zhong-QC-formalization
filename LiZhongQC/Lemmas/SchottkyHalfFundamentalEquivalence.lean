@@ -42,16 +42,20 @@ theorem s78dg_retraction_fundamental_equiv {X : Type u} {Y : Type v}
       rw [hleftMap]
     right_inv := ⟨H.symm⟩ }
   let G := FundamentalGroupoidFunctor.equivOfHomotopyEquiv htop
-  have hbij : Function.Bijective (FundamentalGroup.map e x) :=
-    G.fullyFaithfulFunctor.map_bijective (FundamentalGroupoid.mk x) (FundamentalGroupoid.mk x)
+  have hbij : Function.Bijective (FundamentalGroup.map e x) := by
+    have hG :=
+      G.fullyFaithfulFunctor.map_bijective (FundamentalGroupoid.mk x) (FundamentalGroupoid.mk x)
+    exact End.homEquiv.symm.bijective.comp (hG.comp End.homEquiv.bijective)
   let E : FundamentalGroup X x ≃* FundamentalGroup Y (e x) := {
     toEquiv := Equiv.ofBijective (FundamentalGroup.map e x) hbij
     map_mul' := (FundamentalGroup.map e x).map_mul' }
   have hleft (γ : FundamentalGroup X x) :
       FundamentalGroup.mapOfEq r (hre x) (FundamentalGroup.map e x γ) = γ := by
+    obtain ⟨γ⟩ := γ
     rw [FundamentalGroup.mapOfEq_apply]
     refine Quotient.inductionOn γ ?_
     intro p
+    apply CategoryTheory.End.ext
     change Path.Homotopic.Quotient.mk
       (((p.map e.continuous).map r.continuous).cast (hre x).symm (hre x).symm) =
         Path.Homotopic.Quotient.mk p

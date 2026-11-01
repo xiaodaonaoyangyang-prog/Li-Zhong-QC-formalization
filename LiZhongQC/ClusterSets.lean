@@ -2859,7 +2859,8 @@ section ClusterSets
 theorem clusterSet_unitDisc_eq_mapClusterPt (f : ℂ → ℂ) (ζ : ℂ) :
     clusterSet f unitDisc ζ = {w | MapClusterPt w (𝓝[unitDisc] ζ) f} := by
   ext w
-  rw [mem_setOf_eq, MapClusterPt,
+  show w ∈ clusterSet f unitDisc ζ ↔ MapClusterPt w (𝓝[unitDisc] ζ) f
+  rw [mapClusterPt_def,
     ((Metric.nhdsWithin_basis_ball (x := ζ) (s := unitDisc)).map f).clusterPt_iff_forall_mem_closure]
   simp only [clusterSet, mem_iInter, gt_iff_lt]
   constructor

@@ -704,7 +704,7 @@ theorem s82bc_winding_parity {Y : Type*} [TopologicalSpace Y] (f : C(Y, AddCircl
   -- integrality
   have hint : ∀ γ : FundamentalGroup Y x₀, ∃ n : ℤ, ψ (Additive.ofMul γ) = n := by
     intro γ
-    obtain ⟨ℓ₀, hℓ₀⟩ := Quotient.exists_rep γ
+    obtain ⟨ℓ₀, hℓ₀⟩ := Quotient.exists_rep γ.asHom
     -- a real lift of `f ∘ ℓ₀`
     obtain ⟨L, hL⟩ := s78rb_lift_real
       ⟨fun t => f (ℓ₀ (Set.projIcc (0 : ℝ) 1 zero_le_one t)), by fun_prop⟩
@@ -722,6 +722,7 @@ theorem s82bc_winding_parity {Y : Type*} [TopologicalSpace Y] (f : C(Y, AddCircl
     have := hψ x₀ ℓ₀ (Path.refl x₀) Λ hΛ
     have hcl : FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk (((Path.refl x₀).trans ℓ₀).trans
         (Path.refl x₀).symm)) = γ := by
+      apply CategoryTheory.End.ext
       rw [← hℓ₀]
       have hsr : (Path.Homotopic.Quotient.refl x₀).symm = Path.Homotopic.Quotient.refl x₀ := by
         have := Path.Homotopic.Quotient.symm_trans (Path.Homotopic.Quotient.refl x₀)

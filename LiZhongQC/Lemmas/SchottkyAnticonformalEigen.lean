@@ -237,6 +237,7 @@ theorem s78no_anticonformal_character_eigen (X : Type u) [TopologicalSpace X] [T
       FundamentalGroup.mapOfEq (J : C(X, X)) hx
         (FundamentalGroup.mapOfEq (J : C(X, X)) hx γ) = γ := by
     intro γ
+    obtain ⟨γ⟩ := γ
     refine Quotient.inductionOn γ (fun p => ?_)
     rw [hloopJ, hloopJ, hpath]
   have hA2 : ∀ χ, A (A χ) = χ := by
@@ -265,6 +266,7 @@ theorem s78no_anticonformal_character_eigen (X : Type u) [TopologicalSpace X] [T
     intro v
     refine AddMonoidHom.ext fun a => ?_
     obtain ⟨a, rfl⟩ := Additive.ofMul.surjective a
+    obtain ⟨a⟩ := a
     refine Quotient.inductionOn a (fun p => ?_)
     rw [hF1, hP, hσ, hconj, Complex.conj_re]
   -- multiplication by `i`
@@ -287,6 +289,7 @@ theorem s78no_anticonformal_character_eigen (X : Type u) [TopologicalSpace X] [T
     rw [hIP, hAP, hAP, hIP]
     refine AddMonoidHom.ext fun a => ?_
     obtain ⟨a, rfl⟩ := Additive.ofMul.surjective a
+    obtain ⟨a⟩ := a
     refine Quotient.inductionOn a (fun p => ?_)
     rw [AddMonoidHom.neg_apply, hP, hP, hσ, hconj, map_smul, map_smul, k22rr_pathPrimValue_smul,
       k22rr_pathPrimValue_smul, hσ, hconj]

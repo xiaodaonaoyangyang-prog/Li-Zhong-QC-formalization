@@ -6114,7 +6114,7 @@ theorem lemma9_2_genPartials_of_isACL {f : ℂ → ℂ} {D : Set ℂ} (hD : IsOp
       (contDiff_const.sub contDiff_id)
   refine ⟨?_, ?_⟩
   · have hG : MemLp ((cthickening δ C).indicator (partialX f)) p volume :=
-      (memLp_indicator_iff_restrict hKc.measurableSet).2 (hloc _ hKD hKc).1
+      (memLp_indicator_iff_restrict hKc.measurableSet.nullMeasurableSet).2 (hloc _ hKD hKc).1
     refine (tendsto_eLpNorm_convolution_normed_sub hb hp hp' hG hC.measure_lt_top.ne).congr' ?_
     filter_upwards [hev] with n hn
     obtain ⟨hnδ, hnK⟩ := hn
@@ -6132,7 +6132,7 @@ theorem lemma9_2_genPartials_of_isACL {f : ℂ → ℂ} {D : Set ℂ} (hD : IsOp
     rw [indicator_of_mem (self_subset_cthickening C hz),
       ← fderiv_lemma92Approx_eq hf.1 hnδ hnK hz 1 hibp]
   · have hG : MemLp ((cthickening δ C).indicator (partialY f)) p volume :=
-      (memLp_indicator_iff_restrict hKc.measurableSet).2 (hloc _ hKD hKc).2
+      (memLp_indicator_iff_restrict hKc.measurableSet.nullMeasurableSet).2 (hloc _ hKD hKc).2
     refine (tendsto_eLpNorm_convolution_normed_sub hb hp hp' hG hC.measure_lt_top.ne).congr' ?_
     filter_upwards [hev] with n hn
     obtain ⟨hnδ, hnK⟩ := hn

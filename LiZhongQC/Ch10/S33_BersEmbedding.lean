@@ -212,7 +212,7 @@ theorem bg_s_beltrami {μ : ℂ → ℂ} {k : ℝ} (hμ : IsBeltramiCoeff μ upp
       · rw [Set.piecewise_eq_of_notMem lowerHalf _ _ (show z ∉ lowerHalf from hz), symmetricExtension,
           ite_eq_right hz]
     rw [heq]
-    exact hL.piecewise isOpen_lowerHalf.measurableSet hC
+    exact hL.piecewise isOpen_lowerHalf.measurableSet.nullMeasurableSet hC
   · -- the bound: `σ = μ` on `ℍ`, and `‖σ z‖ = ‖μ z̄‖` on `𝕃`
     refine bg_ae_of_halves ?_ ?_
     · filter_upwards [hμ.2, ae_restrict_mem isOpen_upperHalf.measurableSet] with z h1 h2
@@ -4081,11 +4081,10 @@ theorem b33_d_conjGroup_isFuchsian (hΓ : IsFuchsian Γ) (F : UpperHalfPlane ≃
       · exact Or.inl h
       · exact Or.inr h
     · push Not at hne
-      convert Set.finite_empty
-      ext γ'
-      simp only [mem_ofPred_eq, mem_empty_iff_false, iff_false, not_forall]
+      refine Set.Finite.subset Set.finite_empty fun γ' hγ' => ?_
+      simp only [mem_ofPred_eq] at hγ'
       obtain ⟨τ, hτ⟩ := hne γ'
-      exact ⟨τ, hτ⟩
+      exact absurd (hγ' τ) hτ
   refine (hS.biUnion fun γ _ => hL γ).subset ?_
   rintro γ' ⟨⟨γ, hγ, hrel⟩, x, ⟨τ, hτC, rfl⟩, hxC⟩
   refine mem_iUnion₂.2 ⟨γ, ⟨hγ, γ • F.symm τ, ⟨F.symm τ, ?_, rfl⟩, ?_⟩, hrel⟩

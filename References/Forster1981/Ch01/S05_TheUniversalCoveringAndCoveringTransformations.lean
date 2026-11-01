@@ -41,10 +41,10 @@ namespace Forster1981
 open scoped Forster1981
 
 /-- The unit disc `D`, as an open submanifold of `ℂ` (helper). -/
-def unitDiscOpen : TopologicalSpace.Opens ℂ := ⟨Metric.ball 0 1, Metric.isOpen_ball⟩
+noncomputable def unitDiscOpen : TopologicalSpace.Opens ℂ := ⟨Metric.ball 0 1, Metric.isOpen_ball⟩
 
 /-- The punctured unit disc `D* = D ∖ {0}`, as an open submanifold of `ℂ` (helper). -/
-def punctUnitDisc : TopologicalSpace.Opens ℂ :=
+noncomputable def punctUnitDisc : TopologicalSpace.Opens ℂ :=
   ⟨Metric.ball 0 1 \ {0}, Metric.isOpen_ball.sdiff isClosed_singleton⟩
 
 /-- The left half plane `H = {z : Re z < 0}`, as an open submanifold of `ℂ` (helper). -/

@@ -302,7 +302,7 @@ theorem gl8_integrableOn_compl_iff {R : ℝ} (hR : 0 < R) (a : ℝ) :
       rw [show (2 - 1 : ℕ) = 1 from rfl, pow_one, sub_eq_add_neg, Real.rpow_add (show (0 : ℝ) < y from hy),
         Real.rpow_one]
     · simp only [indicator_of_notMem hyR, smul_zero]
-  rw [hcongr, integrableOn_indicator_iff measurableSet_Ioi,
+  rw [hcongr, integrableOn_indicator_iff measurableSet_Ioi.nullMeasurableSet,
     show Ioi R ∩ Ioi (0 : ℝ) = Ioi R from inter_eq_left.2 (Ioi_subset_Ioi hR.le), integrableOn_Ioi_rpow_iff hR]
   constructor <;> intro h <;> linarith
 

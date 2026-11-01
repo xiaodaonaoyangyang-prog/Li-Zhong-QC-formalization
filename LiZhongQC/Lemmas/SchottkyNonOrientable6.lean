@@ -396,8 +396,8 @@ theorem s78dg_no_pi1_base (p : ℕ) (hp : 1 ≤ p) :
         (s78dg_gr_U (NonOrientableRel p 0)) (s78dg_gr_V (NonOrientableRel p 0)))
         (DifferentialGeometry.Topology.VanKampen.interToLeft_overlapBasepoint
           (s78dg_gr_U (NonOrientableRel p 0)) (s78dg_gr_V (NonOrientableRel p 0))
-          (b : Quot (NonOrientableRel p 0)) hx₀) (Path.Homotopic.Quotient.mk γ) =
-        Path.Homotopic.Quotient.mk c :=
+          (b : Quot (NonOrientableRel p 0)) hx₀) (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)) =
+        FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk c) :=
       s78dg_pi1_mapOfEq_mk (DifferentialGeometry.Topology.VanKampen.interToLeft _ _) _ _
         (DifferentialGeometry.Topology.VanKampen.interToLeft_overlapBasepoint _ _ _ hx₀) γ c
         (fun t => rfl)

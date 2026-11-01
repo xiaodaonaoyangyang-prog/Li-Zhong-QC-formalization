@@ -737,7 +737,8 @@ theorem s78rb_core_model_boundary_orientable (hm : m ≠ 0) {p q : ℕ} (hpq : 1
   refine s78nm_assembly F φ
     (fun j t => (Quot.mk _ (ClosedUnitDisc.bdyPtOfReal
       ((t - (3 * ((j : ℕ) : ℝ) + 2)) / (4 * p + 3 * q))) : Quot (OrientableRel p q)))
-    V hV ?_ ?_ ?_ ?_ _ (fun z => Iff.rfl) ?_ ?_
+    V hV ?_ ?_ ?_ ?_
+    {z | ¬∃ U, IsOpen U ∧ z ∈ U ∧ Nonempty (↑U ≃ₜ EuclideanSpace ℝ (Fin 2))} (fun z => Iff.rfl) ?_ ?_
   · intro j
     exact continuous_quot_mk.comp (s78dg_bdy_continuous.comp
       ((continuous_id.sub continuous_const).div_const _))
@@ -793,7 +794,8 @@ theorem s78rb_core_model_boundary_nonorientable (hm : m ≠ 0) {p q : ℕ} (hp :
   refine s78nm_assembly F φ
     (fun j t => (Quot.mk _ (ClosedUnitDisc.bdyPtOfReal
       ((t - (3 * ((j : ℕ) : ℝ) + 2)) / (2 * p + 3 * q))) : Quot (NonOrientableRel p q)))
-    V hV ?_ ?_ ?_ ?_ _ (fun z => Iff.rfl) ?_ ?_
+    V hV ?_ ?_ ?_ ?_
+    {z | ¬∃ U, IsOpen U ∧ z ∈ U ∧ Nonempty (↑U ≃ₜ EuclideanSpace ℝ (Fin 2))} (fun z => Iff.rfl) ?_ ?_
   · intro j
     exact continuous_quot_mk.comp (s78dg_bdy_continuous.comp
       ((continuous_id.sub continuous_const).div_const _))

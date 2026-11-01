@@ -265,7 +265,7 @@ theorem s78dg_no_petal_step (p : ℕ) (hp : 1 ≤ p) (one : Set.Ioc (0 : ℝ) 1)
   let eB : FundamentalGroup (AddCircle (1 : ℝ)) 0 ≃* FreeGroup Unit :=
     φ.trans (FreeGroup.mulEquivIntOfUnique (α := Unit)).symm
   have heB : eB (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)) = FreeGroup.of () := by
-    show (FreeGroup.mulEquivIntOfUnique (α := Unit)).symm (φ (Path.Homotopic.Quotient.mk γ)) = _
+    show (FreeGroup.mulEquivIntOfUnique (α := Unit)).symm (φ (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ))) = _
     rw [hφ]
     rw [MulEquiv.symm_apply_eq]
     simp [FreeGroup.mulEquivIntOfUnique, FreeGroup.equivIntOfUnique]

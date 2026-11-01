@@ -1774,7 +1774,7 @@ theorem s26u_transition_analyticAt {q : S₀ → ℂ → ℂ} (hq : IsHolQuadDif
     filter_upwards [((chartAt ℂ x).isOpen_inter_preimage_symm (chartAt ℂ y).open_source).mem_nhds
       ⟨hz, hzy⟩, hc.eventually_ne hq0] with w hw hw'
     exact ⟨hw.1, hw.2, hw'⟩
-  refine ⟨DifferentiableOn.analyticAt (fun w hw =>
+  refine ⟨DifferentiableOn.analyticAt (by exact fun w hw =>
     (differentiableAt_of_deriv_ne_zero (hd w hw.1 hw.2.1 hw.2.2)).differentiableWithinAt) hN,
     hd z hz hzy hq0⟩
 
@@ -1821,7 +1821,7 @@ theorem s26u_local {q : S₀ → ℂ → ℂ} {k : ℝ} {X : ClosedRS.{u}} {e : 
     rw [hgs]
     exact mem_chart_source ℂ (e p)
   have hσan : AnalyticAt ℂ (chartTransition (e p) (e x)) (localMapExpr e x z₀) :=
-    DifferentiableOn.analyticAt (fun w hw => (s23_transition (e p) (e x) hw.1 hw.2).1.differentiableWithinAt)
+    DifferentiableOn.analyticAt (by exact fun w hw => (s23_transition (e p) (e x) hw.1 hw.2).1.differentiableWithinAt)
       (((chartAt ℂ (e x)).isOpen_inter_preimage_symm (chartAt ℂ (e p)).open_source).mem_nhds ⟨hgt, hgs'⟩)
   have hσd : deriv (chartTransition (e p) (e x)) (localMapExpr e x z₀) ≠ 0 :=
     (s23_transition (e p) (e x) hgt hgs').2
@@ -4963,7 +4963,7 @@ theorem s26v_b_traj_eqOn [T2Space S₀] [IsManifold 𝓘(ℂ) ω S₀] {q : S₀
     obtain ⟨σ₂, -, hσ₂⟩ := s26v_b_line_of_box hB hIo hIc (fun s hs => h₂ s (hball s hs).1)
       (fun s hs => (hball s hs).2.2) (mem_ball_self hδ)
     obtain ⟨s₀, hs₀A, hs₀I⟩ : (A ∩ ball t δ).Nonempty :=
-      mem_closure_iff_nhds.1 htA _ (isOpen_ball.mem_nhds (mem_ball_self hδ)) |>.mono fun s hs => ⟨hs.2, hs.1⟩
+      mem_closure_iff_nhds.1 htA _ (isOpen_ball.mem_nhds (mem_ball_self hδ)) |>.mono (by exact fun s hs => ⟨hs.2, hs.1⟩)
     obtain ⟨ε, hε, hεs⟩ := Metric.isOpen_iff.1 (hAo.inter isOpen_ball) s₀ ⟨hs₀A, hs₀I⟩
     obtain ⟨s, ⟨hsA, hsI⟩, hst⟩ : ∃ s, s ∈ A ∩ ball t δ ∧ s ≠ t := by
       by_cases h : s₀ = t
@@ -6264,7 +6264,7 @@ theorem s26v_a_dev_formula [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘
       rw [heq]
       exact (s26v_a_W_measurable hq hT hfam k).inter h1
     have hm := s26v_a_measurableSet_inter_preimage hDo
-      (s26v_a_natAt_continuousOn (fun u hu => hnatW k u hu.1) (x m) fun u hu => hu.2) (hQsm m).2
+      (s26v_a_natAt_continuousOn (by exact fun u hu => hnatW k u hu.1) (x m) fun u hu => hu.2) (hQsm m).2
     convert hm using 1
     ext w
     simp only [hWm, hD, Set.mem_ofPred_eq]
@@ -6287,7 +6287,7 @@ theorem s26v_a_dev_formula [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘
     set Ak : ℕ → Set ℂ := fun k => (fun w => φ (G k w)) '' Wm m k with hAk
     have hAk_meas : ∀ k, MeasurableSet (Ak k) := fun k =>
       (hWm_meas m k).image_of_continuousOn_injOn
-        (s26v_a_natAt_continuousOn (fun u hu => hnatW k u hu.1) (x m) fun u hu => (hQsm m).1 hu.2)
+        (s26v_a_natAt_continuousOn (by exact fun u hu => hnatW k u hu.1) (x m) fun u hu => (hQsm m).1 hu.2)
         fun u₁ h₁ u₂ h₂ h => hinjW k h₁.1 h₂.1 (φ.injOn ((hQsm m).1 h₁.2) ((hQsm m).1 h₂.2) h)
     have hAk_disj : Pairwise (fun k k' => Disjoint (Ak k) (Ak k')) := by
       intro k k' hkk'
@@ -6356,7 +6356,7 @@ theorem s26v_a_piece_measurable [IsManifold 𝓘(ℂ) ω S₀] {q : S₀ → ℂ
     rw [heq]
     exact hAm.inter h1
   have hc : ContinuousOn (fun u => chartAt ℂ x (G u)) D :=
-    s26v_a_natAt_continuousOn (fun u hu => hG u (hAO hu.1)) x fun u hu => hu.2
+    s26v_a_natAt_continuousOn (by exact fun u hu => hG u (hAO hu.1)) x fun u hu => hu.2
   have hm := s26v_a_measurableSet_inter_preimage hDm hc hQm
   have heq : {u | u ∈ A ∧ G u ∈ Q} = {u | u ∈ D ∧ chartAt ℂ x (G u) ∈ chartAt ℂ x '' Q} := by
     ext u
@@ -7060,7 +7060,7 @@ theorem s26v_pair_average [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(
   rw [← lintegral_add_left' hmeas]
   have hc0 := s26v_a_family_center hq hT hfam k
   have hnull : volume {u | u ∈ s26v_a_W G ρ k ∧ G k u ∈ s26v_E q} = 0 :=
-    s26v_a_null_preimage_all hq isOpen_ball (fun w hw => hw.1) hWm hc0.1 hc0.2.1 (s26v_E_null hq hne)
+    s26v_a_null_preimage_all hq isOpen_ball (by exact fun w hw => hw.1) hWm hc0.1 hc0.2.1 (s26v_E_null hq hne)
   have hae : ∀ᵐ w ∂(volume.restrict (s26v_a_W G ρ k)), G k w ∉ s26v_E q := by
     rw [ae_iff, Measure.restrict_apply' hWm]
     exact measure_mono_null (t := {u | u ∈ s26v_a_W G ρ k ∧ G k u ∈ s26v_E q})
@@ -7145,7 +7145,7 @@ theorem s26v_flow_average [T2Space S₀] [ConnectedSpace S₀] [IsManifold 𝓘(
       obtain ⟨p₀, hG⟩ := hfam.1 k
       have hc0 := s26v_a_family_center hq hT hfam k
       have hnull : volume {u | u ∈ s26v_a_W G ρ k ∧ G k u ∈ s26v_E q} = 0 :=
-        s26v_a_null_preimage_all hq isOpen_ball (fun w hw => hw.1) (hWm k) hc0.1 hc0.2.1 (s26v_E_null hq hne)
+        s26v_a_null_preimage_all hq isOpen_ball (by exact fun w hw => hw.1) (hWm k) hc0.1 hc0.2.1 (s26v_E_null hq hne)
       have hae : ∀ᵐ w ∂(volume.restrict (s26v_a_W G ρ k)), G k w ∉ s26v_E q := by
         rw [ae_iff, Measure.restrict_apply' (hWm k)]
         exact measure_mono_null (t := {u | u ∈ s26v_a_W G ρ k ∧ G k u ∈ s26v_E q})
@@ -7229,7 +7229,7 @@ theorem s26v_a_hull [IsManifold 𝓘(ℂ) ω S₀] [CompactSpace S₀] {q : S₀
   refine ⟨⋃ x ∈ (t : Set S₀), {u | u ∈ D x ∧ chartAt ℂ x (G u) ∈ M x}, ?_, ?_, ?_⟩
   · refine MeasurableSet.biUnion t.countable_toSet fun x _ => ?_
     exact s26v_a_measurableSet_inter_preimage (hDo x).measurableSet
-      (s26v_a_natAt_continuousOn (fun u hu => hG u hu.1) x fun u hu => hu.2) (measurableSet_toMeasurable _ _)
+      (s26v_a_natAt_continuousOn (by exact fun u hu => hG u hu.1) x fun u hu => hu.2) (measurableSet_toMeasurable _ _)
   · intro u hu huN
     obtain ⟨x, hx, hux⟩ := mem_iUnion₂.1 (ht (mem_univ (G u)))
     exact mem_iUnion₂.2 ⟨x, hx, ⟨hu, hux⟩, subset_toMeasurable _ _ ⟨G u, ⟨huN, hux⟩, rfl⟩⟩
@@ -7740,8 +7740,9 @@ theorem s26v_arc_props [IsManifold 𝓘(ℂ) ω S₀] {q : S₀ → ℂ → ℂ}
         refine IsOpen.preimage γ.continuous_extend ?_
         by_cases hy : q y (chartAt ℂ y y) = 0
         · convert isOpen_empty
-          ext p
-          simp [hy]
+          first
+          | (ext p; simp [hy])
+          | exact iff_of_false (by simp [hy]) (fun h => (h : False))
         · have hq' : IsDiffFamily 2 0 q ∧ ∀ x : S₀, DifferentiableOn ℂ (q x) (chartAt ℂ x).target := hq
           have hcont : ContinuousOn (fun p => ‖q y (chartAt ℂ y p)‖) (chartAt ℂ y).source :=
             ((hq'.2 y).continuousOn.comp (chartAt ℂ y).continuousOn (chartAt ℂ y).mapsTo).norm
@@ -7972,7 +7973,7 @@ theorem s26v_b_sum_lintegral_le (f : ℝ → ℝ≥0∞) {u : ℕ → ℝ} (hu :
     calc (∑ i ∈ Finset.range n, ∫⁻ x in Ioo (u i) (u (i + 1)), f x) + ∫⁻ x in Ioo (u n) (u (n + 1)), f x
         ≤ (∫⁻ x in Ioo (u 0) (u n), f x) + ∫⁻ x in Ioo (u n) (u (n + 1)), f x := add_le_add ih le_rfl
       _ = ∫⁻ x in Ioo (u 0) (u n) ∪ Ioo (u n) (u (n + 1)), f x :=
-          (lintegral_union measurableSet_Ioo (disjoint_left.2 fun x hx hx' => lt_asymm hx.2 hx'.1)).symm
+          (lintegral_union measurableSet_Ioo (disjoint_left.2 (by exact fun x hx hx' => lt_asymm hx.2 hx'.1))).symm
       _ ≤ ∫⁻ x in Ioo (u 0) (u (n + 1)), f x :=
           lintegral_mono_set (union_subset (Ioo_subset_Ioo_right (hu (Nat.le_succ n)))
             (Ioo_subset_Ioo_left (hu (Nat.zero_le n))))
@@ -7996,7 +7997,7 @@ theorem s26v_b_sum_le_lintegral (G : ℝ → ℝ≥0∞) :
           ∫⁻ u in Ioo (τ (Fin.last n).castSucc) (τ (Fin.last (n + 1))), G u := add_le_add h1 le_rfl
       _ = ∫⁻ u in Ioo (τ 0) (τ (Fin.last n).castSucc) ∪
           Ioo (τ (Fin.last n).castSucc) (τ (Fin.last (n + 1))), G u :=
-          (lintegral_union measurableSet_Ioo (disjoint_left.2 fun x hx hx' => lt_asymm hx.2 hx'.1)).symm
+          (lintegral_union measurableSet_Ioo (disjoint_left.2 (by exact fun x hx hx' => lt_asymm hx.2 hx'.1))).symm
       _ ≤ _ := lintegral_mono_set (union_subset (Ioo_subset_Ioo_right (hτ (Fin.le_last _)))
           (Ioo_subset_Ioo_left (hτ (Fin.zero_le _))))
 
@@ -8446,8 +8447,9 @@ theorem s26v_phiLengthPathInv_eq [IsManifold 𝓘(ℂ) ω S₀] {q : S₀ → �
       refine IsOpen.preimage γ.continuous_extend ?_
       by_cases hy : q y (chartAt ℂ y y) = 0
       · convert isOpen_empty
-        ext p
-        simp [hy]
+        first
+        | (ext p; simp [hy])
+        | exact iff_of_false (by simp [hy]) (fun h => (h : False))
       · have hq' : IsDiffFamily 2 0 q ∧ ∀ x : S₀, DifferentiableOn ℂ (q x) (chartAt ℂ x).target := hq
         have hcont : ContinuousOn (fun p => ‖q y (chartAt ℂ y p)‖) (chartAt ℂ y).source :=
           ((hq'.2 y).continuousOn.comp (chartAt ℂ y).continuousOn (chartAt ℂ y).mapsTo).norm
@@ -9710,7 +9712,7 @@ theorem s26w_teich_jacobian [IsManifold 𝓘(ℂ) ω S₀] [IsManifold 𝓘(ℂ)
   have hσd' : deriv σ b ≠ 0 := (s23_transition (f₀ p) y hbt hbs').2
   have hσb : σ b = chartAt ℂ (f₀ p) (f₀ p) := by simp only [hσ, chartTransition, hbs]
   have hσan : AnalyticAt ℂ σ b :=
-    DifferentiableOn.analyticAt (fun w hw => (s23_transition (f₀ p) y hw.1 hw.2).1.differentiableWithinAt)
+    DifferentiableOn.analyticAt (by exact fun w hw => (s23_transition (f₀ p) y hw.1 hw.2).1.differentiableWithinAt)
       (((chartAt ℂ y).isOpen_inter_preimage_symm (chartAt ℂ (f₀ p)).open_source).mem_nhds ⟨hbt, hbs'⟩)
   have hζ'an : AnalyticAt ℂ ζ' (σ b) := by rw [hσb]; exact hζ'.1
   set B := ζ' ∘ σ with hB
@@ -10088,7 +10090,7 @@ theorem s26w_qc_chart_local [IsManifold 𝓘(ℂ) ω S₀] [IsManifold 𝓘(ℂ)
   -- the source transition `τ`
   set τ := chartTransition p x with hτ
   have hτan : AnalyticAt ℂ τ z :=
-    DifferentiableOn.analyticAt (fun w hw => (s23_transition p x hw.1 hw.2).1.differentiableWithinAt)
+    DifferentiableOn.analyticAt (by exact fun w hw => (s23_transition p x hw.1 hw.2).1.differentiableWithinAt)
       ((φ.isOpen_inter_preimage_symm (chartAt ℂ p).open_source).mem_nhds ⟨hzt, mem_chart_source ℂ p⟩)
   have hτd : deriv τ z ≠ 0 := (s23_transition p x hzt (mem_chart_source ℂ p)).2
   have hτz : τ z = chartAt ℂ p p := rfl
@@ -10108,7 +10110,7 @@ theorem s26w_qc_chart_local [IsManifold 𝓘(ℂ) ω S₀] [IsManifold 𝓘(ℂ)
   have hσan : AnalyticAt ℂ σ (localMapExpr f p (τ z)) := by
     rw [hFτz]
     exact DifferentiableOn.analyticAt
-      (fun w hw => (s23_transition y (f p) hw.1 hw.2).1.differentiableWithinAt)
+      (by exact fun w hw => (s23_transition y (f p) hw.1 hw.2).1.differentiableWithinAt)
       (((chartAt ℂ (f p)).isOpen_inter_preimage_symm ψ.open_source).mem_nhds ⟨hbt, hbs⟩)
   have hσd : deriv σ (localMapExpr f p (τ z)) ≠ 0 := by
     rw [hFτz]; exact (s23_transition y (f p) hbt hbs).2

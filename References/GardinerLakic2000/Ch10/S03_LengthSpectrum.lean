@@ -150,8 +150,10 @@ theorem gl10_transl_int {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} 
     obtain ⟨m, ⟨hmS, hm0, hm1⟩, hmin⟩ := Set.exists_min_image _ id hfin hne
     obtain ⟨t, ht1, ht2⟩ := hD.inter_open_nonempty (Ioo 0 m) isOpen_Ioo ⟨m / 2, by linarith, by linarith⟩
     exact absurd (hmin t ⟨ht2, ht1.1, ht1.2.trans hm1⟩) (not_le.2 ht1.2)
-  obtain ⟨a0, ha0⟩ := S.dense_or_cyclic.resolve_left hnd
-  rw [← AddSubgroup.zmultiples_eq_closure] at ha0
+  obtain ⟨a0, ha0⟩ : ∃ a0 : ℝ, S = AddSubgroup.zmultiples a0 := by
+    obtain ⟨g, hg⟩ := S.isAddCyclic_iff_exists_zmultiples_eq_top.mp
+      (S.dense_or_isCyclic.resolve_left hnd)
+    exact ⟨g, hg.symm⟩
   have h1S : (1 : ℝ) ∈ S := (hmemS 1).2 ⟨A, hA, hA1.2.2.1, by rw [hA1.1, hA1.2.2.2], by rw [hA1.1, hA1.2.1, one_mul]⟩
   rw [ha0, AddSubgroup.mem_zmultiples_iff] at h1S
   obtain ⟨n, hn⟩ := h1S

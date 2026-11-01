@@ -303,7 +303,7 @@ theorem construct_hvFinite_arc {A C : Set E2'} {v v' : E2'}
   let hv_connect (t : ℝ) : Prop :=
     t = 0 ∨ ∃ P, IsHVFiniteSet P ∧ P ⊆ A ∧ IsSimpleArcEnd P v (f t)
   -- Composition: hv_connect t₀ + both f(t₀), f(t) in a ball ⊆ A → hv_connect t
-  have compose {t₀ t : ℝ} (ht₀ : Icc 0 1 t₀) (ht : Icc 0 1 t)
+  have compose {t₀ t : ℝ} (ht₀ : t₀ ∈ Icc 0 1) (ht : t ∈ Icc 0 1)
       (hconn : hv_connect t₀) {c : E2'} {ε : ℝ} (hε : 0 < ε)
       (hball : Metric.ball c ε ⊆ A)
       (hft₀_ball : f t₀ ∈ Metric.ball c ε)
@@ -1828,7 +1828,7 @@ private theorem goodPlaneGraph_allEdgesHVFinite
       fun e he => ?_⟩
     by_contra hne'
     have hfin_sub := hfine.subset
-      (Set.sep_subset (· ∈ K'.edgeSet) (¬IsHVFiniteSet ·))
+      (Set.sep_subset K'.edgeSet (¬IsHVFiniteSet ·))
     have hpos : 0 < ({e' ∈ K'.edgeSet | ¬IsHVFiniteSet e'} : Set _).ncard :=
       (Set.ncard_pos (hs := hfin_sub)).mpr ⟨e, he, hne'⟩
     omega

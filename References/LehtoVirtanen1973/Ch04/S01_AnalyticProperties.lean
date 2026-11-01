@@ -144,7 +144,7 @@ theorem lv41_restrict_eq {w : ExtPlane → ExtPlane} {G : Set ExtPlane} (hw : In
       by_contra h
       exact hz.2 ⟨hz.1, h⟩
     · exact OnePoint.coe_injective (hw hz.1 hz'.1 (hz.2.trans hz'.2.symm))
-  · rw [sdiff_eq_empty.2 fun z hz => hz.1, measure_empty]
+  · rw [sdiff_eq_empty.2 fun z (hz : z ∈ finiteCore w G) => hz.1, measure_empty]
 
 /-- Helper (Tier 2). At a point of differentiability the book's Jacobian `u_x v_y − u_y v_x` (III.3.3) is
 `det f′(z) = |f_z|² − |f_{\bar z}|²`. -/

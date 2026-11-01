@@ -54,7 +54,7 @@ def AreAnalyticallyEquivalent {X : Type*} [TopologicalSpace X] (c₁ c₂ : Char
 /-- **Definition 1.3** (Ch. 1 §1, F1:295). The complex structure of an atlas `c`: the maximal atlas it generates, the set of
 all charts holomorphically compatible with `c` (two atlases define the same complex structure iff they are analytically
 equivalent, F1:297). -/
-def complexStructureOf {X : Type*} [TopologicalSpace X] (c : ChartedSpace ℂ X) :
+noncomputable def complexStructureOf {X : Type*} [TopologicalSpace X] (c : ChartedSpace ℂ X) :
     Set (OpenPartialHomeomorph X ℂ) :=
   letI := c; (contDiffGroupoid ω 𝓘(ℂ)).maximalAtlas X
 

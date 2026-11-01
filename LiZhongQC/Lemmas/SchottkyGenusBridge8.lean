@@ -286,9 +286,8 @@ theorem s78dg_inner_pi1 {X : Type u} [TopologicalSpace X] [T2Space X] {m : ℕ}
       map_one_left := fun x => rfl }
   refine ⟨e, fun x => rfl, fun x => ?_, ?_⟩
   · obtain ⟨E, hE1, hE2⟩ := s78dg_retraction_fundamental_equiv e r hre H x
-    have : FundamentalGroup.map e x = E.toMonoidHom := by
-      ext γ
-      exact (hE1 γ).symm
+    have : FundamentalGroup.map e x = E.toMonoidHom :=
+      MonoidHom.ext fun γ => (hE1 γ).symm
     rw [this]
     exact E.bijective
   · intro hCpc

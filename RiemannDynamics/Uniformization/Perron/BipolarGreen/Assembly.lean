@@ -773,7 +773,7 @@ theorem not_bddAbove_image_greenFamily_of_compactSpace [CompactSpace M]
     have hfr : ∀ z ∈ closure A \ A, ContinuousAt w z ∧ w z ≤ B₀ := by
       rintro z ⟨hzc, hzA⟩
       have hzD : z ∈ Dρ := hDρcl.closure_subset_iff.mpr
-        (fun u hu ↦ hBDρ hu.1) hzc
+        (fun u (hu : u ∈ A) ↦ hBDρ hu.1) hzc
       by_cases hzcar : z ∈ (DN n).closedCarrier
       · have hzKw : z ∉ Kw := fun hmem ↦ (hKws hmem) hzcar
         have hev : w =ᶠ[𝓝 z] fun _ ↦ (0 : ℝ) := by

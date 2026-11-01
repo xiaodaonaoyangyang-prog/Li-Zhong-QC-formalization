@@ -8,6 +8,8 @@ import Mathlib.Data.Fin.Rev
 import LiZhongExternal.Classification.SchottkyClassification03
 
 /- BEGIN ClassificationOfSurfaces.FiniteCyclicMoves | f08eeada65ef056c77ad07493bba3f16be6e752efc81e476c78d28404f4693fb -/
+noncomputable section
+
 section schottkyclassification22_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

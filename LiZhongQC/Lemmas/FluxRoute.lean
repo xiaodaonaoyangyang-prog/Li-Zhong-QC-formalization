@@ -2233,8 +2233,8 @@ theorem fx_p2_htrajP_injOn {φ : ℂ → ℂ} (hφ : DifferentiableOn ℂ φ uni
     refine IsClosed.inter ?_ (isClosed_le (continuous_fst.add continuous_const) continuous_snd)
     refine ContinuousOn.preimage_isClosed_of_isClosed ?_ (isClosed_Icc.prod isClosed_Icc)
       isClosed_singleton
-    exact (hγ.2.1.continuousOn.comp continuous_fst.continuousOn (fun p hp => hp.1)).sub
-      (hγ.2.1.continuousOn.comp continuous_snd.continuousOn (fun p hp => hp.2))
+    exact (hγ.2.1.continuousOn.comp continuous_fst.continuousOn Set.mapsTo_fst_prod).sub
+      (hγ.2.1.continuousOn.comp continuous_snd.continuousOn Set.mapsTo_snd_prod)
   have hmemP : ∀ s ∈ Icc 0 T, ∀ t ∈ Icc 0 T, s < t → γ s = γ t → (s, t) ∈ P := by
     intro s hs t ht hst heq
     refine ⟨⟨⟨hs, ht⟩, by simp [heq]⟩, ?_⟩
@@ -3653,6 +3653,7 @@ theorem fx_p3_RegChart.box {φ ζ : ℂ → ℂ} {p : ℂ} {r ρ0 : ℝ} (hR : f
     (han z (hsub hz)).1.continuousAt.continuousWithinAt
   set S : Set ℂ := {w : ℂ | |w.re - (0 : ℂ).re| < δ ∧ |w.im - (0 : ℂ).im| < δ} with hS
   have hSo : IsOpen S := by
+    rw [hS, Set.ofPred_and]
     refine IsOpen.inter ?_ ?_
     · exact isOpen_lt ((Complex.continuous_re.sub continuous_const).abs) continuous_const
     · exact isOpen_lt ((Complex.continuous_im.sub continuous_const).abs) continuous_const
@@ -11870,7 +11871,10 @@ theorem fx_p5_curve_ineq {φ : ℂ → ℂ} {u : ℂ → ℝ} {L : ℝ≥0} (hL 
       rw [hβ0, norm_zero, mul_zero]
       exact h
     · have hp0 : φ (β.toFun τ) ≠ 0 := fun h0 =>
-        hτS (mem_biUnion (x := β.toFun τ) ⟨hpτ, h0⟩ ⟨rfl, hβd, hβ0⟩)
+        hτS (mem_biUnion (x := β.toFun τ)
+          (show β.toFun τ ∈ {q : ℂ | q ∈ unitDisc ∧ φ q = 0} from ⟨hpτ, h0⟩)
+          (show τ ∈ {τ' | β.toFun τ' = β.toFun τ ∧ DifferentiableAt ℝ β.toFun τ' ∧
+            deriv β.toFun τ' ≠ 0} from ⟨rfl, hβd, hβ0⟩))
       obtain ⟨G, G', hG, hG2, hGb⟩ := hpug _ hpτ hp0
       have hb := hβd.continuousAt.tendsto.eventually hGb
       have h := fx_p5_slope_bound hFd.hasDerivAt hβd.hasDerivAt hG hb

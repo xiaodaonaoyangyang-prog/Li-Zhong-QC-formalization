@@ -110,7 +110,7 @@ theorem closedBall_refRadius_subset_target {X : Type*} [TopologicalSpace X] [Cha
 
 /-- The chart-disk neighborhood of `x` whose chart-preimage ball sits inside `𝔘.U (coverIdx x)`.
 Written with the chart-preimage first to match the `ChartDiskCover.isDisk` field directly. -/
-def refDiskNbhd {X : Type*} [TopologicalSpace X] [ChartedSpace ℂ X]
+noncomputable def refDiskNbhd {X : Type*} [TopologicalSpace X] [ChartedSpace ℂ X]
     (𝔘 : FiniteCover X) (x : X) : Set X :=
   (extChartAt 𝓘(ℝ, ℂ) x) ⁻¹' Metric.ball (extChartAt 𝓘(ℝ, ℂ) x x) (refRadius 𝔘 x)
     ∩ (extChartAt 𝓘(ℝ, ℂ) x).source

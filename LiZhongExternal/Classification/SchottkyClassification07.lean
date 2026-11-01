@@ -7,6 +7,8 @@ import LiZhongExternal.Classification.SchottkyClassification05
 import LiZhongExternal.Classification.SchottkyClassification06
 
 /- BEGIN ClassificationOfSurfaces.Moise.PolygonalCrosscut | c10b056867affa21641a5ec4d08b84deebfb8d6e334ec3613ca33c68514ac5e7 -/
+noncomputable section
+
 section schottkyclassification07_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

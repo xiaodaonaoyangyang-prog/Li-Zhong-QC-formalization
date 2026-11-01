@@ -9,6 +9,8 @@ import LiZhongExternal.Classification.SchottkyClassification01
 import LiZhongExternal.Classification.SchottkyClassification05
 
 /- BEGIN ClassificationOfSurfaces.Moise.IntrinsicGraphApproximation | bc956cd02970bdf35ef4c9656d629f125507dc9edb58a34fbe8fce7f767aa15a -/
+noncomputable section
+
 section schottkyclassification11_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

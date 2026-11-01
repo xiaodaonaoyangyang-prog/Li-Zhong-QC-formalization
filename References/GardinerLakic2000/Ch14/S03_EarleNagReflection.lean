@@ -341,7 +341,7 @@ theorem gl14_three_point {F : ℂ → ℂ} {K : ℝ} (hF : IsKQC F univ K) (hFs 
   have hAmod := LiZhongQC.nf_e_dcModulus_annulusAt (F b) hr₁0 hlt
   have hAcl : closure (toExt A) ⊆ toExt univ :=
     (LiZhongQC.nf_e_closure_toExt_subset (isCompact_closedBall (F b) r₂)
-      fun w hw => mem_closedBall_iff_norm.2 hw.2.le).trans (image_mono (subset_univ _))
+      fun w hw => by exact mem_closedBall_iff_norm.2 hw.2.le).trans (image_mono (subset_univ _))
   obtain ⟨hDdc, hmodle, -⟩ := LiZhongQC.thm7_4_dcModulus_quasi_invariance hHq hAdc hAcl
   have hsep : LiZhongQC.SeparatesSets (H '' A) {((0 : ℂ) : ExtPlane), ((c - b : ℂ) : ExtPlane)}
       {((a - b : ℂ) : ExtPlane), extInf} := by

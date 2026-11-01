@@ -205,7 +205,7 @@ theorem gl10_tl_ring {w : ℂ → ℂ} {K : ℝ} (hw : IsKQC w univ K) (honto : 
   have hB := LiZhongQC.nf_g_isDoublyConnected_annulusAt q hr hxρ
   have hM := LiZhongQC.nf_e_dcModulus_annulusAt q hr hxρ
   have hbdd : Bornology.IsBounded (annulusAt q ‖x - q‖ ρ) :=
-    Metric.isBounded_ball.subset fun z hz => mem_ball_iff_norm.2 hz.2
+    Metric.isBounded_ball.subset fun z hz => by exact mem_ball_iff_norm.2 hz.2
   have hcl : closure (toExt (annulusAt q ‖x - q‖ ρ)) ⊆ toExt univ := by
     rw [LiZhongQC.closure_toExt_of_isBounded' hbdd]
     exact image_mono (subset_univ _)

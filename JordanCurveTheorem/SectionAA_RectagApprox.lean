@@ -18,7 +18,8 @@ Key results:
 - `jordan_curve_access`: access lemma for the Jordan Curve Theorem
 -/
 
-open Set Finset Metric Filter Topology
+open Set hiding up
+open Finset Metric Filter Topology
 
 namespace JordanCurveTheorem
 

@@ -57,8 +57,9 @@ theorem s78dg_pi1_conj {Z : Type*} [TopologicalSpace Z] {x y : Z} (r : Path x y)
         (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk c)) =
       FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk b) := by
   unfold FundamentalGroup.fundamentalGroupMulEquivOfPath
-  rw [CategoryTheory.Iso.conj_apply, CategoryTheory.Iso.inv_comp_eq]
-  exact (Quotient.sound h).symm
+  apply CategoryTheory.End.ext
+  rw [CategoryTheory.Iso.conj_apply_asHom, CategoryTheory.Iso.inv_comp_eq]
+  exact (Path.Homotopic.Quotient.eq.mpr h).symm
 
 
 theorem s78dg_seg_val {Z : Type*} [TopologicalSpace Z] (f : ℝ → Z) (hf : Continuous f) (a c : ℝ)
@@ -108,7 +109,7 @@ theorem s78dg_loop_step {Z : Type*} [TopologicalSpace Z] (f : ℝ → Z) (hf : C
         exact Path.ext rfl
       rw [h2]
       exact h1
-    exact Quotient.sound hh
+    exact congrArg CategoryTheory.End.of (Path.Homotopic.Quotient.eq.mpr hh)
 
 theorem s78dg_exists_edge_loop {Z : Type*} [TopologicalSpace Z] (f : ℝ → Z) (hf : Continuous f) {v : Z}
     (hv : ∀ x : ℝ, (∃ n : ℤ, x = n) → f x = v) (N : ℕ) :

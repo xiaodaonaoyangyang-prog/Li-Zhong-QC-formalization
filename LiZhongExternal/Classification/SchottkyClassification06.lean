@@ -6,6 +6,8 @@ import LiZhongExternal.Classification.SchottkyClassification04
 import LiZhongExternal.Classification.SchottkyClassification05
 
 /- BEGIN ClassificationOfSurfaces.Moise.ThinKiteMove | d3158c14887c58cbc791c72aaaf4d9d53bfa57a43270853f36f71da2e75c59e7 -/
+noncomputable section
+
 section schottkyclassification06_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

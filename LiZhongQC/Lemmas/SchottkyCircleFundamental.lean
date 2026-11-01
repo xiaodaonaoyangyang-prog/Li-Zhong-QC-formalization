@@ -48,19 +48,20 @@ theorem s78dg_circle_core :
     ∃ φ : FundamentalGroup (AddCircle (1 : ℝ)) 0 ≃* Multiplicative ℤ,
       ∃ γ : Path (0 : AddCircle (1 : ℝ)) 0,
         (∀ t : I, γ t = ((t : ℝ) : AddCircle (1 : ℝ))) ∧
-          φ (Path.Homotopic.Quotient.mk γ) = Multiplicative.ofAdd 1 := by
+          φ (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)) = Multiplicative.ofAdd 1 := by
   have cov := AddCircle.isCoveringMap_coe (1 : ℝ)
   let e₀ : ((fun r : ℝ => (r : AddCircle (1 : ℝ))) ⁻¹' {0}) := ⟨0, by simp⟩
-  let N : FundamentalGroup (AddCircle (1 : ℝ)) 0 → ℝ := fun γ => (cov.monodromy γ e₀).1
+  let N : FundamentalGroup (AddCircle (1 : ℝ)) 0 → ℝ := fun γ => (cov.monodromy γ.asHom e₀).1
   have hN : ∀ γ, ∃ m : ℤ, N γ = m := fun γ =>
-    s78dg_circ_fiber _ (Set.mem_singleton_iff.mp (cov.monodromy γ e₀).2)
+    s78dg_circ_fiber _ (Set.mem_singleton_iff.mp (cov.monodromy γ.asHom e₀).2)
   have hmono : ∀ (γ : Path (0 : AddCircle (1 : ℝ)) 0)
       (e : ((fun r : ℝ => (r : AddCircle (1 : ℝ))) ⁻¹' {0})),
       (cov.monodromy (Path.Homotopic.Quotient.mk γ) e).1 =
         cov.liftPath γ e (γ.source.trans e.2.symm) 1 := fun γ e => rfl
   have hequiv : ∀ (γ : FundamentalGroup (AddCircle (1 : ℝ)) 0) (m : ℤ),
-      (cov.monodromy γ ⟨(m : ℝ), s78dg_circ_int_coe m⟩).1 = N γ + m := by
+      (cov.monodromy γ.asHom ⟨(m : ℝ), s78dg_circ_int_coe m⟩).1 = N γ + m := by
     intro γ m
+    obtain ⟨γ⟩ := γ
     induction γ using Quotient.inductionOn with
     | h γ =>
       have h1 := hmono γ ⟨(m : ℝ), s78dg_circ_int_coe m⟩
@@ -75,11 +76,11 @@ theorem s78dg_circle_core :
   have hmul : ∀ γ₁ γ₂, N (γ₁ * γ₂) = N γ₁ + N γ₂ := by
     intro γ₁ γ₂
     obtain ⟨m, hm⟩ := hN γ₂
-    have h1 : cov.monodromy (γ₁ * γ₂) e₀ = cov.monodromy γ₁ (cov.monodromy γ₂ e₀) := by
+    have h1 : cov.monodromy (γ₁ * γ₂).asHom e₀ = cov.monodromy γ₁.asHom (cov.monodromy γ₂.asHom e₀) := by
       rw [FundamentalGroup.mul_def]
-      exact cov.monodromy_trans_apply γ₂ γ₁ e₀
-    have h2 : cov.monodromy γ₂ e₀ = ⟨(m : ℝ), s78dg_circ_int_coe m⟩ := Subtype.ext hm
-    change (cov.monodromy (γ₁ * γ₂) e₀).1 = _ + _
+      exact cov.monodromy_trans_apply γ₂.asHom γ₁.asHom e₀
+    have h2 : cov.monodromy γ₂.asHom e₀ = ⟨(m : ℝ), s78dg_circ_int_coe m⟩ := Subtype.ext hm
+    change (cov.monodromy (γ₁ * γ₂).asHom e₀).1 = _ + _
     rw [h1, h2, hequiv γ₁ m, hm]
   let φ : FundamentalGroup (AddCircle (1 : ℝ)) 0 →* Multiplicative ℤ :=
     MonoidHom.mk' (fun γ => Multiplicative.ofAdd ⌊N γ⌋) (fun γ₁ γ₂ => by
@@ -97,6 +98,7 @@ theorem s78dg_circle_core :
     intro γ hγ
     have hN0 : N γ = 0 := by
       rw [← hφ γ, hγ]; simp
+    obtain ⟨γ⟩ := γ
     induction γ using Quotient.inductionOn with
     | h γ =>
       have h1 : cov.liftPath γ e₀ (γ.source.trans e₀.2.symm) 1 = 0 := (hmono γ e₀).symm.trans hN0
@@ -115,12 +117,13 @@ theorem s78dg_circle_core :
             C(I, AddCircle (1 : ℝ))) := by
         ext t; simp
       rw [hc, hc2] at h5
+      apply CategoryTheory.End.ext
       change Path.Homotopic.Quotient.mk γ = Path.Homotopic.Quotient.mk (Path.refl 0)
       rw [Path.Homotopic.Quotient.eq]
       exact h5
   have hsurj' : ∀ z : Multiplicative ℤ, ∃ γ₀ : Path (0 : AddCircle (1 : ℝ)) 0,
       (∀ t : I, γ₀ t = (((Multiplicative.toAdd z : ℤ) : ℝ) * (t : ℝ) : ℝ)) ∧
-        φ (Path.Homotopic.Quotient.mk γ₀) = z := by
+        φ (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ₀)) = z := by
     intro z
     let k : ℤ := Multiplicative.toAdd z
     let ρ : C(I, ℝ) := ⟨fun t => (k : ℝ) * (t : ℝ), by fun_prop⟩
@@ -130,14 +133,14 @@ theorem s78dg_circle_core :
     have hρ : ρ = cov.liftPath γ₀ e₀ (γ₀.source.trans e₀.2.symm) := by
       rw [cov.eq_liftPath_iff']
       exact ⟨rfl, by simp [ρ, e₀]⟩
-    have hNk : N (Path.Homotopic.Quotient.mk γ₀) = k := by
+    have hNk : N (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ₀)) = k := by
       have := hmono γ₀ e₀
       change (cov.monodromy (Path.Homotopic.Quotient.mk γ₀) e₀).1 = _ at this
       change (cov.monodromy (Path.Homotopic.Quotient.mk γ₀) e₀).1 = _
       rw [this, ← hρ]
       simp [ρ]
     refine ⟨γ₀, fun t => rfl, ?_⟩
-    change Multiplicative.ofAdd ⌊N (Path.Homotopic.Quotient.mk γ₀)⌋ = z
+    change Multiplicative.ofAdd ⌊N (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ₀))⌋ = z
     rw [hNk, Int.floor_intCast]
     rfl
   have hsurj : Function.Surjective φ := fun z => by

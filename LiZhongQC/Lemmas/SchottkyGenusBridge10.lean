@@ -246,6 +246,7 @@ theorem s78dg_chain_induct (h0 : IsPathConnected (Ω 0)) (x : ↥(Ω 0))
     have hm : ∀ δ, FundamentalGroup.map ιk1 x δ =
         FundamentalGroup.map ιk' (ιk x) (FundamentalGroup.map ιk x δ) := by
       intro δ
+      obtain ⟨δ⟩ := δ
       induction δ using Quotient.inductionOn with
       | h c => rfl
     let tj : FundamentalGroup ↥(Ω 0) x := FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk
@@ -255,7 +256,8 @@ theorem s78dg_chain_induct (h0 : IsPathConnected (Ω 0)) (x : ↥(Ω 0))
       have hℓeq : (ℓ j).map ιk.continuous = ℓ' := by
         ext t
         exact (hℓ j t).trans (hℓ' t).symm
-      show Path.Homotopic.Quotient.mk ((((a j).trans (ℓ j)).trans (a j).symm).map ιk.continuous) = _
+      show FundamentalGroup.fromPath
+        (Path.Homotopic.Quotient.mk ((((a j).trans (ℓ j)).trans (a j).symm).map ιk.continuous)) = _
       rw [Path.map_trans, Path.map_trans, Path.map_symm, hℓeq]
     have hι : ∀ h, FundamentalGroup.map ιk' (ιk x) h = 1 ↔
         h ∈ Subgroup.normalClosure ({FundamentalGroup.map ιk x tj} : Set _) := by
@@ -356,6 +358,7 @@ theorem s78dg_core_kernel_generic {X : Type u} [TopologicalSpace X] [T2Space X] 
       FundamentalGroup.map Hc (ιm (e x)) (FundamentalGroup.map ιm (e x)
         (FundamentalGroup.map e x δ)) := by
     intro δ
+    obtain ⟨δ⟩ := δ
     induction δ using Quotient.inductionOn with
     | h c => rfl
   have hHb : Function.Bijective (FundamentalGroup.map Hc (ιm (e x))) :=

@@ -100,10 +100,11 @@ theorem s31dt_fundamental_triangle {A B C : Type*}
     (FundamentalGroup.mapOfEq g (congrArg (fun k : C(A, C) => k a) hgf)).comp
       (FundamentalGroup.map f a) = FundamentalGroup.map h a := by
   subst h
-  ext q
+  ext1 q
   rw [MonoidHom.comp_apply, FundamentalGroup.mapOfEq_apply]
-  change (Path.Homotopic.Quotient.map (Path.Homotopic.Quotient.map q f) g).cast _ _ =
-    Path.Homotopic.Quotient.map q (g.comp f)
+  apply CategoryTheory.End.ext
+  change (Path.Homotopic.Quotient.map (Path.Homotopic.Quotient.map q.asHom f) g).cast _ _ =
+    Path.Homotopic.Quotient.map q.asHom (g.comp f)
   rw [Path.Homotopic.Quotient.cast_rfl_rfl]
   exact Path.Homotopic.Quotient.map_comp.symm
 

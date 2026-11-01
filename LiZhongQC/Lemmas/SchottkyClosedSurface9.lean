@@ -55,8 +55,9 @@ theorem s78dg_pi1_mapOfEq_bijective {A Z : Type*} [TopologicalSpace A] [Topologi
 theorem s78dg_pi1_mapOfEq_mk {Y Z : Type*} [TopologicalSpace Y] [TopologicalSpace Z] (f : C(Y, Z))
     (y₀ : Y) (z₀ : Z) (h : f y₀ = z₀) (ℓ : Path y₀ y₀) (L : Path z₀ z₀)
     (hL : ∀ t, L t = f (ℓ t)) :
-    FundamentalGroup.mapOfEq f h (Path.Homotopic.Quotient.mk ℓ) = Path.Homotopic.Quotient.mk L := by
+    FundamentalGroup.mapOfEq f h (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)) = FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk L) := by
   rw [FundamentalGroup.mapOfEq_apply]
+  apply congrArg CategoryTheory.End.of
   change (Path.Homotopic.Quotient.mk (ℓ.map f.continuous)).cast h.symm h.symm = _
   rw [← Path.Homotopic.Quotient.mk_cast]
   congr 1
@@ -93,39 +94,39 @@ theorem s78dg_wedge_step_loops {X : Type u} [TopologicalSpace X] (U V : Set X)
     (MulEquiv.ofBijective mB (s78dg_pi1_mapOfEq_bijective fB b₀ _ hB hBb)).symm.trans eB
   obtain ⟨e, he1, he2⟩ := s78dg_wedge_free_step_gen U V hU hV hcover x₀ hx₀ eU eV
   refine ⟨e, fun ℓ L hL => ?_, fun ℓ L hL => ?_⟩
-  · have hℓ : ((FundamentalGroup.mapOfEq fA hA) (Path.Homotopic.Quotient.mk ℓ) :
+  · have hℓ : ((FundamentalGroup.mapOfEq fA hA) (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)) :
         FundamentalGroup ↥U (leftBasepoint U x₀ hx₀.1)) =
-        Path.Homotopic.Quotient.mk ((ℓ.map fA.continuous).cast hA.symm hA.symm) :=
+        FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ((ℓ.map fA.continuous).cast hA.symm hA.symm)) :=
       s78dg_pi1_mapOfEq_mk fA a₀ _ hA ℓ _ (fun t => rfl)
     have hL' : (fundamentalGroupLeftToAmbient U x₀ hx₀.1).hom
-        (Path.Homotopic.Quotient.mk ((ℓ.map fA.continuous).cast hA.symm hA.symm)) =
-        Path.Homotopic.Quotient.mk L :=
+        (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ((ℓ.map fA.continuous).cast hA.symm hA.symm))) =
+        FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk L) :=
       s78dg_pi1_mapOfEq_mk (subsetToAmbient U) (leftBasepoint U x₀ hx₀.1) x₀
         (leftBasepoint_toAmbient U x₀ hx₀.1) _ L (fun t => hL t)
-    have h1 := he1 (mA (Path.Homotopic.Quotient.mk ℓ))
-    have key : eU (mA (Path.Homotopic.Quotient.mk ℓ)) = eA (Path.Homotopic.Quotient.mk ℓ) :=
+    have h1 := he1 (mA (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)))
+    have key : eU (mA (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ))) = eA (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)) :=
       congrArg eA ((MulEquiv.ofBijective mA (s78dg_pi1_mapOfEq_bijective fA a₀ _ hA hAb)).symm_apply_apply
-        (Path.Homotopic.Quotient.mk ℓ))
+        (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)))
     rw [key] at h1
-    rw [show mA (Path.Homotopic.Quotient.mk ℓ) = Path.Homotopic.Quotient.mk
-      ((ℓ.map fA.continuous).cast hA.symm hA.symm) from hℓ, hL'] at h1
+    rw [show mA (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)) = FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk
+      ((ℓ.map fA.continuous).cast hA.symm hA.symm)) from hℓ, hL'] at h1
     exact h1
-  · have hℓ : ((FundamentalGroup.mapOfEq fB hB) (Path.Homotopic.Quotient.mk ℓ) :
+  · have hℓ : ((FundamentalGroup.mapOfEq fB hB) (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)) :
         FundamentalGroup ↥V (rightBasepoint V x₀ hx₀.2)) =
-        Path.Homotopic.Quotient.mk ((ℓ.map fB.continuous).cast hB.symm hB.symm) :=
+        FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ((ℓ.map fB.continuous).cast hB.symm hB.symm)) :=
       s78dg_pi1_mapOfEq_mk fB b₀ _ hB ℓ _ (fun t => rfl)
     have hL' : (fundamentalGroupRightToAmbient V x₀ hx₀.2).hom
-        (Path.Homotopic.Quotient.mk ((ℓ.map fB.continuous).cast hB.symm hB.symm)) =
-        Path.Homotopic.Quotient.mk L :=
+        (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ((ℓ.map fB.continuous).cast hB.symm hB.symm))) =
+        FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk L) :=
       s78dg_pi1_mapOfEq_mk (subsetToAmbient V) (rightBasepoint V x₀ hx₀.2) x₀
         (rightBasepoint_toAmbient V x₀ hx₀.2) _ L (fun t => hL t)
-    have h1 := he2 (mB (Path.Homotopic.Quotient.mk ℓ))
-    have key : eV (mB (Path.Homotopic.Quotient.mk ℓ)) = eB (Path.Homotopic.Quotient.mk ℓ) :=
+    have h1 := he2 (mB (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)))
+    have key : eV (mB (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ))) = eB (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)) :=
       congrArg eB ((MulEquiv.ofBijective mB (s78dg_pi1_mapOfEq_bijective fB b₀ _ hB hBb)).symm_apply_apply
-        (Path.Homotopic.Quotient.mk ℓ))
+        (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)))
     rw [key] at h1
-    rw [show mB (Path.Homotopic.Quotient.mk ℓ) = Path.Homotopic.Quotient.mk
-      ((ℓ.map fB.continuous).cast hB.symm hB.symm) from hℓ, hL'] at h1
+    rw [show mB (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)) = FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk
+      ((ℓ.map fB.continuous).cast hB.symm hB.symm)) from hℓ, hL'] at h1
     exact h1
 
 end LiZhongQC

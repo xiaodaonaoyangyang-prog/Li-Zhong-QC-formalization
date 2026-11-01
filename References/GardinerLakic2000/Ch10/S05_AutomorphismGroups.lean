@@ -65,7 +65,7 @@ theorem gl105_image_fuchsian {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) �
   set C : Set UpperHalfPlane := Metric.closedBall UpperHalfPlane.I 1
   have hS := hΓ C (isCompact_closedBall _ _)
   have hfin : {γ : Matrix.SpecialLinearGroup (Fin 2) ℝ | (γ ∈ Γ ∧ ((fun x => γ • x) '' C ∩ C).Nonempty) ∧
-      (γ : Matrix.ProjectiveSpecialLinearGroup (Fin 2) ℝ) ≠ 1}.Finite := hS.subset fun γ hγ => hγ.1
+      (γ : Matrix.ProjectiveSpecialLinearGroup (Fin 2) ℝ) ≠ 1}.Finite := hS.subset fun γ hγ => by exact hγ.1
   set f : Matrix.SpecialLinearGroup (Fin 2) ℝ → ℝ :=
     fun γ => dist (γ • UpperHalfPlane.I) UpperHalfPlane.I + dist (γ • s₂) s₂
   obtain ⟨δ, hδ, hδle⟩ := Katok1992.k92e_finite_pos hfin f fun γ hγ => by

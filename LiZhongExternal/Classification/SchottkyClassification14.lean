@@ -14,6 +14,8 @@ import Mathlib.Analysis.Normed.Module.Connected
 import Mathlib.Analysis.Normed.Module.Ball.Homeomorph
 
 /- BEGIN ClassificationOfSurfaces.Moise.PLApproximation | 5de5a5ea8a1003bafbca97a3dc3c47398665f3a8b28545e0288b060f0ecf44d6 -/
+noncomputable section
+
 section schottkyclassification14_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

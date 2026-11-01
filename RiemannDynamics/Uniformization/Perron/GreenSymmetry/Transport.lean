@@ -207,7 +207,7 @@ theorem exists_riemannMap_of_simplyConnectedSpace {U : Set ℂ} (hU : IsOpen U)
 
 /-- The open unit disc, as an open set of the plane carrying the charted-space
 structure of an open submanifold. -/
-def discOpens : Opens ℂ := ⟨Metric.ball 0 1, Metric.isOpen_ball⟩
+noncomputable def discOpens : Opens ℂ := ⟨Metric.ball 0 1, Metric.isOpen_ball⟩
 
 /-- **The Green's function of the unit disc**: the Perron Green's envelope of
 the disc equals the classical Möbius-invariant kernel. -/

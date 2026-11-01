@@ -218,7 +218,7 @@ theorem exists_radius_sq_arcLength_lt {Ω : Set ℂ} (hΩ : Bornology.IsBounded 
       _ ≤ ENNReal.ofReal (2 * π) * ∫⁻ ρ in Ioi (0 : ℝ),
             ∫⁻ θ in {θ : ℝ | θ ∈ Ioc (-π) π ∧ circleMap z₀ ρ θ ∈ unitDisc},
               ‖deriv f (circleMap z₀ ρ θ)‖ₑ ^ 2 * ENNReal.ofReal ρ :=
-          mul_le_mul_right (lintegral_mono_set fun ρ hρ => hδ0.trans hρ.1) _
+          mul_le_mul_right (lintegral_mono_set fun ρ (hρ : ρ ∈ Ioo δ (Real.sqrt δ)) => hδ0.trans hρ.1) _
       _ = ENNReal.ofReal (2 * π) * volume Ω := by rw [← hpolar]
   have hb0 : 0 ≤ b := le_trans (by positivity) hb.le
   -- the left side is `ofReal b · log(√δ/δ) = ofReal (b · log(1/δ) / 2)`
@@ -329,7 +329,7 @@ theorem tendsto_diam_image_circleShortArc {φ : Circle → ℂ} (hφ : Continuou
     have h : Continuous fun x : Circle => (⟨φ x, Set.mem_range_self x⟩ : range φ) :=
       hφ.subtype_mk _
     exact h
-  haveI : CompactSpace (range φ) := isCompact_iff_compactSpace.mp (isCompact_range hφ)
+  have : CompactSpace (range φ) := isCompact_iff_compactSpace.mp (isCompact_range hφ)
   set H : Circle ≃ₜ range φ := hec.homeoOfEquivCompactToT2 with hH
   have hHuc : UniformContinuous H.symm :=
     CompactSpace.uniformContinuous_of_continuous H.symm.continuous
@@ -430,7 +430,7 @@ theorem isJordanCurve_frontier_of_isHomeoExtension {Ω : Set ℂ} {f : ℂ → �
   have hfr : frontier (toExt unitDisc) = toExt (sphere 0 1) := by
     rw [hΔo.frontier_eq, hclos]
     simp only [toExt, unitDisc]
-    rw [← Set.image_diff OnePoint.coe_injective, Metric.closedBall_diff_ball]
+    rw [← Set.image_sdiff OnePoint.coe_injective, Metric.closedBall_sdiff_ball]
   -- `F` maps the disc onto `Ω` and hence the frontier onto the frontier
   have hFΔ : F '' toExt unitDisc = toExt Ω := by
     rw [← hf.2.2]
@@ -441,7 +441,7 @@ theorem isJordanCurve_frontier_of_isHomeoExtension {Ω : Set ℂ} {f : ℂ → �
     · rintro ⟨_, ⟨z, hz, rfl⟩, rfl⟩
       exact ⟨(z : ExtPlane), ⟨z, hz, rfl⟩, hFf z hz⟩
   have hFfr : F '' frontier (toExt unitDisc) = frontier (toExt Ω) := by
-    rw [hΔo.frontier_eq, hΩo'.frontier_eq, hFi.image_diff, hFimg,
+    rw [hΔo.frontier_eq, hΩo'.frontier_eq, hFi.image_sdiff, hFimg,
       Set.inter_eq_right.mpr subset_closure, hFΔ]
   have hmem : ∀ ζ : Circle, ((ζ : ℂ) : ExtPlane) ∈ closure (toExt unitDisc) := by
     intro ζ
@@ -543,14 +543,14 @@ theorem isPreconnected_iInter_of_antitone_isCompact {X : Type*} [TopologicalSpac
       have hT : ∀ n, (K n \ (U ∪ V)).Nonempty := by
         intro n
         by_contra hcon
-        rw [Set.not_nonempty_iff_eq_empty, Set.diff_eq_empty] at hcon
+        rw [Set.not_nonempty_iff_eq_empty, Set.sdiff_eq_empty] at hcon
         rcases (hp n).subset_or_subset hU hV hUV hcon with h | h
         · obtain ⟨x, hx⟩ := hB
           exact Set.disjoint_left.mp hUV (h (Set.iInter_subset _ n hx.1)) (hBV hx)
         · obtain ⟨x, hx⟩ := hA
           exact Set.disjoint_left.mp hUV (hAU hx) (h (Set.iInter_subset _ n hx.1))
       obtain ⟨x, hx⟩ := IsCompact.nonempty_iInter_of_sequence_nonempty_isCompact_isClosed
-        (fun n => K n \ (U ∪ V)) (fun n => Set.diff_subset_diff_left (hd n)) hT
+        (fun n => K n \ (U ∪ V)) (fun n => Set.sdiff_subset_sdiff_left (hd n)) hT
         ((hc 0).diff (hU.union hV)) (fun n => (hc n).isClosed.sdiff (hU.union hV))
       rw [Set.mem_iInter] at hx
       have hxS : x ∈ S := Set.mem_iInter.mpr fun n => (hx n).1

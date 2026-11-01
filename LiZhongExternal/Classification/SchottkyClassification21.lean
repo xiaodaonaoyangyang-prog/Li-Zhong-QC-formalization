@@ -10,6 +10,8 @@ import LiZhongExternal.Classification.SchottkyClassification03
 import LiZhongExternal.Classification.SchottkyClassification01
 
 /- BEGIN ClassificationOfSurfaces.FiniteCyclicP2 | 13404f2384d1c2a582d5149a4943da747102f57667c1b4607432cde08630ea07 -/
+noncomputable section
+
 section schottkyclassification21_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

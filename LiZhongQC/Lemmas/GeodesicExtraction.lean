@@ -58,8 +58,8 @@ theorem s25gb_simple_loop {f : ℝ → ℂ}
     refine (isCompact_Icc.prod isCompact_Icc).of_isClosed_subset ?_
       (inter_subset_left.trans inter_subset_left)
     refine IsClosed.inter ?_ (isClosed_le (continuous_fst.add continuous_const) continuous_snd)
-    exact ((hf.comp continuous_fst.continuousOn (fun p hp => hp.1)).sub
-      (hf.comp continuous_snd.continuousOn (fun p hp => hp.2))).preimage_isClosed_of_isClosed
+    exact ((hf.comp continuous_fst.continuousOn (fun p hp => by exact hp.1)).sub
+      (hf.comp continuous_snd.continuousOn (fun p hp => by exact hp.2))).preimage_isClosed_of_isClosed
         (isClosed_Icc.prod isClosed_Icc) isClosed_singleton
   have hmem : ∀ s ∈ Icc (0 : ℝ) 1, ∀ t ∈ Icc (0 : ℝ) 1,
       s < t → f s = f t → (s, t) ∈ P := by

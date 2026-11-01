@@ -173,7 +173,7 @@ theorem s36b_indicator_memLp_four {κ : ℂ → ℂ} {S : Set ℂ}
       (ne_top_of_le_ne_top measure_ball_lt_top.ne (measure_mono hSR))
   have hlocal : MemLp κ (ENNReal.ofReal 4) (volume.restrict S) :=
     MemLp.of_bound hκm M hκM
-  exact (memLp_indicator_iff_restrict hSm).2 hlocal
+  exact (memLp_indicator_iff_restrict hSm.nullMeasurableSet).2 hlocal
 
 /-- The p=4 Cauchy transform is continuous; the input function is abstract,
 so its indicator construction and finite-measure proof remain opaque. -/
@@ -627,9 +627,9 @@ theorem s36b_hb {F : Set ℂ} (hFm : MeasurableSet F) (hFH : F ⊆ upperHalf) {D
   have hc2 := s36b_coe_sum (μ := P ((starRingEnd ℂ) '' F)) c.support (fun i => c i) (fun i z => ψ i z / ρ z)
     (fun i => hint _ _ (hψ i.1 i.2).2)
   have hIF : Integrable (fun z => φ z - ∑ i ∈ c.support, c i * ψ i z) (volume.restrict F) :=
-    hφ.sub (integrable_finset_sum _ fun i _ => (hψ i.1 i.2).1.const_mul _)
+    hφ.sub (integrable_finsetSum _ fun i _ => (hψ i.1 i.2).1.const_mul _)
   have hIG : Integrable (fun z => ∑ i ∈ c.support, c i * ψ i z) (volume.restrict ((starRingEnd ℂ) '' F)) :=
-    integrable_finset_sum _ fun i _ => (hψ i.1 i.2).2.const_mul _
+    integrable_finsetSum _ fun i _ => (hψ i.1 i.2).2.const_mul _
   refine ⟨c.support.map (Function.Embedding.subtype _), fun t => if h : t ∈ D then c ⟨t, h⟩ else 0, ?_, ?_, ?_⟩
   · intro t ht
     obtain ⟨i, -, rfl⟩ := Finset.mem_map.1 ht

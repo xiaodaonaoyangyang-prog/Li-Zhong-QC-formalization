@@ -10,6 +10,8 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
 import Mathlib.Data.Fintype.Fin
 
 /- BEGIN ClassificationOfSurfaces.DiskSquare | 7d4c49a4f40107a840073195a9f2b389a721ab5ee87749c9609d94aeb44e80d3 -/
+noncomputable section
+
 section schottkyclassification20_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

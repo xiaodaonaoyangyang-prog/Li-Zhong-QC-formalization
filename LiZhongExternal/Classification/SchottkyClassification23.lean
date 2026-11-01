@@ -6,6 +6,8 @@ import LiZhongExternal.Classification.SchottkyClassification20
 import LiZhongExternal.Classification.SchottkyClassification22
 
 /- BEGIN ClassificationOfSurfaces.FiniteCyclicP2Realization | b2614407ab135702669a413bf9f520c41e134764a9df2933c97325d76f45ea8d -/
+noncomputable section
+
 section schottkyclassification23_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

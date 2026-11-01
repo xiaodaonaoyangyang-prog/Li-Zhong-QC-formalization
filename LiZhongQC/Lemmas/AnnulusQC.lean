@@ -1304,13 +1304,13 @@ theorem aqc_isConnected_iInter_antitone {K : ℕ → Set ℂ} (hanti : ∀ n, K 
     intro hem
     apply hnv
     intro z hz
-    exact (hcov z hz).resolve_left (fun hzu => (hem ▸ (⟨hz, hzu⟩ : z ∈ s ∩ u) : (∅ : Set ℂ) z).elim)
+    exact (hcov z hz).resolve_left (fun hzu => (hem ▸ (⟨hz, hzu⟩ : z ∈ s ∩ u) : z ∈ (∅ : Set ℂ)).elim)
   have hBne : (s ∩ v).Nonempty := by
     rw [nonempty_iff_ne_empty]
     intro hem
     apply hnu
     intro z hz
-    exact (hcov z hz).resolve_right (fun hzv => (hem ▸ (⟨hz, hzv⟩ : z ∈ s ∩ v) : (∅ : Set ℂ) z).elim)
+    exact (hcov z hz).resolve_right (fun hzv => (hem ▸ (⟨hz, hzv⟩ : z ∈ s ∩ v) : z ∈ (∅ : Set ℂ)).elim)
   have hABdisj : Disjoint (s ∩ u) (s ∩ v) := by
     rw [Set.disjoint_iff_inter_eq_empty]
     ext z
@@ -1348,7 +1348,7 @@ theorem aqc_isConnected_iInter_antitone {K : ℕ → Set ℂ} (hanti : ∀ n, K 
   have hKN : K N ⊆ U' ∪ V' := by
     intro z hz
     by_contra hzc
-    exact (hN ▸ (⟨hz, hzc⟩ : z ∈ K N ∩ (U' ∪ V')ᶜ) : (∅ : Set ℂ) z).elim
+    exact (hN ▸ (⟨hz, hzc⟩ : z ∈ K N ∩ (U' ∪ V')ᶜ) : z ∈ (∅ : Set ℂ)).elim
   rcases IsPreconnected.subset_or_subset hU'o hV'o hUV'd hKN (hconn N).isPreconnected with h | h
   · have hsU' : s ⊆ U' := (iInter_subset K N).trans h
     have hsub : s ∩ v ⊆ U' ∩ V' := fun z hz => ⟨hsU' hz.1, hBV' hz⟩

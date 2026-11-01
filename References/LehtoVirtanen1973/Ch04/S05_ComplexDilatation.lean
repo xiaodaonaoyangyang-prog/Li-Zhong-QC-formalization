@@ -319,9 +319,10 @@ theorem lv45_ae_comp_regular {w f : ExtPlane → ExtPlane} {G : Set ExtPlane} (h
   have hinv := kqc_inv hkw
   have hinvq : IsQuasiconformalMap (Function.invFunOn w G) (w '' G) :=
     ⟨hinv.1, hinv.2.1, lt_of_le_of_lt hinv.2.2 ENNReal.ofReal_lt_top⟩
-  have hPnull := qc_image_null hinvq (fun q hq => hq.1) hBnull
+  have hPnull := qc_image_null hinvq (fun q (hq : q ∈ B) => hq.1) hBnull
   have hP : ∀ᵐ z : ℂ ∂volume, ¬ ((z : ExtPlane) ∈ G ∧ w z ∈ B) := by
-    refine measure_eq_zero_iff_ae_notMem.1 (measure_mono_null (fun z hz => ?_) hPnull)
+    refine measure_eq_zero_iff_ae_notMem.1 (measure_mono_null
+      (s := {z : ℂ | (z : ExtPlane) ∈ G ∧ w z ∈ B}) (fun z hz => ?_) hPnull)
     exact ⟨w z, hz.2, hsp.1.2.1.leftInvOn_invFunOn hz.1⟩
   have hw' : IsQuasiconformalMap w G := ⟨hG, hsp, hlt⟩
   filter_upwards [lv45_ae_regular hw', ae_restrict_of_ae hP,

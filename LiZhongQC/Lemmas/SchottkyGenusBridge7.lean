@@ -171,14 +171,14 @@ theorem s78dg_svk_kernel_gen {X : Type u} [TopologicalSpace X] (U V : Set X)
       fundamentalGroupAmalgamation U V x₀ hx₀ false
         (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)) := by
     have h1 : FundamentalGroup.mapOfEq (⟨eA, eA.continuous⟩ : C(A, ↥U)) hA
-        (Path.Homotopic.Quotient.mk ℓ) = Path.Homotopic.Quotient.mk
-          ((ℓ.map (⟨eA, eA.continuous⟩ : C(A, ↥U)).continuous).cast hA.symm hA.symm) :=
+        (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ)) = FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk
+          ((ℓ.map (⟨eA, eA.continuous⟩ : C(A, ↥U)).continuous).cast hA.symm hA.symm)) :=
       s78dg_pi1_mapOfEq_mk _ a₀ _ hA ℓ _ (fun t => rfl)
     have h2 : FundamentalGroup.mapOfEq (interToLeft U V)
-        (interToLeft_overlapBasepoint U V x₀ hx₀) (Path.Homotopic.Quotient.mk γ) =
-        Path.Homotopic.Quotient.mk ((γ.map (interToLeft U V).continuous).cast
+        (interToLeft_overlapBasepoint U V x₀ hx₀) (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)) =
+        FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ((γ.map (interToLeft U V).continuous).cast
           (interToLeft_overlapBasepoint U V x₀ hx₀).symm
-          (interToLeft_overlapBasepoint U V x₀ hx₀).symm) :=
+          (interToLeft_overlapBasepoint U V x₀ hx₀).symm)) :=
       s78dg_pi1_mapOfEq_mk _ _ _ (interToLeft_overlapBasepoint U V x₀ hx₀) γ _ (fun t => rfl)
     have hp : ((ℓ.map (⟨eA, eA.continuous⟩ : C(A, ↥U)).continuous).cast hA.symm hA.symm) =
         ((γ.map (interToLeft U V).continuous).cast
@@ -187,7 +187,7 @@ theorem s78dg_svk_kernel_gen {X : Type u} [TopologicalSpace X] (U V : Set X)
       ext t
       exact hℓ t
     change _ = FundamentalGroup.mapOfEq (interToLeft U V)
-        (interToLeft_overlapBasepoint U V x₀ hx₀) (Path.Homotopic.Quotient.mk γ)
+        (interToLeft_overlapBasepoint U V x₀ hx₀) (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ))
     rw [h1, h2, hp]
   let eAc : C(A, ↥U) := ⟨eA, eA.continuous⟩
   let g : C(A, X) := ⟨fun a => ((eA a : ↥U) : X), continuous_subtype_val.comp eA.continuous⟩
@@ -197,21 +197,22 @@ theorem s78dg_svk_kernel_gen {X : Type u} [TopologicalSpace X] (U V : Set X)
   have hcomp : ∀ δ, (fundamentalGroupLeftToAmbient U x₀ hx₀.1).hom (mA δ) =
       FundamentalGroup.mapOfEq g (congrArg Subtype.val hA) δ := by
     intro δ
+    obtain ⟨δ⟩ := δ
     induction δ using Quotient.inductionOn with
     | h ℓ' =>
-      have h1 : mA (Path.Homotopic.Quotient.mk ℓ') = Path.Homotopic.Quotient.mk
-          ((ℓ'.map eAc.continuous).cast hA.symm hA.symm) :=
+      have h1 : mA (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ')) = FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk
+          ((ℓ'.map eAc.continuous).cast hA.symm hA.symm)) :=
         s78dg_pi1_mapOfEq_mk eAc a₀ _ hA ℓ' _ (fun t => rfl)
       have h2 : (fundamentalGroupLeftToAmbient U x₀ hx₀.1).hom
-          (Path.Homotopic.Quotient.mk ((ℓ'.map eAc.continuous).cast hA.symm hA.symm)) =
-          Path.Homotopic.Quotient.mk ((ℓ'.map g.continuous).cast (congrArg Subtype.val hA).symm
-            (congrArg Subtype.val hA).symm) :=
+          (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ((ℓ'.map eAc.continuous).cast hA.symm hA.symm))) =
+          FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ((ℓ'.map g.continuous).cast (congrArg Subtype.val hA).symm
+            (congrArg Subtype.val hA).symm)) :=
         s78dg_pi1_mapOfEq_mk (subsetToAmbient U) (leftBasepoint U x₀ hx₀.1) x₀
           (leftBasepoint_toAmbient U x₀ hx₀.1) _ _ (fun t => rfl)
       have h3 : FundamentalGroup.mapOfEq g (congrArg Subtype.val hA)
-          (Path.Homotopic.Quotient.mk ℓ') = Path.Homotopic.Quotient.mk
+          (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ')) = FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk
             ((ℓ'.map g.continuous).cast (congrArg Subtype.val hA).symm
-              (congrArg Subtype.val hA).symm) :=
+              (congrArg Subtype.val hA).symm)) :=
         s78dg_pi1_mapOfEq_mk g a₀ _ (congrArg Subtype.val hA) ℓ' _ (fun t => rfl)
       exact (congrArg (fundamentalGroupLeftToAmbient U x₀ hx₀.1).hom h1).trans (h2.trans h3.symm)
   refine ⟨?_, ?_⟩
@@ -402,7 +403,7 @@ theorem s78dg_punctured_pc : PathConnectedSpace {z : ℂ // 0 < ‖z‖ ∧ ‖z
         change ‖(r : ℂ) * Complex.exp ((θ : ℂ) * Complex.I)‖ = r
         rw [norm_mul, Complex.norm_exp_ofReal_mul_I, mul_one, Complex.norm_real,
           Real.norm_eq_abs, abs_of_pos hr.1]
-      rw [Set.mem_setOf_eq, hn]
+      rw [Set.mem_ofPred_eq, hn]
       exact hr
     · rintro ⟨h0, h1⟩
       refine ⟨(‖z‖, Complex.arg z), ⟨⟨h0, h1⟩, trivial⟩, ?_⟩

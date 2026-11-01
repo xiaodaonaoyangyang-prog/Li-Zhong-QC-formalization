@@ -70,7 +70,7 @@ theorem isCompact_𝓑 (hU : IsOpen U) (hQ : ∀ K ∈ compacts U, IsCompact (Q 
   have l2 (K) (hK : K ∈ compacts U) (x) (hx : x ∈ K) : ∃ L, IsCompact L ∧ ∀ i : 𝓑 U Q, i.1 x ∈ L :=
     ⟨Q K, hQ K hK, fun f => f.2.2 K hK hx⟩
   rw [isCompact_iff_compactSpace]
-  refine ArzelaAscoli.compactSpace_of_isClosedEmbedding (fun K hK => hK.2) ?_ l1 l2
+  refine ArzelaAscoli.compactSpace_of_isClosedEmbedding (fun K (hK : K ∈ compacts U) => hK.2) ?_ l1 l2
   refine ⟨⟨by tauto, fun f g => Subtype.ext⟩, ?_⟩
   simpa [range, UniformOnFun.ofFun] using isClosed_𝓑 hU hQ
 

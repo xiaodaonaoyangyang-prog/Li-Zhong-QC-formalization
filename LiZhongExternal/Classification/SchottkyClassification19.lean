@@ -14,6 +14,8 @@ import Mathlib.Data.Bool.Basic
 import Mathlib.Data.List.Count
 
 /- BEGIN ClassificationOfSurfaces.Moise.DualConnectivity | 483611b92d1f1ec39db0fe0b6f89c4e33e155d746d2033b6cb70c8a2ed43e943 -/
+noncomputable section
+
 section schottkyclassification19_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

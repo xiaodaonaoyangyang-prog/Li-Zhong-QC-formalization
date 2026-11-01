@@ -14,6 +14,8 @@ import Mathlib.Combinatorics.SimpleGraph.Paths
 import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
 
 /- BEGIN ClassificationOfSurfaces.Moise.FreeTriangle | 2a0eb938f16ed1c152ab95120b7b6069317b0124c77bea64cb9c168e1910e132 -/
+noncomputable section
+
 section schottkyclassification05_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

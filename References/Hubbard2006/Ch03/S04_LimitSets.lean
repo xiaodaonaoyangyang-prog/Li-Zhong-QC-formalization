@@ -41,7 +41,7 @@ noncomputable def bdryAct (γ : Matrix.SpecialLinearGroup (Fin 2) ℝ) : ExtPlan
 orbit of `z ∈ ℍ` in `ℂ̄` intersected with the ideal boundary. Near misses: `LiZhongQC.limitSet` and `Katok1992.limitSet`
 (limits along sequences of distinct elements; the base point is existentially hidden), which agree for Fuchsian
 groups. -/
-def limitSetAt (Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)) (z : UpperHalfPlane) : Set ExtPlane :=
+noncomputable def limitSetAt (Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)) (z : UpperHalfPlane) : Set ExtPlane :=
   closure (range fun γ : Γ => (OnePoint.some (((γ : Matrix.SpecialLinearGroup (Fin 2) ℝ) • z : UpperHalfPlane) : ℂ) :
     ExtPlane)) ∩ idealBoundaryH
 

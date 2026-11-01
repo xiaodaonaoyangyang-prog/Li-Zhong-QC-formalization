@@ -2021,7 +2021,7 @@ noncomputable def convexSubtypePathHomotopy {E : Type u} [AddCommGroup E] [Modul
       apply Subtype.ext
       simp
 
-def gridCellSet {n : ℕ} (i j : Fin n) : Set (ℝ × ℝ) :=
+noncomputable def gridCellSet {n : ℕ} (i j : Fin n) : Set (ℝ × ℝ) :=
   Icc (standardTime n i.castSucc : ℝ) (standardTime n i.succ : ℝ) ×ˢ
     Icc (standardTime n j.castSucc : ℝ) (standardTime n j.succ : ℝ)
 
@@ -3452,12 +3452,12 @@ universe u v
 
 namespace DifferentialGeometry.Topology.VanKampen
 
-abbrev FundamentalGroupoidOn (Y : Type u) [TopologicalSpace Y] (A : Set Y) :=
+noncomputable abbrev FundamentalGroupoidOn (Y : Type u) [TopologicalSpace Y] (A : Set Y) :=
   (CategoryTheory.Subgroupoid.full {z : FundamentalGroupoid Y | z.as ∈ A}).objs
 
 def selectedIn {X : Type u} (A B : Set X) : Set B := {x | x.1 ∈ A}
 
-def fundamentalGroupoidMapOn {Y Z : Type u} [TopologicalSpace Y] [TopologicalSpace Z]
+noncomputable def fundamentalGroupoidMapOn {Y Z : Type u} [TopologicalSpace Y] [TopologicalSpace Z]
     {A : Set Y} {B : Set Z} (f : C(Y, Z)) (hf : MapsTo f A B) :
     FundamentalGroupoidOn Y A ⥤ FundamentalGroupoidOn Z B where
   obj x := ⟨(FundamentalGroupoid.map f).obj x.1, by
@@ -3552,24 +3552,24 @@ noncomputable def fundamentalGroupoidOnInclusionEquivalence
     FundamentalGroupoidOn Y A ≌ FundamentalGroupoid Y :=
   representativeInclusionEquivalence (representativeChoiceOfIsRepresentative hA)
 
-def selectedInterToLeft {X : Type u} [TopologicalSpace X]
+noncomputable def selectedInterToLeft {X : Type u} [TopologicalSpace X]
     (A U V : Set X) :
     FundamentalGroupoidOn (↑(U ∩ V)) (selectedIn A (U ∩ V)) ⥤
       FundamentalGroupoidOn U (selectedIn A U) :=
   fundamentalGroupoidMapOn (interToLeft U V) (fun _ hx => hx)
 
-def selectedInterToRight {X : Type u} [TopologicalSpace X]
+noncomputable def selectedInterToRight {X : Type u} [TopologicalSpace X]
     (A U V : Set X) :
     FundamentalGroupoidOn (↑(U ∩ V)) (selectedIn A (U ∩ V)) ⥤
       FundamentalGroupoidOn V (selectedIn A V) :=
   fundamentalGroupoidMapOn (interToRight U V) (fun _ hx => hx)
 
-def selectedLeftToAmbient {X : Type u} [TopologicalSpace X]
+noncomputable def selectedLeftToAmbient {X : Type u} [TopologicalSpace X]
     (A U : Set X) : FundamentalGroupoidOn U (selectedIn A U) ⥤
       FundamentalGroupoidOn X A :=
   fundamentalGroupoidMapOn (subsetToAmbient U) (fun _ hx => hx)
 
-def selectedRightToAmbient {X : Type u} [TopologicalSpace X]
+noncomputable def selectedRightToAmbient {X : Type u} [TopologicalSpace X]
     (A V : Set X) : FundamentalGroupoidOn V (selectedIn A V) ⥤
       FundamentalGroupoidOn X A :=
   fundamentalGroupoidMapOn (subsetToAmbient V) (fun _ hx => hx)
@@ -4270,7 +4270,7 @@ noncomputable def pointedDeloopingFunctor {Y : Type u} [TopologicalSpace Y]
     FundamentalGroupoidOn Y A ⥤ SingleObj (FundamentalGroup Y y₀) where
   obj _ := SingleObj.star _
   map {x y} f :=
-    (eqToHom (selectedObject_eq_pointed A y₀ hy₀ huniq x).symm ≫ f ≫
+    End.of (eqToHom (selectedObject_eq_pointed A y₀ hy₀ huniq x).symm ≫ f ≫
       eqToHom (selectedObject_eq_pointed A y₀ hy₀ huniq y)).1
   map_id x := by
     have hx := selectedObject_eq_pointed A y₀ hy₀ huniq x
@@ -4291,7 +4291,7 @@ noncomputable def pointedDeloopingInverse {Y : Type u} [TopologicalSpace Y]
     (A : Set Y) (y₀ : Y) (hy₀ : y₀ ∈ A) :
     SingleObj (FundamentalGroup Y y₀) ⥤ FundamentalGroupoidOn Y A where
   obj _ := pointedSelectedObject A y₀ hy₀
-  map f := ⟨f, by
+  map f := ⟨f.asHom, by
     apply (CategoryTheory.Subgroupoid.mem_full_iff _).2
     constructor <;> exact hy₀⟩
   map_id _ := by
@@ -4315,9 +4315,9 @@ theorem pointedDelooping_inv_hom_id {Y : Type u} [TopologicalSpace Y]
     subst y
     apply heq_of_eq
     change
-      (eqToHom (selectedObject_eq_pointed A y₀ hy₀ huniq
+      End.of (eqToHom (selectedObject_eq_pointed A y₀ hy₀ huniq
           (pointedSelectedObject A y₀ hy₀)).symm ≫
-        (⟨f, by
+        (⟨f.asHom, by
           apply (CategoryTheory.Subgroupoid.mem_full_iff _).2
           constructor <;> exact hy₀⟩ :
             pointedSelectedObject A y₀ hy₀ ⟶ pointedSelectedObject A y₀ hy₀) ≫
@@ -4383,7 +4383,11 @@ theorem fundamentalGroupoidMapOn_comp_pointedDeloopingFunctor
       Functor.map_heq iA r.symm r.symm hAconj
     have hAmap := Functor.map_heq (FundamentalGroupoid.map f)
       (congrArg iA.obj r.symm) (congrArg iA.obj r.symm) hAunder
-    exact hBunder.trans hAmap.symm
+    have hof : ∀ {C : Type u} [CategoryStruct.{u} C] {a b : C}, a = b →
+        ∀ {p₁ : a ⟶ a} {p₂ : b ⟶ b}, p₁ ≍ p₂ → End.of p₁ ≍ End.of p₂ := by
+      rintro C _ a b rfl p₁ p₂ h
+      rw [eq_of_heq h]
+    exact hof rfl (hBunder.trans hAmap.symm)
 
 theorem fundamentalGroupoidMapOn_comp_pointedDeloopingFunctorOfEq
     {Y Z : Type u} [TopologicalSpace Y] [TopologicalSpace Z]
@@ -4424,10 +4428,16 @@ theorem fundamentalGroupoidMapOn_comp_pointedDeloopingFunctorOfEq
       (congrArg iA.obj r.symm) (congrArg iA.obj r.symm) hAunder
     have hcast (p : FundamentalGroup Y y₀) :
         FundamentalGroup.mapOfEq f hbase p ≍ FundamentalGroup.map f y₀ p := by
-      rw [FundamentalGroup.mapOfEq_apply]
-      exact Path.Homotopic.Quotient.cast_heq hbase.symm hbase.symm
-    exact hBunder.trans
-      ((hcast ((pointedDeloopingFunctor A y₀ hy₀ hAuniq).map g)).trans hAmap).symm
+      subst hbase
+      apply heq_of_eq
+      rw [FundamentalGroup.mapOfEq_apply, Path.Homotopic.Quotient.cast_rfl_rfl]
+      rfl
+    have hof : ∀ {C : Type u} [CategoryStruct.{u} C] {a b : C}, a = b →
+        ∀ {p₁ : a ⟶ a} {p₂ : b ⟶ b}, p₁ ≍ p₂ → End.of p₁ ≍ End.of p₂ := by
+      rintro C _ a b rfl p₁ p₂ h
+      rw [eq_of_heq h]
+    exact (hof (congrArg FundamentalGroupoid.mk hbase.symm) (hBunder.trans hAmap.symm)).trans
+      (hcast ((pointedDeloopingFunctor A y₀ hy₀ hAuniq).map g)).symm
 
 theorem fundamentalGroup_to_pointedDeloopingInverse_comp
     {Y Z : Type u} [TopologicalSpace Y] [TopologicalSpace Z]
@@ -4514,8 +4524,10 @@ theorem fundamentalGroup_mapOfEq_heq_map
     (f : C(Y, Z)) (y₀ : Y) (z₀ : Z) (hbase : f y₀ = z₀)
     (p : FundamentalGroup Y y₀) :
     FundamentalGroup.mapOfEq f hbase p ≍ FundamentalGroup.map f y₀ p := by
-  rw [FundamentalGroup.mapOfEq_apply]
-  exact Path.Homotopic.Quotient.cast_heq hbase.symm hbase.symm
+  subst hbase
+  apply heq_of_eq
+  rw [FundamentalGroup.mapOfEq_apply, Path.Homotopic.Quotient.cast_rfl_rfl]
+  rfl
 
 noncomputable def fundamentalGroupInterToLeft {X : Type u} [TopologicalSpace X]
     (U V : Set X) (x₀ : X) (hx₀ : x₀ ∈ U ∩ V) :
@@ -4557,6 +4569,14 @@ theorem fundamentalGroup_coverSquare_commutes {X : Type u} [TopologicalSpace X]
   let hRV := interToRight_overlapBasepoint U V x₀ hx₀
   let hUX := leftBasepoint_toAmbient U x₀ hx₀.1
   let hVX := rightBasepoint_toAmbient V x₀ hx₀.2
+  have hof : ∀ {C : Type u} [CategoryStruct.{u} C] {a b : C}, a = b →
+      ∀ {p₁ : a ⟶ a} {p₂ : b ⟶ b}, p₁ ≍ p₂ → End.of p₁ ≍ End.of p₂ := by
+    rintro C _ a b rfl p₁ p₂ h
+    rw [eq_of_heq h]
+  have has : ∀ {C : Type u} [CategoryStruct.{u} C] {a b : C}, a = b →
+      ∀ {p₁ : End a} {p₂ : End b}, p₁ ≍ p₂ → p₁.asHom ≍ p₂.asHom := by
+    rintro C _ a b rfl p₁ p₂ h
+    rw [eq_of_heq h]
   have hInterL := fundamentalGroup_mapOfEq_heq_map
     (interToLeft U V) (overlapBasepoint U V x₀ hx₀)
       (leftBasepoint U x₀ hx₀.1) hLU p
@@ -4565,7 +4585,7 @@ theorem fundamentalGroup_coverSquare_commutes {X : Type u} [TopologicalSpace X]
       (FundamentalGroup.mapOfEq (interToLeft U V) hLU p)
   have hLeftMap := Functor.map_heq (FundamentalGroupoid.map (subsetToAmbient U))
     (congrArg FundamentalGroupoid.mk hLU.symm)
-    (congrArg FundamentalGroupoid.mk hLU.symm) hInterL
+    (congrArg FundamentalGroupoid.mk hLU.symm) (has (congrArg FundamentalGroupoid.mk hLU) hInterL)
   have hInterR := fundamentalGroup_mapOfEq_heq_map
     (interToRight U V) (overlapBasepoint U V x₀ hx₀)
       (rightBasepoint V x₀ hx₀.2) hRV p
@@ -4574,9 +4594,10 @@ theorem fundamentalGroup_coverSquare_commutes {X : Type u} [TopologicalSpace X]
       (FundamentalGroup.mapOfEq (interToRight U V) hRV p)
   have hRightMap := Functor.map_heq (FundamentalGroupoid.map (subsetToAmbient V))
     (congrArg FundamentalGroupoid.mk hRV.symm)
-    (congrArg FundamentalGroupoid.mk hRV.symm) hInterR
-  have hSquare := Functor.hcongr_hom (fundamentalGroupoid_coverSquare_commutes U V) p
-  exact eq_of_heq ((hLeft.trans hLeftMap).trans (hSquare.trans (hRight.trans hRightMap).symm))
+    (congrArg FundamentalGroupoid.mk hRV.symm) (has (congrArg FundamentalGroupoid.mk hRV) hInterR)
+  have hSquare := Functor.hcongr_hom (fundamentalGroupoid_coverSquare_commutes U V) p.asHom
+  exact eq_of_heq ((hLeft.trans (hof (by rfl) hLeftMap)).trans
+    ((hof (by rfl) hSquare).trans (hRight.trans (hof (by rfl) hRightMap)).symm))
 
 def basedGroupSquareIsPushoutStatement {X : Type u} [TopologicalSpace X]
     (U V : Set X) (x₀ : X) (hx₀ : x₀ ∈ U ∩ V) : Prop :=

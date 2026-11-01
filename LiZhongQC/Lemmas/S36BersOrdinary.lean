@@ -53,11 +53,9 @@ theorem s36x_hit_fin (hΓ : IsFuchsian Γ) {K : Set ℂ} (hK : IsCompact K)
     (hKΩ : ∀ w ∈ K, ((w : ℂ) : ExtPlane) ∉ fuchsianLimitSet Γ) (p : ExtPlane) :
     {γ : Γ | ∃ w ∈ K, mobiusSL (Matrix.SpecialLinearGroup.map (algebraMap ℝ ℂ) γ.1) (w : ExtPlane) = p}.Finite := by
   by_cases hp : p ∈ fuchsianLimitSet Γ
-  · convert Set.finite_empty
-    ext γ
-    simp only [mem_setOf_eq, mem_empty_iff_false, iff_false]
-    rintro ⟨w, hw, e⟩
-    exact hKΩ w hw (k22_t_mem_limitSet_of_smul (Subgroup.mem_map_of_mem _ γ.2) (e ▸ hp))
+  · refine Set.Finite.subset Set.finite_empty fun γ hγ => ?_
+    obtain ⟨w, hw, e⟩ := hγ
+    exact (hKΩ w hw (k22_t_mem_limitSet_of_smul (Subgroup.mem_map_of_mem _ γ.2) (e ▸ hp))).elim
   · have hC : IsCompact (((↑) : ℂ → ExtPlane) '' K ∪ {p}) := (hK.image OnePoint.continuous_coe).union isCompact_singleton
     refine (s36x_fin hΓ hC ?_).subset ?_
     · rintro q (⟨w, hw, rfl⟩ | hq)

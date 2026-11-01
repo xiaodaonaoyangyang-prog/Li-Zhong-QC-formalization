@@ -40,7 +40,7 @@ abbrev modO (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] : TopCat.Preshe
   localRepPresheaf ℂ (A := X → ℂ) IsHolFunAt VanishesAt
 
 /-- **The disc** `{|z| < R}`, `0 < R ≤ ∞`, as an open subset of `ℂ` (Ch. 2 §13, F1:4477). -/
-def discOpen (R : ENNReal) : Opens ℂ := ⟨Metric.eball 0 R, Metric.isOpen_eball⟩
+noncomputable def discOpen (R : ENNReal) : Opens ℂ := ⟨Metric.eball 0 R, Metric.isOpen_eball⟩
 
 end Sheaf
 

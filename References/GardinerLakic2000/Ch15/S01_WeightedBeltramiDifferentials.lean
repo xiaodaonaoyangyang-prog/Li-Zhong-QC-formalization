@@ -768,7 +768,7 @@ theorem gl151_rep_exists [T2Space R] [IsManifold 𝓘(ℂ) ω R] {E F : Set R} (
     refine ⟨μ, hμ, hμE, fun φ hφ => ?_, hle⟩
     rw [hrep φ hφ, pairingRS, dite_eq_left h]
   · -- no chart partition: `A(R)` is empty (every norm is `⊤`) and `μ = 0` works
-    have hA : ∀ φ, φ ∉ integrableHolQDSet R := fun φ hφ => h (gl31_exists_partition_of_ne_top hφ.2.ne)
+    have hA : ∀ φ, φ ∉ integrableHolQDSet R := fun φ hφ => by exact h (gl31_exists_partition_of_ne_top hφ.2.ne)
     have h0 : (0 : R → ℂ → ℂ) ∈ beltramiSpace R := by
       refine ⟨0, fun x y => ae_of_all _ fun z => ?_, fun x => ⟨aestronglyMeasurable_const, ae_of_all _ fun z => ?_⟩⟩
       · simp

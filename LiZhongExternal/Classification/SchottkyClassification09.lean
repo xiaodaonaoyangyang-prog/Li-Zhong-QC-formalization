@@ -19,6 +19,8 @@ import Mathlib.Analysis.Convex.GaugeRescale
 import Mathlib.Topology.Instances.AddCircle.Real
 
 /- BEGIN ClassificationOfSurfaces.Moise.AdaptiveTileComplex | cc7497ba1325e1f8e0099b54866f0c09db52388d6945bbddd92be8db81424c24 -/
+noncomputable section
+
 section schottkyclassification09_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

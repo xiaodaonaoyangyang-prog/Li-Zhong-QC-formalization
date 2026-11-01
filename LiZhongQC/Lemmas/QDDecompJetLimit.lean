@@ -218,7 +218,7 @@ theorem s31qj_odd_continuousOn {R : ℝ} {v : ℂ → ℝ} (hv : ContinuousOn v 
     · rintro (h | h) <;> exact h.1
   have hnorm : ∀ z ∈ sphere (0 : ℂ) R, ‖z‖ = R := fun z hz => by simpa using hz
   have h1 : ContinuousOn (reflectExtendOdd v) Sp := by
-    refine (hv.mono fun z hz => ⟨(hnorm z hz.1).le, hz.2⟩).congr fun z hz => ?_
+    refine (hv.mono fun z (hz : z ∈ Sp) => ⟨(hnorm z hz.1).le, hz.2⟩).congr fun z hz => ?_
     have hzi : 0 ≤ z.im := hz.2
     rcases hzi.lt_or_eq with h | h
     · exact reflectExtendOdd_of_pos v h
@@ -534,7 +534,7 @@ theorem s31qj_lip_closed {x₀ : ℝ} {δ C : ℝ} {κ : ℂ → ℂ}
     rw [e]; exact (convex_ball _ _).inter (convex_halfSpace_im_gt (r := 0))
   have hlip : ∀ a ∈ U, ∀ b ∈ U, ‖κ a - κ b‖ ≤ C * ‖a - b‖ := fun a ha b hb =>
     hUc.norm_image_sub_le_of_norm_hasDerivWithin_le (f := κ) (f' := deriv κ)
-      (fun u hu => (hκd u hu.1 hu.2).hasDerivAt.hasDerivWithinAt) (fun u hu => hC u hu.1 hu.2) hb ha
+      (fun u (hu : u ∈ U) => (hκd u hu.1 hu.2).hasDerivAt.hasDerivWithinAt) (fun u (hu : u ∈ U) => hC u hu.1 hu.2) hb ha
   set m : ℝ := δ - max ‖z₁ - x₀‖ ‖z₂ - x₀‖ with hm
   have hm0 : 0 < m := by rw [hm]; exact sub_pos.2 (max_lt h₁ h₂)
   -- shifted points
@@ -625,7 +625,7 @@ theorem s31qj_scaled {κ : ℂ → ℂ} {O S : Set ℂ} (hO : IsOpen O) (hκd : 
       h1.comp ξ ((differentiableAt_const _).add ((differentiableAt_const _).mul differentiableAt_id))
     exact ((h2.sub_const _).const_mul a).differentiableWithinAt
   have hgc : ContinuousOn g {z : ℂ | ‖z‖ ≤ R ∧ 0 ≤ z.im} := by
-    refine continuousOn_const.mul ((hκc.comp (by fun_prop) fun ξ hξ => hmapS ξ hξ.1 hξ.2).sub continuousOn_const)
+    refine continuousOn_const.mul ((hκc.comp (by fun_prop) fun ξ (hξ : ξ ∈ {z : ℂ | ‖z‖ ≤ R ∧ 0 ≤ z.im}) => hmapS ξ hξ.1 hξ.2).sub continuousOn_const)
   have hA : ∀ z : ℂ, ‖z‖ ≤ R → 0 ≤ z.im → ‖g z‖ ≤ C' * R := by
     intro z hz hzi
     rw [hg, norm_mul, hnorm_a]

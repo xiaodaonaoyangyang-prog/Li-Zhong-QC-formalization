@@ -173,7 +173,7 @@ theorem hilbertH_famPair_ae' {s : MeasureTheory.SimpleFunc ℂ ℂ} {p₀ p₁ p
   have hcne : c ≠ 0 := (Finset.mem_erase.mp hc).1
   have hfin := MeasureTheory.SimpleFunc.measure_preimage_lt_top_of_memLp
     hpne0 ENNReal.ofReal_ne_top s hs c hcne
-  exact memLp_indicator_const 2 (s.measurableSet_fiber c) _ (Or.inr hfin.ne)
+  exact memLp_indicator_const 2 (s.measurableSet_fiber c).nullMeasurableSet _ (Or.inr hfin.ne)
 
 theorem memLp_famPair {s : MeasureTheory.SimpleFunc ℂ ℂ} {p₀ p₁ p : ℝ} (hp1' : 1 < p)
     (hs : MemLp (s : ℂ → ℂ) (ENNReal.ofReal p) volume) (z : ℂ) {r : ℝ} :
@@ -186,7 +186,7 @@ theorem memLp_famPair {s : MeasureTheory.SimpleFunc ℂ ℂ} {p₀ p₁ p : ℝ}
     simp only [Ne, ENNReal.ofReal_eq_zero, not_le]; linarith
   have hfin := MeasureTheory.SimpleFunc.measure_preimage_lt_top_of_memLp
     hpne0 ENNReal.ofReal_ne_top s hs c hcne
-  exact (memLp_indicator_const (ENNReal.ofReal r) (s.measurableSet_fiber c) _
+  exact (memLp_indicator_const (ENNReal.ofReal r) (s.measurableSet_fiber c).nullMeasurableSet _
     (Or.inr hfin.ne)).const_smul _
 
 theorem integral_hilbertH_famPair_mul_famPair {s g : MeasureTheory.SimpleFunc ℂ ℂ}

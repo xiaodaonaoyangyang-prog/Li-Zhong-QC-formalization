@@ -673,7 +673,7 @@ theorem gl16_G_lintegral_lt_top (x : ℝ) :
     have hint : IntegrableOn (fun u : ℝ => A₁ * u ^ (-(1 / 2 : ℝ)) + B₁) (Ioo 0 u₀) := by
       refine (((intervalIntegral.integrableOn_Ioo_rpow_iff hu₀pos).2 (by norm_num)).const_mul A₁).add ?_
       exact integrableOn_const (by simp)
-    refine lt_of_le_of_lt (setLIntegral_mono' measurableSet_Ioo fun u hu => hsmall u hu.1 hu.2) ?_
+    refine lt_of_le_of_lt (setLIntegral_mono' measurableSet_Ioo fun u hu => by exact hsmall u hu.1 hu.2) ?_
     exact hint.setLIntegral_lt_top
   · -- away from `0`: `(A₂/u) Σ ‖u − r‖^{−1/2}` off the four points where `x ± u ∈ {0, 1}`
     have hbad : ∀ᵐ u ∂(volume.restrict (Ici u₀)), x + u ≠ 0 ∧ x + u ≠ 1 ∧ x - u ≠ 0 ∧ x - u ≠ 1 := by
@@ -1141,7 +1141,7 @@ theorem gl16_muG_integrable {μ : ℂ → ℂ} {k : ℝ} (hμ : LiZhongQC.IsBelt
     rw [e2]
     exact IntegrableOn.mono_set hG (prod_mono (Ioi_subset_Ioi hε) subset_rfl)
   refine hG'.bdd_mul (c := k) (hμm.comp_snd) ?_
-  exact Measure.QuasiMeasurePreserving.ae Measure.quasiMeasurePreserving_snd hμb
+  exact MeasureTheory.QuasiMeasurePreserving.ae Measure.quasiMeasurePreserving_snd hμb
 
 /-- Helper for `eq16_27` (§16.7, P4). Fubini on `(ε, ∞) × ℂ`. The truncated principal-value integral of `V R(x, ·)`
 is computed through the representation (16.21), the fold P3 and the cancellation. -/
@@ -1259,7 +1259,7 @@ theorem gl16_pv_tendsto {μ : ℂ → ℂ} {k : ℝ} (hμ : LiZhongQC.IsBeltrami
     calc ‖∫ u in Ioi ε, G (u, ζ)‖ ≤ ∫ u in Ioi ε, ‖G (u, ζ)‖ := norm_integral_le_integral_norm _
       _ ≤ ∫ u in Ioi (0 : ℝ), ‖G (u, ζ)‖ :=
           setIntegral_mono_set hgi.norm (Filter.Eventually.of_forall fun _ => norm_nonneg _)
-            (Ioi_subset_Ioi (le_of_lt hε)).eventuallyLE
+            (Ioi_subset_Ioi (le_of_lt hε)).eventuallySubset
   · -- the pointwise limit
     filter_upwards [h0] with ζ hζ
     refine Tendsto.const_mul _ ?_

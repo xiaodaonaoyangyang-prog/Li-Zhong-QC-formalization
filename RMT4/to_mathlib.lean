@@ -124,7 +124,7 @@ omit [CompleteSpace E] in
 theorem integral_derivWithin_smul_comp
     (hg : ContDiffOn ℝ 1 g (uIcc a b)) (hf : ContinuousOn f (g '' uIcc a b)) :
     (∫ x in a..b, derivWithin g (uIcc a b) x • (f ∘ g) x) = (∫ x in g a..g b, f x) := by
-  refine integral_comp_smul_deriv'' hg.continuousOn (λ t ht => ?_) (hg.continuousOn_derivWithin'' le_rfl) hf
+  refine integral_deriv_smul_comp'' hg.continuousOn (λ t ht => ?_) (hg.continuousOn_derivWithin'' le_rfl) hf
   apply (hg.differentiableOn one_ne_zero t (Set.uIoo_subset_uIcc_self ht)).hasDerivWithinAt.mono_of_mem_nhdsWithin
   exact uIcc_mem_nhds_within ht
 

@@ -436,6 +436,7 @@ theorem buj_harmonic_measure_lb {α : ℝ} (hα0 : 0 < α) (hαπ : α < π) {ρ
     hρc.comp_continuous (continuous_circleMap 0 1)
       fun θ => sphere_subset_closedBall (circleMap_mem_sphere 0 zero_le_one θ)
   have hEm : MeasurableSet E := by
+    rw [hE, Set.ofPred_and, Set.ofPred_and]
     refine MeasurableSet.inter ?_ (MeasurableSet.inter ?_ ?_)
     · exact (measurableSet_singleton (0 : ℂ)).compl.preimage hρcirc.measurable
     · exact measurableSet_lt measurable_const (measurable_arg.comp hρcirc.measurable)

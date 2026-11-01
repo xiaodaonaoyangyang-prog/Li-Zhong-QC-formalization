@@ -21,6 +21,8 @@ import Mathlib.Topology.Homotopy.Lifting
 import LiZhongExternal.Classification.SchottkyClassification05
 
 /- BEGIN ClassificationOfSurfaces.Moise.ConeExtension | d3dd385e421484ab22476911938672403b390ee834c14d7b81b4e703d0f5bcf1 -/
+noncomputable section
+
 section schottkyclassification08_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.
@@ -2560,7 +2562,7 @@ theorem arrangementMesh_isMonochromatic (i : ι) (k : ZMod (J i).n) :
     (edgeLines J) (edgeLine_mem_edgeLines J i k)
 
 /-- Carrier of one maximal chamber of the common arrangement. -/
-def arrangementTriangleCarrier (t : Finset (arrangementMesh J).Vertex) : Set Plane :=
+noncomputable def arrangementTriangleCarrier (t : Finset (arrangementMesh J).Vertex) : Set Plane :=
   convexHull ℝ ((arrangementMesh J).position '' (t : Set _))
 
 theorem convex_arrangementTriangleCarrier

@@ -446,7 +446,7 @@ theorem ba_proper_upperHalf_of_tendsto {f : ℂ → ℂ}
       rw [hzre]
       exact (hbdry z.re).eventually (gt_mem_nhds hδ)
     have hne : (𝓝[A] z).NeBot := mem_closure_iff_nhdsWithin_neBot.1 hz
-    have hle : 𝓝[A] z ≤ 𝓝[upperHalf] z := nhdsWithin_mono z (fun a ha => ha.1)
+    have hle : 𝓝[A] z ≤ 𝓝[upperHalf] z := nhdsWithin_mono z (fun a ha => by exact ha.1)
     have hevA : ∀ᶠ w in 𝓝[A] z, (f w).im < k₀.im := hle hev
     have hA' : ∀ᶠ w in 𝓝[A] z, w ∈ A := self_mem_nhdsWithin
     obtain ⟨w, hw1, hw2⟩ := (hevA.and hA').exists
@@ -958,16 +958,16 @@ theorem ba_f2h_int_bounds {h : ℝ → ℝ} (hmono : Monotone h) (hcont : Contin
   have h2 : x + y / 2 ≤ x + y := by linarith
   have l1 : ∫ _ in x..(x + y / 2), h x ≤ ∫ t in x..(x + y / 2), h t :=
     intervalIntegral.integral_mono_on h1 intervalIntegrable_const (hcont.intervalIntegrable _ _)
-      (fun t ht => hmono ht.1)
+      (fun t ht => by exact hmono ht.1)
   have u1 : ∫ t in x..(x + y / 2), h t ≤ ∫ _ in x..(x + y / 2), h (x + y / 2) :=
     intervalIntegral.integral_mono_on h1 (hcont.intervalIntegrable _ _) intervalIntegrable_const
-      (fun t ht => hmono ht.2)
+      (fun t ht => by exact hmono ht.2)
   have l2 : ∫ _ in (x + y / 2)..(x + y), h (x + y / 2) ≤ ∫ t in (x + y / 2)..(x + y), h t :=
     intervalIntegral.integral_mono_on h2 intervalIntegrable_const (hcont.intervalIntegrable _ _)
-      (fun t ht => hmono ht.1)
+      (fun t ht => by exact hmono ht.1)
   have u2 : ∫ t in (x + y / 2)..(x + y), h t ≤ ∫ _ in (x + y / 2)..(x + y), h (x + y) :=
     intervalIntegral.integral_mono_on h2 (hcont.intervalIntegrable _ _) intervalIntegrable_const
-      (fun t ht => hmono ht.2)
+      (fun t ht => by exact hmono ht.2)
   simp only [intervalIntegral.integral_const, smul_eq_mul] at l1 u1 l2 u2
   rw [show x + y / 2 - x = y / 2 by ring] at l1 u1
   rw [show x + y - (x + y / 2) = y / 2 by ring] at l2 u2
@@ -1266,12 +1266,12 @@ theorem ba_qih_jacobian_le {h : ℝ → ℝ} {ρ : ℝ} (hh : IsQuasisymmetric h
   have hP : z.im * h z.re ≤ ∫ t in z.re..(z.re + z.im), h t := by
     have h1 := intervalIntegral.integral_mono_on (μ := volume) (f := fun _ => h z.re) (g := h)
       (show z.re ≤ z.re + z.im by linarith) (continuous_const.intervalIntegrable _ _)
-      (hcont.intervalIntegrable _ _) (fun t ht => hmono.monotone ht.1)
+      (hcont.intervalIntegrable _ _) (fun t ht => by exact hmono.monotone ht.1)
     rwa [intervalIntegral.integral_const, smul_eq_mul, add_sub_cancel_left] at h1
   have hM : ∫ t in (z.re - z.im)..z.re, h t ≤ z.im * h z.re := by
     have h1 := intervalIntegral.integral_mono_on (μ := volume) (f := h) (g := fun _ => h z.re)
       (show z.re - z.im ≤ z.re by linarith) (hcont.intervalIntegrable _ _)
-      (continuous_const.intervalIntegrable _ _) (fun t ht => hmono.monotone ht.2)
+      (continuous_const.intervalIntegrable _ _) (fun t ht => by exact hmono.monotone ht.2)
     rwa [intervalIntegral.integral_const, smul_eq_mul, sub_sub_cancel] at h1
   have hCB : 0 < h z.re - h (z.re - z.im) := sub_pos.2 (hmono (by linarith))
   have hAC : 0 < h (z.re + z.im) - h z.re := sub_pos.2 (hmono (by linarith))

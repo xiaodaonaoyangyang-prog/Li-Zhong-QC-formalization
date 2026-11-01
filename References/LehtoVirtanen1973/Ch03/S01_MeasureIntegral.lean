@@ -158,7 +158,6 @@ theorem egoroff_theorem {A : Set ℂ} (hA : NullMeasurableSet A volume) (hAfin :
   have hfin : IsFiniteMeasure (volume.restrict A) := isFiniteMeasure_restrict.2 hAfin
   have hfm : AEStronglyMeasurable f (volume.restrict A) := aestronglyMeasurable_of_tendsto_ae atTop hfn hconv
   have hg : ∀ n, StronglyMeasurable ((hfn n).mk (fn n)) := fun n => (hfn n).stronglyMeasurable_mk
-  have hh : StronglyMeasurable (hfm.mk f) := hfm.stronglyMeasurable_mk
   have hgood : ∀ᵐ z ∂(volume.restrict A), (∀ n, fn n z = (hfn n).mk (fn n) z) ∧ f z = hfm.mk f z := by
     filter_upwards [ae_all_iff.2 fun n => (hfn n).ae_eq_mk, hfm.ae_eq_mk] with z h1 h2 using ⟨h1, h2⟩
   have hconv' : ∀ᵐ z ∂(volume.restrict A), Tendsto (fun n => (hfn n).mk (fn n) z) atTop (𝓝 (hfm.mk f z)) := by
@@ -167,7 +166,8 @@ theorem egoroff_theorem {A : Set ℂ} (hA : NullMeasurableSet A volume) (hAfin :
     exact h2
   -- Egorov for the finite measure `m|A`
   have hε3 : (0 : ℝ) < ε / 3 := by linarith
-  obtain ⟨t, htm, htμ, hunif⟩ := tendstoUniformlyOn_of_ae_tendsto' hg hh hconv' (ENNReal.ofReal_pos.2 hε3)
+  obtain ⟨t, htm, htμ, hunif⟩ := tendstoUniformlyOn_of_ae_tendsto'
+    (fun n => (hg n).aestronglyMeasurable) hconv' (ENNReal.ofReal_pos.2 hε3)
   -- a measurable core of `A` avoiding `t` and the exceptional set
   obtain ⟨A', hA'A, hA'm, hAA'⟩ := hA.exists_measurable_subset_ae_eq
   have hA'v : volume (A \ A') = 0 := (ae_eq_set.1 hAA').2

@@ -7,6 +7,8 @@ import LiZhongExternal.Classification.SchottkyClassification08
 import LiZhongExternal.Classification.SchottkyClassification11
 
 /- BEGIN ClassificationOfSurfaces.Moise.IntrinsicMarkedFan | 9f8906c3faa8a3a1aa62b993609f3d82b35bc8f8ac1d0981d4fcfdcd3ee81259 -/
+noncomputable section
+
 section schottkyclassification13_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

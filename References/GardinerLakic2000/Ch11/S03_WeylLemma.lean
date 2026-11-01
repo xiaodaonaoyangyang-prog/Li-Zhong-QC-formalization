@@ -467,11 +467,11 @@ theorem gl113_consistency {R : Type u} [TopologicalSpace R] [ChartedSpace ℂ R]
   set W : Set ℂ := (D ∩ τ ⁻¹' ball (chartAt ℂ p₂ p₂) r₂) ∩ ball (chartAt ℂ p₁ p₁) r₁ with hW
   have hWo : IsOpen W := (hτD.continuousOn.isOpen_inter_preimage hDo isOpen_ball).inter isOpen_ball
   have huW : u ∈ W := ⟨⟨⟨hr₁ hu, hs⟩, hv⟩, hu⟩
-  have hWD : W ⊆ D := fun w hw => hw.1.1
+  have hWD : W ⊆ D := fun w hw => by exact hw.1.1
   set B : ℂ → ℂ := fun w => H₂ (τ w) * deriv τ w ^ 2 with hB
   have hBd : DifferentiableOn ℂ B W := by
     refine DifferentiableOn.mul ?_ ((hdτ.mono hWD).pow 2)
-    exact hH₂.comp (hτD.mono hWD) fun w hw => hw.1.2
+    exact hH₂.comp (hτD.mono hWD) fun w hw => by exact hw.1.2
   -- a.e. equality on `W`
   have hM : volume {v : ℂ | v ∈ ball (chartAt ℂ p₂ p₂) r₂ ∧ φ p₂ v ≠ H₂ v} = 0 := by
     have := (ae_restrict_iff' measurableSet_ball).1 hae₂
@@ -485,14 +485,14 @@ theorem gl113_consistency {R : Type u} [TopologicalSpace R] [ChartedSpace ℂ R]
     by_contra hne
     exact hw ⟨⟨hwW.1.1.1, hwW.1.1.2⟩, ⟨hwW.1.2, hne⟩⟩
   have h1 : H₁ =ᵐ[volume.restrict W] φ p₁ :=
-    (ae_restrict_of_ae_restrict_of_subset (fun w hw => hw.2) hae₁).mono fun w hw => hw.symm
+    (ae_restrict_of_ae_restrict_of_subset (fun w hw => by exact hw.2) hae₁).mono fun w hw => hw.symm
   have h2 : ∀ᵐ w ∂(volume.restrict W), φ p₁ w = φ p₂ (τ w) * deriv τ w ^ (2 : ℤ) * conj (deriv τ w) ^ (0 : ℤ) :=
     ae_restrict_of_ae_restrict_of_subset hWD (hφ.1 p₂ p₁)
   have hab : H₁ =ᵐ[volume.restrict W] B := by
     filter_upwards [h1, h2, h3] with w e1 e2 e3
     rw [e1, e2, e3]
     simp [hB]
-  have heq := Measure.eqOn_open_of_ae_eq hab hWo (hH₁.continuousOn.mono fun w hw => hw.2) hBd.continuousOn
+  have heq := Measure.eqOn_open_of_ae_eq hab hWo (hH₁.continuousOn.mono fun w hw => by exact hw.2) hBd.continuousOn
   exact heq huW
 
 /-- Helper for **Corollary 1** (§11.3). Gluing: if the coefficient of an `L₁`-quadratic differential in the preferred
@@ -535,11 +535,11 @@ theorem gl113_glue {R : Type u} [TopologicalSpace R] [T2Space R] [ChartedSpace �
     have hτz0 : τ z0 = chartAt ℂ q0 q0 := rfl
     have hz0U : z0 ∈ U := ⟨⟨hz0, hq0s⟩, by rw [mem_preimage, hτz0]; exact mem_ball_self (hr q0)⟩
     set F : ℂ → ℂ := fun w => H q0 (τ w) * deriv τ w ^ 2 with hF
-    have hUD : U ⊆ D := fun w hw => hw.1
+    have hUD : U ⊆ D := fun w hw => by exact hw.1
     have hFd : DifferentiableOn ℂ F U := by
       refine DifferentiableOn.mul ?_ ((hdτ.mono hUD).pow 2)
-      exact (hH q0).comp (hτD.mono hUD) fun w hw => hw.2
-    refine ⟨U, F, hUo, hz0U, fun w hw => hw.1.1, hFd, ?_, ?_⟩
+      exact (hH q0).comp (hτD.mono hUD) fun w hw => by exact hw.2
+    refine ⟨U, F, hUo, hz0U, fun w hw => by exact hw.1.1, hFd, ?_, ?_⟩
     · intro w hw
       have hwt : w ∈ (chartAt ℂ y).target := hw.1.1
       set q : R := (chartAt ℂ y).symm w with hq

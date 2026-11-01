@@ -554,7 +554,7 @@ theorem gl84_pairing_linear [IsManifold 𝓘(ℂ) ω R] {μ : R → ℂ → ℂ}
   classical
   have key : ∀ χ ∈ integrableHolQDSet R,
       ∃ _ : (∃ (x : ℕ → R) (P : ℕ → Set R), LiZhongQC.IsChartPartition R x P), True :=
-    fun χ hχ => ⟨gl31_exists_partition_of_ne_top hχ.2.ne, trivial⟩
+    fun χ hχ => by exact ⟨gl31_exists_partition_of_ne_top hχ.2.ne, trivial⟩
   refine ⟨fun a ha b hb => ?_, fun c a ha => ?_, (beltramiNormRS μ).toReal, fun χ hχ => gl31_pairingRS_le hχ hμ⟩
   · obtain ⟨h, -⟩ := key a ha
     obtain ⟨hia, hsa⟩ := gl84_pairing_summable hμ h.choose_spec.choose_spec ha

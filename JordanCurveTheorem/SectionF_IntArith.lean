@@ -25,7 +25,8 @@ Key downstream definitions: `squc`, `adj_edge`, `along_seg`, `reflAf`, `reflBf`,
 `reflCf`, `reflAi`, `reflBi`, `reflCi`, `IMAGE2`.
 -/
 
-open Set Topology
+open Set hiding up
+open Topology
 
 noncomputable section
 

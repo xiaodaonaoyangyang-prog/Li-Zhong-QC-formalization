@@ -35,11 +35,9 @@ nonzero. -/
 theorem finite_setOf_laurentCoeff_ne_zero_lt {g : ℂ → ℂ} {c : ℂ} (hg : MeromorphicAt g c)
     (b : ℤ) : {n : ℤ | n < b ∧ laurentCoeff g c n ≠ 0}.Finite := by
   rcases eq_or_ne (meromorphicOrderAt g c) ⊤ with htop | hne
-  · convert Set.finite_empty
-    ext n
-    simp only [Set.mem_setOf_eq, Set.mem_empty_iff_false, iff_false, not_and, not_not]
-    intro _
-    exact laurentCoeff_eq_zero_of_lt_order hg (htop ▸ WithTop.coe_lt_top n)
+  · refine Set.Finite.subset Set.finite_empty fun n hn => ?_
+    obtain ⟨-, hne0⟩ := hn
+    exact (hne0 (laurentCoeff_eq_zero_of_lt_order hg (htop ▸ WithTop.coe_lt_top n))).elim
   · obtain ⟨m, hm⟩ := WithTop.ne_top_iff_exists.mp hne
     refine Set.Finite.subset (Set.finite_Ico m b) fun n hn => ?_
     obtain ⟨hnb, hne0⟩ := hn

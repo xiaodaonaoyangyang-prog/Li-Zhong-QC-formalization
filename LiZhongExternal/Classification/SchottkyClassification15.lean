@@ -8,6 +8,8 @@ import LiZhongExternal.Classification.SchottkyClassification12
 import LiZhongExternal.Classification.SchottkyClassification04
 
 /- BEGIN ClassificationOfSurfaces.Moise.IntrinsicFaceExtension | bc205db54aa746b45263c22376be250d39d65f12b38edd05650b6835080cf558 -/
+noncomputable section
+
 section schottkyclassification15_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

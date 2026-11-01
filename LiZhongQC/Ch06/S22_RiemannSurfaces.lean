@@ -213,7 +213,7 @@ def HasGenus (S : Type u) [TopologicalSpace S] (g : ℕ) : Prop :=
 the loop class itself. -/
 theorem s22c1_deck_base {S : Type u} [TopologicalSpace S] (x₀ : S)
     (γ : FundamentalGroup S x₀) :
-    RiemannDynamics.pathCoverDeck x₀ γ (RiemannDynamics.pathCoverBase x₀) =
+    RiemannDynamics.pathCoverDeck x₀ γ.asHom (RiemannDynamics.pathCoverBase x₀) =
       (⟨x₀, γ.toPath⟩ : RiemannDynamics.PathCover x₀) := by
   change (⟨x₀, γ.toPath.trans (Path.Homotopic.Quotient.refl x₀)⟩ :
     RiemannDynamics.PathCover x₀) = ⟨x₀, γ.toPath⟩
@@ -223,7 +223,7 @@ theorem s22c1_deck_base {S : Type u} [TopologicalSpace S] (x₀ : S)
 /-- The identity loop class acts as the identity on the concrete path cover. -/
 theorem s22c1_deck_one {S : Type u} [TopologicalSpace S] (x₀ : S)
     (pc : RiemannDynamics.PathCover x₀) :
-    RiemannDynamics.pathCoverDeck x₀ (1 : FundamentalGroup S x₀) pc = pc := by
+    RiemannDynamics.pathCoverDeck x₀ (1 : FundamentalGroup S x₀).asHom pc = pc := by
   rcases pc with ⟨y, c⟩
   change (⟨y, (Path.Homotopic.Quotient.refl x₀).trans c⟩ :
     RiemannDynamics.PathCover x₀) = ⟨y, c⟩
@@ -234,9 +234,9 @@ theorem s22c1_deck_one {S : Type u} [TopologicalSpace S] (x₀ : S)
 precomposition is an antihomomorphism into functions under composition. -/
 theorem s22c1_deck_mul {S : Type u} [TopologicalSpace S] (x₀ : S)
     (γ δ : FundamentalGroup S x₀) (pc : RiemannDynamics.PathCover x₀) :
-    RiemannDynamics.pathCoverDeck x₀ (γ * δ) pc =
-      RiemannDynamics.pathCoverDeck x₀ δ
-        (RiemannDynamics.pathCoverDeck x₀ γ pc) := by
+    RiemannDynamics.pathCoverDeck x₀ (γ * δ).asHom pc =
+      RiemannDynamics.pathCoverDeck x₀ δ.asHom
+        (RiemannDynamics.pathCoverDeck x₀ γ.asHom pc) := by
   change (⟨pc.pt, (δ.toPath.trans γ.toPath).trans pc.cls⟩ :
     RiemannDynamics.PathCover x₀) =
       ⟨pc.pt, δ.toPath.trans (γ.toPath.trans pc.cls)⟩
@@ -246,10 +246,10 @@ theorem s22c1_deck_mul {S : Type u} [TopologicalSpace S] (x₀ : S)
 /-- Reversing a loop gives both inverse identities for its deck map. -/
 theorem s22c1_deck_inv {S : Type u} [TopologicalSpace S] (x₀ : S)
     (γ : FundamentalGroup S x₀) (pc : RiemannDynamics.PathCover x₀) :
-    RiemannDynamics.pathCoverDeck x₀ (γ⁻¹ : FundamentalGroup S x₀)
-        (RiemannDynamics.pathCoverDeck x₀ γ pc) = pc ∧
-      RiemannDynamics.pathCoverDeck x₀ γ
-        (RiemannDynamics.pathCoverDeck x₀ (γ⁻¹ : FundamentalGroup S x₀) pc) = pc := by
+    RiemannDynamics.pathCoverDeck x₀ (γ⁻¹ : FundamentalGroup S x₀).asHom
+        (RiemannDynamics.pathCoverDeck x₀ γ.asHom pc) = pc ∧
+      RiemannDynamics.pathCoverDeck x₀ γ.asHom
+        (RiemannDynamics.pathCoverDeck x₀ (γ⁻¹ : FundamentalGroup S x₀).asHom pc) = pc := by
   constructor
   · rw [← s22c1_deck_mul, mul_inv_cancel]
     exact s22c1_deck_one x₀ pc
@@ -260,17 +260,17 @@ theorem s22c1_deck_inv {S : Type u} [TopologicalSpace S] (x₀ : S)
 distinct points of its fiber. -/
 theorem s22c1_deck_base_injective {S : Type u} [TopologicalSpace S] (x₀ : S) :
     Function.Injective (fun γ : FundamentalGroup S x₀ =>
-      RiemannDynamics.pathCoverDeck x₀ γ (RiemannDynamics.pathCoverBase x₀)) := by
+      RiemannDynamics.pathCoverDeck x₀ γ.asHom (RiemannDynamics.pathCoverBase x₀)) := by
   intro γ δ h
   have h' : (⟨x₀, γ.toPath⟩ : RiemannDynamics.PathCover x₀) = ⟨x₀, δ.toPath⟩ :=
     (s22c1_deck_base x₀ γ).symm.trans (h.trans (s22c1_deck_base x₀ δ))
   rw [RiemannDynamics.PathCover.mk.injEq] at h'
-  exact eq_of_heq h'.2
+  exact CategoryTheory.End.ext (eq_of_heq h'.2)
 
 /-- The actual loop-to-deck-function map is faithful. -/
 theorem s22c1_deck_injective {S : Type u} [TopologicalSpace S] (x₀ : S) :
     Function.Injective (fun γ : FundamentalGroup S x₀ =>
-      RiemannDynamics.pathCoverDeck x₀ γ) := by
+      RiemannDynamics.pathCoverDeck x₀ γ.asHom) := by
   intro γ δ h
   exact s22c1_deck_base_injective x₀
     (congrFun h (RiemannDynamics.pathCoverBase x₀))
@@ -279,13 +279,14 @@ theorem s22c1_deck_injective {S : Type u} [TopologicalSpace S] (x₀ : S) :
 cancellation and needs no manifold, connectedness or covering-lift hypothesis. -/
 theorem s22c1_deck_fixed_eq_one {S : Type u} [TopologicalSpace S] (x₀ : S)
     (γ : FundamentalGroup S x₀) (pc : RiemannDynamics.PathCover x₀)
-    (hfix : RiemannDynamics.pathCoverDeck x₀ γ pc = pc) : γ = 1 := by
+    (hfix : RiemannDynamics.pathCoverDeck x₀ γ.asHom pc = pc) : γ = 1 := by
   rcases pc with ⟨y, c⟩
   change (⟨y, γ.toPath.trans c⟩ : RiemannDynamics.PathCover x₀) = ⟨y, c⟩ at hfix
   rw [RiemannDynamics.PathCover.mk.injEq] at hfix
   have hc : γ.toPath.trans c = c := eq_of_heq hfix.2
   have hcancel := congrArg
     (fun η : Path.Homotopic.Quotient x₀ y => η.trans c.symm) hc
+  apply CategoryTheory.End.ext
   change γ.toPath = Path.Homotopic.Quotient.refl x₀
   simpa only [Path.Homotopic.Quotient.trans_assoc,
     Path.Homotopic.Quotient.trans_symm, Path.Homotopic.Quotient.trans_refl] using hcancel
@@ -294,34 +295,34 @@ theorem s22c1_deck_fixed_eq_one {S : Type u} [TopologicalSpace S] (x₀ : S)
 equivalent to commutation of their actual fundamental-group elements. -/
 theorem s22c1_deck_base_commute_iff {S : Type u} [TopologicalSpace S] (x₀ : S)
     (γ δ : FundamentalGroup S x₀) :
-    RiemannDynamics.pathCoverDeck x₀ γ
-        (RiemannDynamics.pathCoverDeck x₀ δ (RiemannDynamics.pathCoverBase x₀)) =
-      RiemannDynamics.pathCoverDeck x₀ δ
-        (RiemannDynamics.pathCoverDeck x₀ γ (RiemannDynamics.pathCoverBase x₀)) ↔
+    RiemannDynamics.pathCoverDeck x₀ γ.asHom
+        (RiemannDynamics.pathCoverDeck x₀ δ.asHom (RiemannDynamics.pathCoverBase x₀)) =
+      RiemannDynamics.pathCoverDeck x₀ δ.asHom
+        (RiemannDynamics.pathCoverDeck x₀ γ.asHom (RiemannDynamics.pathCoverBase x₀)) ↔
       γ * δ = δ * γ := by
   constructor
   · intro h
     apply s22c1_deck_base_injective x₀
     calc
-      RiemannDynamics.pathCoverDeck x₀ (γ * δ) (RiemannDynamics.pathCoverBase x₀) =
-          RiemannDynamics.pathCoverDeck x₀ δ
-            (RiemannDynamics.pathCoverDeck x₀ γ (RiemannDynamics.pathCoverBase x₀)) :=
+      RiemannDynamics.pathCoverDeck x₀ (γ * δ).asHom (RiemannDynamics.pathCoverBase x₀) =
+          RiemannDynamics.pathCoverDeck x₀ δ.asHom
+            (RiemannDynamics.pathCoverDeck x₀ γ.asHom (RiemannDynamics.pathCoverBase x₀)) :=
         s22c1_deck_mul x₀ γ δ _
-      _ = RiemannDynamics.pathCoverDeck x₀ γ
-          (RiemannDynamics.pathCoverDeck x₀ δ (RiemannDynamics.pathCoverBase x₀)) := h.symm
-      _ = RiemannDynamics.pathCoverDeck x₀ (δ * γ) (RiemannDynamics.pathCoverBase x₀) :=
+      _ = RiemannDynamics.pathCoverDeck x₀ γ.asHom
+          (RiemannDynamics.pathCoverDeck x₀ δ.asHom (RiemannDynamics.pathCoverBase x₀)) := h.symm
+      _ = RiemannDynamics.pathCoverDeck x₀ (δ * γ).asHom (RiemannDynamics.pathCoverBase x₀) :=
         (s22c1_deck_mul x₀ δ γ _).symm
   · intro h
     calc
-      RiemannDynamics.pathCoverDeck x₀ γ
-          (RiemannDynamics.pathCoverDeck x₀ δ (RiemannDynamics.pathCoverBase x₀)) =
-        RiemannDynamics.pathCoverDeck x₀ (δ * γ) (RiemannDynamics.pathCoverBase x₀) :=
+      RiemannDynamics.pathCoverDeck x₀ γ.asHom
+          (RiemannDynamics.pathCoverDeck x₀ δ.asHom (RiemannDynamics.pathCoverBase x₀)) =
+        RiemannDynamics.pathCoverDeck x₀ (δ * γ).asHom (RiemannDynamics.pathCoverBase x₀) :=
           (s22c1_deck_mul x₀ δ γ _).symm
-      _ = RiemannDynamics.pathCoverDeck x₀ (γ * δ) (RiemannDynamics.pathCoverBase x₀) :=
+      _ = RiemannDynamics.pathCoverDeck x₀ (γ * δ).asHom (RiemannDynamics.pathCoverBase x₀) :=
         congrArg (fun η : FundamentalGroup S x₀ =>
-          RiemannDynamics.pathCoverDeck x₀ η (RiemannDynamics.pathCoverBase x₀)) h.symm
-      _ = RiemannDynamics.pathCoverDeck x₀ δ
-          (RiemannDynamics.pathCoverDeck x₀ γ (RiemannDynamics.pathCoverBase x₀)) :=
+          RiemannDynamics.pathCoverDeck x₀ η.asHom (RiemannDynamics.pathCoverBase x₀)) h.symm
+      _ = RiemannDynamics.pathCoverDeck x₀ δ.asHom
+          (RiemannDynamics.pathCoverDeck x₀ γ.asHom (RiemannDynamics.pathCoverBase x₀)) :=
         s22c1_deck_mul x₀ γ δ _
 
 /-- Pointwise commutation of the actual deck functions detects precisely
@@ -329,8 +330,8 @@ commutation in the fundamental group, despite the reverse-order convention. -/
 theorem s22c1_deck_commute_iff {S : Type u} [TopologicalSpace S] (x₀ : S)
     (γ δ : FundamentalGroup S x₀) :
     (∀ pc : RiemannDynamics.PathCover x₀,
-      RiemannDynamics.pathCoverDeck x₀ γ (RiemannDynamics.pathCoverDeck x₀ δ pc) =
-        RiemannDynamics.pathCoverDeck x₀ δ (RiemannDynamics.pathCoverDeck x₀ γ pc)) ↔
+      RiemannDynamics.pathCoverDeck x₀ γ.asHom (RiemannDynamics.pathCoverDeck x₀ δ.asHom pc) =
+        RiemannDynamics.pathCoverDeck x₀ δ.asHom (RiemannDynamics.pathCoverDeck x₀ γ.asHom pc)) ↔
       γ * δ = δ * γ := by
   constructor
   · intro h
@@ -345,10 +346,10 @@ theorem s22c1_exists_noncommuting_deck_of_genus_gt_one
     {S : Type u} [TopologicalSpace S] (x₀ : S) {g : ℕ}
     (hg : 1 < g) (hS : HasGenus S g) :
     ∃ γ δ : FundamentalGroup S x₀,
-      RiemannDynamics.pathCoverDeck x₀ γ
-          (RiemannDynamics.pathCoverDeck x₀ δ (RiemannDynamics.pathCoverBase x₀)) ≠
-        RiemannDynamics.pathCoverDeck x₀ δ
-          (RiemannDynamics.pathCoverDeck x₀ γ (RiemannDynamics.pathCoverBase x₀)) := by
+      RiemannDynamics.pathCoverDeck x₀ γ.asHom
+          (RiemannDynamics.pathCoverDeck x₀ δ.asHom (RiemannDynamics.pathCoverBase x₀)) ≠
+        RiemannDynamics.pathCoverDeck x₀ δ.asHom
+          (RiemannDynamics.pathCoverDeck x₀ γ.asHom (RiemannDynamics.pathCoverBase x₀)) := by
   obtain ⟨e⟩ := hS.2 x₀
   obtain ⟨a, b, hab⟩ := (s22c2_surfaceGroup_infinite_noncommutative hg).2
   refine ⟨e.symm a, e.symm b, ?_⟩
@@ -379,7 +380,7 @@ theorem s22c3_compact_pathCover_fundamentalGroup_finite
     have hp : (⟨x₀, γ.toPath⟩ : RiemannDynamics.PathCover x₀) =
         ⟨x₀, δ.toPath⟩ := congrArg Subtype.val h
     rw [RiemannDynamics.PathCover.mk.injEq] at hp
-    exact eq_of_heq hp.2
+    exact CategoryTheory.End.ext (eq_of_heq hp.2)
   exact Finite.of_injective f hf
 
 /-- The concrete path cover of a surface with genus greater than one cannot
@@ -719,13 +720,15 @@ theorem k22rr_exists_pi1_period_of_concat
         P (Additive.ofMul (FundamentalGroup.fromPath ⟦p⟧)) =
           Jacobians.pathPrimValue η p.extend p.continuous_extend.continuousOn := by
   classical
-  let value : FundamentalGroup X x → ℂ := Quotient.lift
+  let value : FundamentalGroup X x → ℂ := fun γ => Quotient.lift
     (fun p : Path x x =>
       Jacobians.pathPrimValue η p.extend p.continuous_extend.continuousOn)
-    (fun p q hpq => Jacobians.pathPrimValue_eq_of_homotopic η hpq)
+    (fun p q hpq => Jacobians.pathPrimValue_eq_of_homotopic η hpq) γ.asHom
   have value_mul : ∀ a b : FundamentalGroup X x,
       value (a * b) = value a + value b := by
     intro a b
+    obtain ⟨a⟩ := a
+    obtain ⟨b⟩ := b
     refine Quotient.inductionOn₂ a b (fun p q => ?_)
     change Jacobians.pathPrimValue η (q.trans p).extend
       (q.trans p).continuous_extend.continuousOn =
@@ -898,6 +901,7 @@ theorem k22rr_exists_real_period_map (x : X) :
         intro a
         change (Q (v + w) a).re = (Q v a).re + (Q w a).re
         obtain ⟨a, rfl⟩ := Additive.ofMul.surjective a
+        obtain ⟨a⟩ := a
         refine Quotient.inductionOn a (fun p => ?_)
         rw [hQ (v + w) p, hQ v p, hQ w p, map_add,
           k22rr_pathPrimValue_add]
@@ -908,6 +912,7 @@ theorem k22rr_exists_real_period_map (x : X) :
         intro a
         change (Q (r • v) a).re = r • (Q v a).re
         obtain ⟨a, rfl⟩ := Additive.ofMul.surjective a
+        obtain ⟨a⟩ := a
         refine Quotient.inductionOn a (fun p => ?_)
         rw [hQ (r • v) p, hQ v p]
         have hform : Jacobians.ambientIso X (r • v) =
@@ -2088,7 +2093,9 @@ theorem k22rr_pd_surjective_of_period_descent (x : X)
   apply AddMonoidHom.ext
   intro γ
   obtain ⟨p, hp⟩ : ∃ p : Path x x, FundamentalGroup.fromPath ⟦p⟧ = γ.toMul :=
-    Quotient.inductionOn γ.toMul (fun p => ⟨p, rfl⟩)
+    Quotient.inductionOn (motive := fun q => ∃ p : Path x x,
+      FundamentalGroup.fromPath ⟦p⟧ = FundamentalGroup.fromPath q) γ.toMul.asHom
+      (fun p => ⟨p, rfl⟩)
   change P v (Additive.ofMul γ.toMul) = χ (Additive.ofMul γ.toMul)
   rw [← hp, hP]
   have hav : Jacobians.ambientIso X v = (2 : ℂ) • η :=
@@ -2613,9 +2620,9 @@ theorem exists_universal_covering [T2Space S] [ConnectedSpace S] [IsManifold �
   let ef : Fiber ≃ FundamentalGroup S x₀ :=
     { toFun := fun a => by
         have h : a.val.pt = x₀ := a.property
-        exact Eq.ndrec (motive := fun y : S => Path.Homotopic.Quotient x₀ y)
-          a.val.cls h
-      invFun := fun γ => ⟨⟨x₀, γ⟩, rfl⟩
+        exact FundamentalGroup.fromPath
+          (Eq.ndrec (motive := fun y : S => Path.Homotopic.Quotient x₀ y) a.val.cls h)
+      invFun := fun γ => ⟨⟨x₀, γ.asHom⟩, rfl⟩
       left_inv := by
         intro a
         rcases a with ⟨⟨y, c⟩, hy⟩
@@ -4604,24 +4611,24 @@ theorem s22ct_pathCover_conjugate_deck
     (x₀ : S) (e : RiemannDynamics.PathCover x₀ ≃ₘ^ω⟮𝓘(ℂ), 𝓘(ℂ)⟯ T)
     (γ : FundamentalGroup S x₀) :
     ∃ F : T ≃ₜ T, MDifferentiable 𝓘(ℂ) 𝓘(ℂ) F ∧
-      (∀ y, F y = e (RiemannDynamics.pathCoverDeck x₀ γ (e.symm y))) ∧
+      (∀ y, F y = e (RiemannDynamics.pathCoverDeck x₀ γ.asHom (e.symm y))) ∧
       (RiemannDynamics.pathCoverProj x₀ ∘ e.symm) ∘ F =
         RiemannDynamics.pathCoverProj x₀ ∘ e.symm ∧
       (∀ y, F y = y → ∀ z, F z = z) := by
-  obtain ⟨d, hd⟩ := RiemannDynamics.exists_pathCoverDeck_diffeomorph x₀ γ
+  obtain ⟨d, hd⟩ := RiemannDynamics.exists_pathCoverDeck_diffeomorph x₀ γ.asHom
   let a : T ≃ₘ^ω⟮𝓘(ℂ), 𝓘(ℂ)⟯ T := (e.symm.trans d).trans e
-  have hform : ∀ y, a y = e (RiemannDynamics.pathCoverDeck x₀ γ (e.symm y)) := by
+  have hform : ∀ y, a y = e (RiemannDynamics.pathCoverDeck x₀ γ.asHom (e.symm y)) := by
     intro y
-    change e (d (e.symm y)) = e (RiemannDynamics.pathCoverDeck x₀ γ (e.symm y))
+    change e (d (e.symm y)) = e (RiemannDynamics.pathCoverDeck x₀ γ.asHom (e.symm y))
     rw [hd]
   refine ⟨a.toHomeomorph, a.contMDiff.mdifferentiable (by simp), hform, ?_, ?_⟩
   · funext y
     change RiemannDynamics.pathCoverProj x₀ (e.symm (a y)) =
       RiemannDynamics.pathCoverProj x₀ (e.symm y)
     rw [hform, e.symm_apply_apply]
-    exact RiemannDynamics.pathCoverProj_deck x₀ γ (e.symm y)
+    exact RiemannDynamics.pathCoverProj_deck x₀ γ.asHom (e.symm y)
   · intro y hy z
-    have hfix : RiemannDynamics.pathCoverDeck x₀ γ (e.symm y) = e.symm y := by
+    have hfix : RiemannDynamics.pathCoverDeck x₀ γ.asHom (e.symm y) = e.symm y := by
       apply e.toEquiv.injective
       exact (hform y).symm.trans (hy.trans (e.apply_symm_apply y).symm)
     have hγ : γ = 1 := s22c1_deck_fixed_eq_one x₀ γ (e.symm y) hfix
@@ -5157,7 +5164,7 @@ theorem s22tc_sphere_case {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S]
   · have htriv : ∀ γ : FundamentalGroup S x₀, γ = 1 := by
       intro γ
       obtain ⟨p, hφ⟩ := hp
-      obtain ⟨d, hd⟩ := RiemannDynamics.exists_pathCoverDeck_diffeomorph x₀ γ
+      obtain ⟨d, hd⟩ := RiemannDynamics.exists_pathCoverDeck_diffeomorph x₀ γ.asHom
       obtain ⟨x, hx⟩ := s22tc_fixed_point p hφ d.toHomeomorph
         (d.contMDiff.mdifferentiable (by simp))
       exact s22c1_deck_fixed_eq_one x₀ γ x (by rw [← hd]; exact hx)
@@ -5169,7 +5176,8 @@ theorem s22tc_sphere_case {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S]
       obtain ⟨γ', rfl⟩ :=
         (FundamentalGroup.fundamentalGroupMulEquivOfPathConnected x₀ x).surjective γ
       rw [htriv γ', map_one]
-    have h1 : u.trans v.symm = Path.Homotopic.Quotient.refl x := hx (u.trans v.symm)
+    have h1 : u.trans v.symm = Path.Homotopic.Quotient.refl x :=
+      congrArg CategoryTheory.End.asHom (hx (FundamentalGroup.fromPath (u.trans v.symm)))
     have h2 := congrArg (fun η : Path.Homotopic.Quotient x x => η.trans v) h1
     simpa only [Path.Homotopic.Quotient.trans_assoc, Path.Homotopic.Quotient.symm_trans,
       Path.Homotopic.Quotient.trans_refl, Path.Homotopic.Quotient.refl_trans] using h2

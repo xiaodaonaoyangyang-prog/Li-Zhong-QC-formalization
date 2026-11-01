@@ -1114,7 +1114,7 @@ theorem s31qk_boundary_const {x₀ ε L : ℝ} {lam : ℂ} {G g : ℂ → ℂ} (
   -- `G` is `L`-Lipschitz on `U`
   have hlip : ∀ z ∈ U, ∀ w ∈ U, ‖G z - G w‖ ≤ L * ‖z - w‖ := fun z hz w hw =>
     hUc.norm_image_sub_le_of_norm_hasDerivWithin_le (f := G) (f' := g)
-      (fun u hu => (hG u hu.1 hu.2).hasDerivWithinAt) (fun u hu => hg u hu.1 hu.2) hw hz
+      (fun u (hu : u ∈ U) => (hG u hu.1 hu.2).hasDerivWithinAt) (fun u (hu : u ∈ U) => hg u hu.1 hu.2) hw hz
   have hlam' : ‖conj lam‖ = 1 := by rw [Complex.norm_conj, hlam]
   set φ : ℂ → ℝ := fun z => (conj lam * G z).im with hφ
   have hφlip : ∀ z ∈ U, ∀ w ∈ U, |φ z - φ w| ≤ L * ‖z - w‖ := fun z hz w hw => by

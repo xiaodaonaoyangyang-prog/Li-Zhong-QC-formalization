@@ -77,7 +77,7 @@ noncomputable def bddHolConst (c : ℂ) : BddHol (Metric.ball (0 : ℂ) 1) :=
 
 /-- The single-point chart-disk overlap data on `Fin k`: every overlap is the unit disk
 `Metric.ball 0 1`, every shrinking is the single point `{0}`. -/
-def artificialData (k : ℕ) : DiskOverlapData where
+noncomputable def artificialData (k : ℕ) : DiskOverlapData where
   J := Fin k
   Uov := fun _ => Metric.ball (0 : ℂ) 1
   hUov := fun _ => Metric.isOpen_ball

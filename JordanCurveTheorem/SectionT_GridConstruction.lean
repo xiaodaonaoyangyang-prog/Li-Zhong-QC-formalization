@@ -24,7 +24,8 @@ Key results:
 - Segment insertion and endpoint selection lemmas for the Jordan curve theorem
 -/
 
-open Set Metric Topology Function
+open Set hiding up
+open Metric Topology Function
 
 namespace JordanCurveTheorem
 

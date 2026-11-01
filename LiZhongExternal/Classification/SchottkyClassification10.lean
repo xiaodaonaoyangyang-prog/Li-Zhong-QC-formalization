@@ -7,6 +7,8 @@ import LiZhongExternal.Classification.SchottkyClassification01
 import LiZhongExternal.Classification.SchottkyClassification04
 
 /- BEGIN ClassificationOfSurfaces.Moise.AdaptiveFanComplex | 6de4a25bbd948d3b7ae932bbd2ed77de1d572b61dd7aa01248a04d82afb35cad -/
+noncomputable section
+
 section schottkyclassification10_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

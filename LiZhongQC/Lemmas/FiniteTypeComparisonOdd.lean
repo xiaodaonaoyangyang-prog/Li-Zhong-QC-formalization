@@ -642,11 +642,9 @@ theorem s82cmp_core_punct {g n : ℕ} (F₀ : FiniteTypeStructure S₀ g n 0) (Y
     rw [this, hπ₀fib]
   have hfibP : ∀ x ∈ F₀.P, (p₀ ⁻¹' {x}).Finite := by
     intro x hx
-    convert Set.finite_empty
-    ext t
-    simp only [mem_preimage, mem_singleton_iff, mem_empty_iff_false, iff_false]
-    intro h
-    exact hιP₀ _ (h ▸ hx)
+    refine Set.Finite.subset Set.finite_empty fun t ht => ?_
+    simp only [mem_preimage, mem_singleton_iff] at ht
+    exact (hιP₀ _ (ht ▸ hx)).elim
   have hclosed : ∀ C : Set T₀, IsClosed C → ∀ p ∉ F₀.P, p ∉ p₀ '' C → (p₀ '' C)ᶜ ∈ 𝓝 p := by
     intro C hC p hp hpC
     obtain ⟨s, rfl⟩ : p ∈ range F₀.ι := by rw [hr0]; exact hp

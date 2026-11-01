@@ -5560,6 +5560,7 @@ theorem mphi_deriv_modularPhi_div_tendsto :
     have h2 := mphi_differentiableOn_Gq hε hε1
     exact differentiableOn_id.sub (h1.div h2 hG)
   have hU : IsOpen {w : ℂ | 0 < w.im ∧ qf w ∈ Metric.ball (0 : ℂ) ε} := by
+    rw [Set.ofPred_and]
     refine (isOpen_lt continuous_const Complex.continuous_im).inter ?_
     exact Metric.isOpen_ball.preimage (by rw [hqf]; fun_prop)
   -- the derivative formula on `U`

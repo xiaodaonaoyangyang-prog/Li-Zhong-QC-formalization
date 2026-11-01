@@ -1621,7 +1621,7 @@ theorem s16p_refl_transport {C A₁ A₂ : Set ExtPlane} (hC : AreComplementaryC
     intro w hw
     have h1 : ContinuousWithinAt (fun w : ℂ => F' w) D' w :=
       ((hF'c.mono subset_union_left) _ hw.1).comp OnePoint.continuous_coe.continuousWithinAt
-        fun v hv => hv.1
+        fun v hv => by exact hv.1
     have h2 : ContinuousAt extToC (F' w) := by
       rw [← hfin w hw]
       exact s16p_continuousAt_extToC _

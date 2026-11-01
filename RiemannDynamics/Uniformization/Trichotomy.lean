@@ -42,7 +42,7 @@ open scoped Manifold ContDiff
 namespace RiemannDynamics
 
 /-- The open unit disc as a plane domain, the disc model of the trichotomy. -/
-def unitDiscOpens : Opens ℂ := ⟨Metric.ball 0 1, Metric.isOpen_ball⟩
+noncomputable def unitDiscOpens : Opens ℂ := ⟨Metric.ball 0 1, Metric.isOpen_ball⟩
 
 /-! ## The trichotomy for plane and sphere domains -/
 

@@ -5,6 +5,8 @@
 import LiZhongExternal.Classification.SchottkyClassification26
 
 /- BEGIN ClassificationOfSurfaces.FiniteCyclicWordReduction | 0ecc018e36c1140de34520487d5e01e5e1df83ad138510056a721da0afad334c -/
+noncomputable section
+
 section schottkyclassification27_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

@@ -133,7 +133,7 @@ theorem closedBall_chartDiskRadius_subset_target {X : Type*} [TopologicalSpace X
 
 /-- The smaller chart-disk neighborhood of `x`. This is the cover set that feeds the
 `ChartDiskCover` API. -/
-def chartDiskNbhd (x : X) : Set X :=
+noncomputable def chartDiskNbhd (x : X) : Set X :=
   (chartAt ℂ x).source ∩
     (chartAt ℂ x) ⁻¹' Metric.ball ((chartAt ℂ x) x) (chartDiskRadius (X := X) x)
 

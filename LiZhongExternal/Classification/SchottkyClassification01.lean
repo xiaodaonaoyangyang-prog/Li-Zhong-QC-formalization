@@ -1807,7 +1807,7 @@ theorem independence_of_interior [HasInvarianceOfDomain E] {x : M}
   have hg'Cont : ContinuousOn g' U₀ := by
     apply ContinuousOn.mono ?_ <| show U₀ ⊆ g.source by exact inter_subset_right
     apply ContinuousOn.comp ?_ g.continuousOn g.mapsTo
-    apply ContinuousOn.mono ?_ (fun _ _ ↦ trivial)
+    apply ContinuousOn.mono ?_ (subset_univ _)
     exact continuousOn_univ.mpr <| I.continuous
   let φ : PartialEquiv E E := f'.symm.trans g'
   have hφCont : ContinuousOn φ U := by
@@ -1821,7 +1821,7 @@ theorem independence_of_interior [HasInvarianceOfDomain E] {x : M}
     simp only [PartialEquiv.symm_source, subset_inter_iff]
     simp_all only [PartialEquiv.coe_trans_symm, OpenPartialHomeomorph.coe_toPartialEquiv_symm,
       toPartialEquiv_coe_symm, PartialEquiv.trans_target, target_eq, Filter.inter_mem_iff,
-      PartialEquiv.coe_trans, toPartialEquiv_coe, OpenPartialHomeomorph.toFun_eq_coe, comp_apply,
+      PartialEquiv.coe_trans, toPartialEquiv_coe, OpenPartialHomeomorph.toFun_eq_coe, Function.comp_apply,
       subset_inter_iff, image_subset_iff, mapsTo_inter, mapsTo_image_iff, and_self,
       PartialEquiv.trans_source, source_eq, preimage_univ, inter_univ, true_and, f', U₀, U, g', φ]
     exact hf'MapsToU.2

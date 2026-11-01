@@ -155,7 +155,7 @@ lemma kth_roots_eq_finset {k : ℕ} (hk : 1 ≤ k) {a : ℂ} (_ha : a ≠ 0) :
   set p : Polynomial ℂ := Polynomial.X ^ k - Polynomial.C a with hp_def
   have hk0 : k ≠ 0 := Nat.one_le_iff_ne_zero.mp hk
   have hp_deg : p.natDegree = k := by
-    rw [hp_def]; exact Polynomial.natDegree_X_pow_sub_C
+    rw [hp_def]; exact Polynomial.natDegree_X_pow_sub_C a
   have hp_ne : p ≠ 0 := fun h => by
     rw [h] at hp_deg
     simp at hp_deg
@@ -177,7 +177,7 @@ lemma kth_roots_finset_card {k : ℕ} (hk : 1 ≤ k) {a : ℂ} (ha : a ≠ 0) :
   set p : Polynomial ℂ := Polynomial.X ^ k - Polynomial.C a with hp_def
   have hk0 : k ≠ 0 := Nat.one_le_iff_ne_zero.mp hk
   have hp_deg : p.natDegree = k := by
-    rw [hp_def]; exact Polynomial.natDegree_X_pow_sub_C
+    rw [hp_def]; exact Polynomial.natDegree_X_pow_sub_C a
   have h_separable : p.Separable := by
     rw [hp_def]
     exact Polynomial.separable_X_pow_sub_C a (by exact_mod_cast hk0) ha

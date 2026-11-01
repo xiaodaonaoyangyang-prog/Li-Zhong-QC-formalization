@@ -3305,7 +3305,7 @@ theorem h36p_ae_unique (hΓ : IsFuchsian Γ) {F : Set ℂ} (hF : IsFundamentalDo
     rw [hd2, mul_neg_one]
   · exfalso
     apply h2
-    exact mem_biUnion ⟨Γ.mul_mem (Γ.inv_mem hγ₂) hγ₁, hd1, hd2⟩ ⟨hz, hfixz⟩
+    exact Set.mem_iUnion₂.2 ⟨γ₂⁻¹ * γ₁, ⟨Γ.mul_mem (Γ.inv_mem hγ₂) hγ₁, hd1, hd2⟩, hz, hfixz⟩
 
 /-- `-γ` and `γ` induce the same Möbius map. -/
 theorem h36p_a_m_neg (γ : Matrix.SpecialLinearGroup (Fin 2) ℝ) (z : ℂ) : h36p_m (-γ) z = h36p_m γ z := by
@@ -4007,7 +4007,7 @@ theorem h36p_c_K_continuousOn {h : ℂ → ℂ} (hh : ContinuousOn h upperHalf) 
   unfold h36p_c_K
   refine ContinuousOn.div ?_ ?_ ?_
   · refine ContinuousOn.mul (by fun_prop) ?_
-    exact hh.comp continuous_snd.continuousOn (fun p hp => hp.2)
+    exact hh.comp continuous_snd.continuousOn (fun p (hp : p ∈ upperHalf ×ˢ upperHalf) => hp.2)
   · have : Continuous fun p : ℂ × ℂ => (conj p.2 - p.1) ^ 4 :=
       ((Complex.continuous_conj.comp continuous_snd).sub continuous_fst).pow 4
     exact this.continuousOn

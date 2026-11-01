@@ -132,8 +132,8 @@ theorem s83sg_tracked_pi1 (p : ℕ) (hp : 1 ≤ p) (one : Set.Ioc (0 : ℝ) 1) (
         (b : Quot (OrientableRel p 0)) hx₀ false γ') := by
     have h2 : FundamentalGroup.mapOfEq (interToLeft (s78dg_cs_U p 0) (s78dg_cs_V p 0))
         (interToLeft_overlapBasepoint (s78dg_cs_U p 0) (s78dg_cs_V p 0)
-          (b : Quot (OrientableRel p 0)) hx₀) (Path.Homotopic.Quotient.mk γ) =
-        Path.Homotopic.Quotient.mk c :=
+          (b : Quot (OrientableRel p 0)) hx₀) (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)) =
+        FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk c) :=
       s78dg_pi1_mapOfEq_mk (interToLeft _ _) _ _
         (interToLeft_overlapBasepoint _ _ _ hx₀) γ c (fun t => rfl)
     have h1 : fundamentalGroupAmalgamation (s78dg_cs_U p 0) (s78dg_cs_V p 0)
@@ -207,6 +207,7 @@ theorem s83sg_tracked_pi1 (p : ℕ) (hp : 1 ≤ p) (one : Set.Ioc (0 : ℝ) 1) (
   let incl : C(↥(s78dg_cs_U p 0), Quot (OrientableRel p 0)) := ⟨Subtype.val, continuous_subtype_val⟩
   have hιmap : ∀ u, ι u = FundamentalGroup.map incl x₁ u := by
     intro u
+    obtain ⟨u⟩ := u
     induction u using Quotient.inductionOn with
     | h ℓ =>
       exact (s78dg_pi1_mapOfEq_mk (subsetToAmbient (s78dg_cs_U p 0)) _ _

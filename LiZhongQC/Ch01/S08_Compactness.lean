@@ -2622,11 +2622,11 @@ theorem qcl_w_lift_change_eq_of_conformal {A : ℂ → ℂ} {U : Set ℂ} (hU : 
     have hpart1 : ContinuousOn (fun q : ℝ × ℝ => (1 - (q.1:ℂ)) * (A (α q.2) - A p))
         (Icc (0:ℝ) 1 ×ˢ Icc (0:ℝ) 1) :=
       (continuousOn_const.sub (Complex.continuous_ofReal.comp continuous_fst).continuousOn).mul
-        ((hAαcont.comp continuousOn_snd (fun q hq => hq.2)).sub continuousOn_const)
+        ((hAαcont.comp continuousOn_snd (fun q hq => by exact hq.2)).sub continuousOn_const)
     have hpart2 : ContinuousOn (fun q : ℝ × ℝ => (q.1 : ℂ) * (deriv A p * (α q.2 - p)))
         (Icc (0:ℝ) 1 ×ˢ Icc (0:ℝ) 1) :=
       (Complex.continuous_ofReal.comp continuous_fst).continuousOn.mul
-        (continuousOn_const.mul ((hαcont.comp continuousOn_snd (fun q hq => hq.2)).sub continuousOn_const))
+        (continuousOn_const.mul ((hαcont.comp continuousOn_snd (fun q hq => by exact hq.2)).sub continuousOn_const))
     have hHeq : (Function.uncurry H) = fun q : ℝ × ℝ =>
         (1 - (q.1:ℂ)) * (A (α q.2) - A p) + (q.1 : ℂ) * (deriv A p * (α q.2 - p)) := by
       funext ⟨s, t⟩

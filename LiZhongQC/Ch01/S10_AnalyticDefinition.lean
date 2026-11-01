@@ -52,13 +52,19 @@ theorem anN_T_injective : Function.Injective anN_T := by
 theorem anN_T_mem (b : ℕ → Bool) : anN_T b ∈ cantorSet :=
   ofDigits_bool_to_fin_three_mem_cantorSet b
 
+/-- The fair coin is a probability measure (needed by `Measure.infinitePi`; the old
+`PMF.uniformOfFintype` carried this instance through `PMF.toMeasure`). -/
+instance anN_coin_isProb :
+    IsProbabilityMeasure (Measure.uniformOfFinset (Finset.univ : Finset Bool)) :=
+  ⟨by rw [Measure.uniformOfFinset_apply]; simp [ENNReal.div_self]⟩
+
 /-- The fair coin-toss product measure has no atoms. -/
 theorem anN_P_singleton (b : ℕ → Bool) :
-    Measure.infinitePi (fun _ : ℕ => (PMF.uniformOfFintype Bool).toMeasure) {b} = 0 := by
+    Measure.infinitePi (fun _ : ℕ => Measure.uniformOfFinset (Finset.univ : Finset Bool)) {b} = 0 := by
   rw [Measure.infinitePi_singleton]
-  have h1 : ∀ i : ℕ, (PMF.uniformOfFintype Bool).toMeasure {b i} = 2⁻¹ := by
+  have h1 : ∀ i : ℕ, Measure.uniformOfFinset (Finset.univ : Finset Bool) {b i} = 2⁻¹ := by
     intro i
-    rw [PMF.toMeasure_apply_singleton _ _ (measurableSet_singleton _), PMF.uniformOfFintype_apply]
+    rw [Measure.uniformOfFinset_apply_singleton_of_mem (Finset.mem_univ _)]
     simp
   simp_rw [h1]
   rw [ENNReal.tprod_eq_iInf_prod (fun _ => by norm_num)]
@@ -71,7 +77,7 @@ theorem anN_P_singleton (b : ℕ → Bool) :
 
 /-- The Cantor measure: the image of the fair coin-toss measure under `anN_T`. -/
 def anN_nu : Measure ℝ :=
-  (Measure.infinitePi (fun _ : ℕ => (PMF.uniformOfFintype Bool).toMeasure)).map anN_T
+  (Measure.infinitePi (fun _ : ℕ => Measure.uniformOfFinset (Finset.univ : Finset Bool))).map anN_T
 
 /-- The Cantor measure is a probability measure. -/
 theorem anN_nu_isProb : IsProbabilityMeasure anN_nu := by
@@ -80,7 +86,7 @@ theorem anN_nu_isProb : IsProbabilityMeasure anN_nu := by
 
 /-- Evaluation of the Cantor measure on a measurable set. -/
 theorem anN_nu_apply {s : Set ℝ} (hs : MeasurableSet s) :
-    anN_nu s = Measure.infinitePi (fun _ : ℕ => (PMF.uniformOfFintype Bool).toMeasure)
+    anN_nu s = Measure.infinitePi (fun _ : ℕ => Measure.uniformOfFinset (Finset.univ : Finset Bool))
       (anN_T ⁻¹' s) :=
   Measure.map_apply anN_T_continuous.measurable hs
 
@@ -135,7 +141,7 @@ theorem anN_F_continuous : Continuous anN_F := by
 
 /-- `anN_F 0 = 0`. -/
 theorem anN_F_zero : anN_F 0 = 0 := by
-  have h0 : Measure.infinitePi (fun _ : ℕ => (PMF.uniformOfFintype Bool).toMeasure)
+  have h0 : Measure.infinitePi (fun _ : ℕ => Measure.uniformOfFinset (Finset.univ : Finset Bool))
       (anN_T ⁻¹' {0}) = 0 := by
     rw [← anN_nu_apply (measurableSet_singleton 0)]
     exact anN_nu_singleton 0

@@ -90,12 +90,12 @@ theorem gl7_dist_self (z : ℂ) : discPoincareDist z z = 0 := by
 /-- Helper for §7.1. Kobayashi's pseudometric is itself admissible (a supremum of admissible pseudometrics). -/
 theorem gl7_admissible {X : Type*} (D : Set (ℂ → X)) : IsKobayashiAdmissible D (kobayashiPseudo D) := by
   refine ⟨fun x => ?_, fun x y => ?_, fun x y z => ?_, fun f hf z hz w hw => ?_⟩
-  · exact le_antisymm (iSup₂_le fun δ hδ => (hδ.1 x).le) zero_le
+  · exact le_antisymm (iSup₂_le fun δ hδ => by exact (hδ.1 x).le) zero_le
   · exact iSup_congr fun δ => iSup_congr fun hδ => hδ.2.1 x y
   · exact iSup₂_le fun δ hδ => (hδ.2.2.1 x y z).trans (add_le_add
       (le_iSup₂ (f := fun δ (_ : IsKobayashiAdmissible D δ) => δ x y) δ hδ)
       (le_iSup₂ (f := fun δ (_ : IsKobayashiAdmissible D δ) => δ y z) δ hδ))
-  · exact iSup₂_le fun δ hδ => hδ.2.2.2 f hf z hz w hw
+  · exact iSup₂_le fun δ hδ => by exact hδ.2.2.2 f hf z hz w hw
 
 /-- Helper for Theorem 1. A pseudometric is bounded by the length of any chain: `δ(c₀, cₙ) ≤ Σ δ(cᵢ, cᵢ₊₁)`. -/
 theorem gl7_chain_le {X : Type*} {δ : X → X → ℝ≥0∞} (hrefl : ∀ x, δ x x = 0)

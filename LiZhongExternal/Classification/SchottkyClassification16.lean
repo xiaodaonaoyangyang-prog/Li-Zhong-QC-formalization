@@ -6,6 +6,8 @@ import LiZhongExternal.Classification.SchottkyClassification15
 import LiZhongExternal.Classification.SchottkyClassification14
 
 /- BEGIN ClassificationOfSurfaces.Moise.LocallyFinitePLApproximation | 7ed5b85f85b5cfb34e1d5f0aee6cc4691f17f2fbe72685d2d9be035e6020d825 -/
+noncomputable section
+
 section schottkyclassification16_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

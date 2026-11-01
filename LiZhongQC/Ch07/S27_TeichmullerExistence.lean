@@ -3281,7 +3281,7 @@ theorem s27u_b_s_beltrami {μ : ℂ → ℂ} {k : ℝ} (hμ : IsBeltramiCoeff μ
       · rw [Set.piecewise_eq_of_notMem lowerHalf _ _ (show z ∉ lowerHalf from hz), s27u_symExt,
           ite_eq_right hz]
     rw [heq]
-    exact hL.piecewise isOpen_lowerHalf.measurableSet hC
+    exact hL.piecewise isOpen_lowerHalf.measurableSet.nullMeasurableSet hC
   · -- the bound: `σ = μ` on `ℍ`, and `‖σ z‖ = ‖μ z̄‖` on `𝕃`
     refine k24_ae_of_halves ?_ ?_
     · filter_upwards [hμ.2, ae_restrict_mem isOpen_upperHalf.measurableSet] with z h1 h2

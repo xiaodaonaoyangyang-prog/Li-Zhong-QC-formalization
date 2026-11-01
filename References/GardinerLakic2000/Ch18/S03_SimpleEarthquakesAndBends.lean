@@ -472,7 +472,7 @@ theorem gl18_he_trunc {f : ℝ → ℝ} (hf : IntegrableOn f (Ioi 0)) (y : ℝ) 
   have hm : ∀ ε : ℝ, MeasurableSet {u : ℝ | ε < |u - y|} := fun ε =>
     measurableSet_lt measurable_const (by fun_prop)
   have e : ∀ ε : ℝ, ∫ u in {u : ℝ | 0 < u ∧ ε < |u - y|}, f u =
-      ∫ u in Ioi 0, {u : ℝ | ε < |u - y|}.indicator f u := fun ε => (setIntegral_indicator (hm ε)).symm
+      ∫ u in Ioi 0, {u : ℝ | ε < |u - y|}.indicator f u := fun ε => (setIntegral_indicator (s := Ioi 0) (hm ε)).symm
   rw [show (fun ε : ℝ => ∫ u in {u : ℝ | 0 < u ∧ ε < |u - y|}, f u) =
     fun ε : ℝ => ∫ u in Ioi 0, {u : ℝ | ε < |u - y|}.indicator f u from funext e]
   refine tendsto_integral_filter_of_dominated_convergence (fun u => ‖f u‖)
@@ -672,7 +672,7 @@ theorem gl18_he_halves {f : ℝ → ℝ} {x ε : ℝ} (h1 : IntegrableOn f {u : 
     rw [IntegrableOn, Measure.restrict_eq_zero.2 h0]
     exact integrable_zero_measure
   have hpos : IntegrableOn f ({ξ : ℝ | ε < |ξ - x|} ∩ Ioi 0) :=
-    h1.mono_set fun u hu => ⟨hu.2, hu.1⟩
+    h1.mono_set fun u hu => by exact ⟨hu.2, hu.1⟩
   have hcov : {ξ : ℝ | ε < |ξ - x|} ⊆ ({ξ : ℝ | ε < |ξ - x|} ∩ Ioi 0) ∪
       (({ξ : ℝ | ε < |ξ - x|} ∩ Iio 0) ∪ ({ξ : ℝ | ε < |ξ - x|} ∩ {0})) := by
     intro ξ hξ
@@ -1185,14 +1185,14 @@ theorem gl18_he_J_pos {x : ℝ} (hx : 0 < x) :
   have hTi : IntegrableOn (fun u : ℝ => Real.log |u| * (1 / (u - x) - 1 / (u - 1)))
       {u : ℝ | 0 < u ∧ ε < |u - x|} := by
     simp_rw [hF]
-    exact (hgi.mono_set fun u hu => hu.1).add ((hci ε hε.1).const_mul _)
+    exact (hgi.mono_set fun u hu => by exact hu.1).add ((hci ε hε.1).const_mul _)
   have hNi : IntegrableOn (fun u : ℝ => Real.log |-u| * (1 / (-u - x) - 1 / (-u - 1)))
       {u : ℝ | 0 < u ∧ ε < |u + x|} := by
     simp_rw [hFn, hneg]
     exact hKi
   rw [gl18_he_split (gl18_he_halves hTi hNi), hneg]
   simp_rw [hFn, hF]
-  rw [integral_add (hgi.mono_set fun u hu => hu.1) ((hci ε hε.1).const_mul _), integral_const_mul, hKv]
+  rw [integral_add (hgi.mono_set fun u hu => by exact hu.1) ((hci ε hε.1).const_mul _), integral_const_mul, hKv]
   ring
 
 /-- Helper for `para18_3_hilbert_E` (§18.3, C2d). For `x = −y < 0` the principal value `J(x)` is `−π²`: the positive
@@ -1237,17 +1237,17 @@ theorem gl18_he_J_neg {x : ℝ} (hx : x < 0) :
   have hNi : IntegrableOn (fun u : ℝ => Real.log |-u| * (1 / (-u - x) - 1 / (-u - 1)))
       {u : ℝ | 0 < u ∧ ε < |u + x|} := by
     simp_rw [hFn, hT]
-    exact (hAi.mono_set fun u hu => hu.1).sub ((hgi.mono_set fun u hu => hu.1).add ((hci ε hε.1).const_mul _))
+    exact (hAi.mono_set fun u hu => by exact hu.1).sub ((hgi.mono_set fun u hu => by exact hu.1).add ((hci ε hε.1).const_mul _))
   rw [gl18_he_split (gl18_he_halves hTi hNi), hpos, hT]
   simp_rw [hFn, hF]
   have hgT : IntegrableOn (fun u : ℝ => (Real.log u - Real.log (-x)) / (u - -x) - Real.log u / (u - 1) +
-      Real.log (-x) / (u + 1)) {u : ℝ | 0 < u ∧ ε < |u - -x|} := hgi.mono_set fun u hu => hu.1
+      Real.log (-x) / (u + 1)) {u : ℝ | 0 < u ∧ ε < |u - -x|} := hgi.mono_set fun u hu => by exact hu.1
   have hcT : IntegrableOn (fun u : ℝ => Real.log (-x) * (1 / (u - -x) - 1 / (u + 1)))
       {u : ℝ | 0 < u ∧ ε < |u - -x|} := (hci ε hε.1).const_mul _
   have hsT : IntegrableOn (fun u : ℝ => ((Real.log u - Real.log (-x)) / (u - -x) - Real.log u / (u - 1) +
       Real.log (-x) / (u + 1)) + Real.log (-x) * (1 / (u - -x) - 1 / (u + 1))) {u : ℝ | 0 < u ∧ ε < |u - -x|} :=
     hgT.add hcT
-  rw [integral_sub hAi hKi, integral_sub (hAi.mono_set fun u hu => hu.1) hsT, integral_add hgT hcT,
+  rw [integral_sub hAi hKi, integral_sub (hAi.mono_set fun u hu => by exact hu.1) hsT, integral_add hgT hcT,
     integral_const_mul, hAv, hKv]
 
 /-- Helper for `para18_3_hilbert_E` (§18.3, C1). The truncated integrals of (B) tend to `−x log|x|`: with `ξ = −u`,
@@ -1269,11 +1269,11 @@ theorem gl18_he_B_lim (x : ℝ) :
       (measurableSet_lt measurable_const (by fun_prop : Measurable fun u : ℝ => |u - x|))
   have hzero : ∀ ε : ℝ, ∫ u in {u : ℝ | 0 < u ∧ ε < |u - x|},
       (if u < 0 then -x * (1 / (u - x) - 1 / (u - 1)) else 0) = 0 := fun ε => by
-    rw [setIntegral_congr_fun (hm ε) fun u hu => hz u hu.1]
+    rw [setIntegral_congr_fun (hm ε) fun u hu => by exact hz u hu.1]
     exact integral_zero _ _
   have hzi : ∀ ε : ℝ, IntegrableOn (fun u : ℝ => if u < 0 then -x * (1 / (u - x) - 1 / (u - 1)) else 0)
       {u : ℝ | 0 < u ∧ ε < |u - x|} := fun ε =>
-    integrableOn_zero.congr_fun (fun u hu => (hz u hu.1).symm) (hm ε)
+    integrableOn_zero.congr_fun (fun u hu => by exact (hz u hu.1).symm) (hm ε)
   rcases lt_trichotomy x 0 with hx | rfl | hx
   · -- `x < 0`: `x` times the compensator at `−x`
     have hy : 0 < -x := by linarith
@@ -1295,9 +1295,10 @@ theorem gl18_he_B_lim (x : ℝ) :
     have hni : IntegrableOn (fun u : ℝ => if -u < 0 then -x * (1 / (-u - x) - 1 / (-u - 1)) else 0)
         {u : ℝ | 0 < u ∧ ε < |u + x|} := by
       rw [hT]
-      exact IntegrableOn.congr_fun ((hci ε hε).const_mul x) (fun u hu => (hn' u hu.1).symm) hmT
+      exact IntegrableOn.congr_fun ((hci ε hε).const_mul x) (fun u hu => by exact (hn' u hu.1).symm) hmT
     rw [gl18_he_split (gl18_he_halves (hzi ε) hni), hzero, zero_add, hT,
-      setIntegral_congr_fun hmT fun u hu => hn' u hu.1, integral_const_mul]
+      setIntegral_congr_fun hmT (fun u (hu : u ∈ {u : ℝ | 0 < u ∧ ε < |u - -x|}) => hn' u hu.1),
+      integral_const_mul]
   · simp only [neg_zero, zero_mul, ite_self, integral_zero, abs_zero, Real.log_zero]
     exact tendsto_const_nhds
   · -- `x > 0`: eventually the constant `−x log x`
@@ -2343,7 +2344,7 @@ theorem gl18_approx {φ : ℂ → ℂ} (hφ : φ ∈ aSpaceOpen (toExt upperHalf
     intro n
     obtain ⟨C, hC⟩ := hbdψ n
     have hm : AEStronglyMeasurable (ψ n) (volume.restrict upperHalf) :=
-      ((hdiffψ n).continuousOn.mono fun z (hz : 0 < z.im) => by
+      ((hdiffψ n).continuousOn.mono (t := upperHalf) fun z (hz : 0 < z.im) => by
         show -ε n < z.im
         linarith [hε0 n]).aestronglyMeasurable hU.measurableSet
     have hg : Integrable (fun z : ℂ => C * (1 + ‖z‖) ^ (-(4 : ℝ))) :=

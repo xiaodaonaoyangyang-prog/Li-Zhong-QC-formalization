@@ -185,14 +185,16 @@ theorem s78dg_conj_nat {Z Z' : Type u} [TopologicalSpace Z] [TopologicalSpace Z'
     FundamentalGroup.map f y (FundamentalGroup.fundamentalGroupMulEquivOfPath p c) =
       FundamentalGroup.fundamentalGroupMulEquivOfPath (p.map f.continuous)
         (FundamentalGroup.map f x c) := by
+  obtain ⟨c⟩ := c
   induction c using Quotient.inductionOn with
   | h c0 =>
     have h1 := s78dg_conj_mk p c0
-    have h2 : FundamentalGroup.map f x (Path.Homotopic.Quotient.mk c0) =
+    have h2 : FundamentalGroup.map f x (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk c0)) =
         FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk (c0.map f.continuous)) := rfl
     have h3 := s78dg_conj_mk (p.map f.continuous) (c0.map f.continuous)
     erw [h1, h2, h3]
-    show FundamentalGroup.map f y (Path.Homotopic.Quotient.mk _) = _
+    show FundamentalGroup.map f y (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk _)) = _
+    apply CategoryTheory.End.ext
     show Path.Homotopic.Quotient.mk _ = Path.Homotopic.Quotient.mk _
     congr 1
     simp [Path.map_trans, Path.map_symm]

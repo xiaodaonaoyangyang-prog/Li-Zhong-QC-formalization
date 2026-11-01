@@ -207,7 +207,7 @@ theorem s31qc_hole_of_collar_curve [T2Space S] [ConnectedSpace S] [IsManifold �
   -- continuity of `s` and of `F.ι ∘ s` on the upper half disc
   have hsc : ContinuousOn s U := by
     rw [hd.embedding.isInducing.continuousOn_iff]
-    exact (hγ.mono fun z hz => hz.1).congr fun z hz => hs z hz.1 hz.2
+    exact (hγ.mono fun z (hz : z ∈ U) => hz.1).congr fun z hz => hs z hz.1 hz.2
   have hfc : ContinuousOn (fun z => F.ι (s z)) U := F.embedding.continuous.comp_continuousOn hsc
   -- cluster points lie on the hole boundaries
   have hcl : ∀ y : ℝ, |y| < r → ∀ x, MapClusterPt x (𝓝[H] (y : ℂ)) (fun z => F.ι (s z)) →

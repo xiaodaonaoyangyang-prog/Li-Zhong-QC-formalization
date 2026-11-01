@@ -5,6 +5,8 @@
 import LiZhongExternal.Classification.SchottkyClassification17
 
 /- BEGIN ClassificationOfSurfaces.Moise.ChartInduction | cb14538a7dfb64d6ab5b6a9628398e5a4b01b2c4168c2a431b3c10ca1f27c26a -/
+noncomputable section
+
 section schottkyclassification18_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

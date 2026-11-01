@@ -174,7 +174,7 @@ theorem thm4_1_modulus_eq_inv_extremalLength (Q : TopQuad) :
   have ha : 0 < a := hf.1
   have hb : 0 < b := hf.2.1
   rw [modulus_eq_of_equivRect Q ⟨f, hf⟩, ← thm3_1_conformal_invariance Q.isTopQuad.1.1 hf.2.2.1
-    (fun γ hγ => hγ.1) (isCurveImage_joiningCurves hf), extremalLength_rectJoiningCurves ha hb,
+    (fun γ hγ => by exact hγ.1) (isCurveImage_joiningCurves hf), extremalLength_rectJoiningCurves ha hb,
     ← ENNReal.ofReal_inv_of_pos (div_pos hb ha), inv_div]
 
 /-- (4.6): `M(Q) ≤ m_ρ(Q)` for every Borel density `ρ` such that every curve joining the first
@@ -278,11 +278,11 @@ theorem thm4_3_extremal_metric (Q : TopQuad) {a b : ℝ} {f : ℂ → ℂ}
     · rw [harea]
       exact ENNReal.mul_lt_top ENNReal.ofReal_lt_top ENNReal.ofReal_lt_top
   refine ⟨hmem, le_antisymm ?_ ?_⟩
-  · rw [← extremalLengthIn_eq hU Q.isTopQuad.1.2.1.nonempty (fun γ hγ => hγ.1)]
+  · rw [← extremalLengthIn_eq hU Q.isTopQuad.1.2.1.nonempty (fun γ hγ => by exact hγ.1)]
     unfold extremalLengthIn
     exact le_iSup₂_of_le _ hmem le_rfl
   · -- `λ(Γ) = b / a`, and every curve of `Γ` has `|f'|`-length at least `b`
-    rw [← thm3_1_conformal_invariance hU hconf (fun γ hγ => hγ.1)
+    rw [← thm3_1_conformal_invariance hU hconf (fun γ hγ => by exact hγ.1)
       (isCurveImage_joiningCurves hf), extremalLength_rectJoiningCurves ha hb, harea]
     have hlen : ∀ γ ∈ Q.joiningCurves 0,
         ENNReal.ofReal b ^ 2 ≤ γ.rhoLength (Q.dom.indicator fun z => ‖deriv f z‖ₑ) ^ 2 := by
@@ -439,13 +439,13 @@ theorem thm4_3_extremal_metric_unique (Q : TopQuad) {a b : ℝ} {f : ℂ → ℂ
     himg.inv hconf.2.1 (fun γ hγ => hγ.1)
   obtain ⟨⟨hρm, hρ0, hρt⟩, hratio⟩ := hρ₀
   have hlam : extremalLength (Q.joiningCurves 0) = ENNReal.ofReal (b / a) := by
-    rw [← thm3_1_conformal_invariance hU hconf (fun γ hγ => hγ.1) himg,
+    rw [← thm3_1_conformal_invariance hU hconf (fun γ hγ => by exact hγ.1) himg,
       extremalLength_rectJoiningCurves ha hb]
   rw [hlam] at hratio
   -- push `ρ₀` forward to the rectangle
   have hσm := measurable_pullback_density hV hg.1.continuousOn hρm
   have hσA := rhoArea_pullback hV hg ρ₀
-  have hσL := iInf_rhoLength_sq_pullback hV hg (fun γ hγ => hγ.1) himg' ρ₀
+  have hσL := iInf_rhoLength_sq_pullback hV hg (fun γ hγ => by exact hγ.1) himg' ρ₀
   obtain ⟨c, hc0, hct, hae⟩ := ae_eq_const_of_rect_extremal ha hb hσm
     (by rw [hσA]; exact hρ0.ne') (by rw [hσA]; exact hρt.ne) (by rw [← hσL, hσA]; exact hratio)
   refine ⟨c.toNNReal, ENNReal.toNNReal_pos hc0 hct, ?_⟩
@@ -623,7 +623,7 @@ theorem rengel_right_eq_of_isRectangle {Q : TopQuad} (hQ : Q.IsRectangle) :
       simpa using ((hasDerivAt_id z).sub_const c).const_mul (exp (((-θ : ℝ) : ℂ) * I))
     rw [show ⇑(rigidHomeomorph θ c).symm = fun w : ℂ => exp (((-θ : ℝ) : ℂ) * I) * (w - c)
       from rfl, h.deriv, ← ofReal_norm, norm_exp_ofReal_mul_I, ENNReal.ofReal_one]
-  have hpb := iInf_rhoLength_sq_pullback hU hS.2.2.1 (fun γ hγ => hγ.1)
+  have hpb := iInf_rhoLength_sq_pullback hU hS.2.2.1 (fun γ hγ => by exact hγ.1)
     (isCurveImage_joiningCurves hS) 1
   have hind : (Q.dom.indicator fun z => (1 : ℂ → ℝ≥0∞) ((rigidHomeomorph θ c).symm z) *
       ‖deriv (rigidHomeomorph θ c).symm z‖ₑ) = Q.dom.indicator 1 := by
@@ -2047,7 +2047,7 @@ theorem lintegral_annulus_mul_inv_norm {r₁ r₂ : ℝ} (h₁ : 0 < r₁) {ρ :
     · rw [Set.indicator_of_notMem hr]
       have h0 : ∀ θ : ℝ, (Ioo r₁ r₂ ×ˢ (univ : Set ℝ)).indicator
           (fun q => ρ (Complex.polarCoord.symm q)) (r, θ) = 0 :=
-        fun θ => Set.indicator_of_notMem (fun h => hr h.1) _
+        fun θ => Set.indicator_of_notMem (fun h => by exact hr h.1) _
       simp only [h0, lintegral_zero]
   simp_rw [hinner]
   have hsub : Ioo r₁ r₂ ∩ Ioi 0 = Ioo r₁ r₂ :=
@@ -2349,7 +2349,7 @@ theorem locallyLipschitzOn_arg_lift {γ : ℝ → ℂ} {θ : ℝ → ℝ} {K : �
     exact ⟨h1, h2, h3⟩
   · intro x hx y hy
     rw [hx.2.2, hy.2.2, edist_add_left, ← log_im, ← log_im]
-    exact (hgV.comp (hK.mono fun s hs => hs.1) fun s hs => hs.2.1) hx hy
+    exact (hgV.comp (hK.mono fun s hs => by exact hs.1) fun s hs => by exact hs.2.1) hx hy
 
 /-- **A closed curve avoiding `0` and meeting every ray from `0` has `∫ |γ'|/|γ| ≥ 2π`**:
 its continuous argument oscillates by at least `2π`. -/
@@ -4389,7 +4389,7 @@ theorem gsep_z_extremalLength_annulusAtSeparating_le (p : ℂ) {ε δ : ℝ} (h�
     extremalLength (separatingCurves (annulusAt p ε δ))
       ≤ ENNReal.ofReal (2 * π / Real.log (δ / ε)) := by
   rw [thm3_1_conformal_invariance (isOpen_annulus ε δ) (gsep_z_isConformalOnto_translate p ε δ)
-    (fun γ hγ => (image_mono Ioo_subset_Icc_self).trans hγ.2.1) (gsep_z_isCurveImage_translate p ε δ)]
+    (fun γ hγ => by exact (image_mono Ioo_subset_Icc_self).trans hγ.2.1) (gsep_z_isCurveImage_translate p ε δ)]
   exact extremalLength_annulusSeparating_le h₁ h₂
 
 /-! ### The isolated singleton component -/

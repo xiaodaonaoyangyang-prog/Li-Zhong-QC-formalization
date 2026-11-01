@@ -1362,7 +1362,7 @@ theorem s82td_param_to_metric {g n m : ℕ} (hex : ¬ IsExceptionalType g n m) (
       have hsum : Tendsto (fun j => ∑ i : Fin (Module.finrank ℝ (admissibleQDInterior F₀)), (((‖vs j‖⁻¹ • vs j) i : ℝ) : ℂ) *
           (e.symm (EuclideanSpace.single i (1 : ℝ))).1 x z) atTop
           (𝓝 (∑ i : Fin (Module.finrank ℝ (admissibleQDInterior F₀)), (((‖v‖⁻¹ • v) i : ℝ) : ℂ) * (e.symm (EuclideanSpace.single i (1 : ℝ))).1 x z)) := by
-        refine tendsto_finset_sum _ fun i _ => ?_
+        refine tendsto_finsetSum _ fun i _ => ?_
         have h1 : Tendsto (fun j => (‖vs j‖⁻¹ • vs j) i) atTop (𝓝 ((‖v‖⁻¹ • v) i)) :=
           ((EuclideanSpace.proj i : EuclideanSpace ℝ (Fin (Module.finrank ℝ (admissibleQDInterior F₀))) →L[ℝ] ℝ).continuous.tendsto _).comp hnormconv
         exact ((Complex.continuous_ofReal.tendsto _).comp h1).mul_const _

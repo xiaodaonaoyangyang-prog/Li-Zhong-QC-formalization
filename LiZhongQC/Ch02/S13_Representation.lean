@@ -420,7 +420,7 @@ theorem rep_cauchyT_sum_tendstoUniformly {μ : ℂ → ℂ} {k A : ℝ} (hk₀ :
     · rw [hω'def, Set.indicator_of_notMem hzmem]
       rw [mem_closedBall_zero_iff, not_le] at hzmem
       exact (hz hzmem).symm
-  have hω'mem : MemLp ω' (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall
+  have hω'mem : MemLp ω' (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall.nullMeasurableSet
   have hω'supp : ∀ z : ℂ, R < ‖z‖ → ω' z = 0 := by
     intro z hz
     rw [hω'def]
@@ -2565,7 +2565,7 @@ theorem sp_m_tendsto {f : ℂ → ℂ} {D : Set ℂ} (hD : IsOpen D) (hf : IsACL
       (contDiff_const.sub contDiff_id)
   refine ⟨?_, ?_⟩
   · have hG : MemLp ((cthickening δ C).indicator (partialX f)) 2 volume :=
-      (memLp_indicator_iff_restrict hKc.measurableSet).2 (hloc _ hKD hKc).1
+      (memLp_indicator_iff_restrict hKc.measurableSet.nullMeasurableSet).2 (hloc _ hKD hKc).1
     refine (tendsto_eLpNorm_convolution_normed_sub hb hp hp' hG hC.measure_lt_top.ne).congr' ?_
     filter_upwards [hev] with n hn
     obtain ⟨hnδ, hnK⟩ := hn
@@ -2583,7 +2583,7 @@ theorem sp_m_tendsto {f : ℂ → ℂ} {D : Set ℂ} (hD : IsOpen D) (hf : IsACL
     rw [indicator_of_mem (self_subset_cthickening C hz),
       ← fderiv_lemma92Approx_eq hf.1 hnδ hnK hz 1 hibp]
   · have hG : MemLp ((cthickening δ C).indicator (partialY f)) 2 volume :=
-      (memLp_indicator_iff_restrict hKc.measurableSet).2 (hloc _ hKD hKc).2
+      (memLp_indicator_iff_restrict hKc.measurableSet.nullMeasurableSet).2 (hloc _ hKD hKc).2
     refine (tendsto_eLpNorm_convolution_normed_sub hb hp hp' hG hC.measure_lt_top.ne).congr' ?_
     filter_upwards [hev] with n hn
     obtain ⟨hnδ, hnK⟩ := hn
@@ -2823,7 +2823,7 @@ theorem sp_c_change_of_variables {f fx fy μ : ℂ → ℂ} {D : Set ℂ} {k : �
       = ∫ w in f '' S, G w := (setIntegral_congr_set himgae).symm
     _ = ∫ z in S, |(fderiv ℝ f z).det| • G (f z) :=
         integral_image_eq_integral_abs_det_fderiv_smul volume hSm
-          (fun z hz => hz.2.hasFDerivAt.hasFDerivWithinAt) (hfh.2.1.mono hSD) G
+          (fun z hz => by exact hz.2.hasFDerivAt.hasFDerivWithinAt) (hfh.2.1.mono hSD) G
     _ = ∫ z in S, (jacobian f z : ℂ) * G (f z) := setIntegral_congr_ae hSm hkey
     _ = ∫ z in D, (jacobian f z : ℂ) * G (f z) := setIntegral_congr_set hSae
 
@@ -4824,7 +4824,7 @@ theorem t1_null_image {f : ℂ → ℂ} {U V : Set ℂ} (hU : IsOpen U) (hf : Is
 map is quasi-measure-preserving from `U` to `V = g '' U`. -/
 theorem t1_quasiMeasurePreserving {g : ℂ → ℂ} {U V : Set ℂ} (hUo : IsOpen U) (hVo : IsOpen V)
     (hg : IsConformalOnto g U V) :
-    Measure.QuasiMeasurePreserving (U.piecewise g (fun _ => (0 : ℂ)) : ℂ → ℂ)
+    QuasiMeasurePreserving (U.piecewise g (fun _ => (0 : ℂ)) : ℂ → ℂ)
       (volume.restrict U) (volume.restrict V) := by
   set g₀ : ℂ → ℂ := U.piecewise g (fun _ => (0 : ℂ)) with hg₀def
   have hg₀m : Measurable g₀ :=
@@ -5383,7 +5383,7 @@ theorem nx_f2_conformal {μ f : ℂ → ℂ} {K : ℝ} (hf : IsKQC f univ K) (hs
   obtain ⟨hH, -, hK⟩ := nx_f2_homeo hf hs h0 hlim
   have hopen : IsOpen (unitDisc \ {0}) := isOpen_ball.sdiff isClosed_singleton
   have hK' : IsKQC (nxInvConj f) (unitDisc \ {0}) K :=
-    nx_isKQC_restrict hK hopen (fun z hz => hz.2)
+    nx_isKQC_restrict hK hopen (fun z hz => by exact hz.2)
   have hd := nx_f2_dilatation hf hs h0 hdil
   have hd0 : ∀ᵐ z ∂(volume.restrict (unitDisc \ {0})), complexDilatation (nxInvConj f) z = 0 := by
     rw [ae_restrict_iff' hopen.measurableSet]
@@ -5893,9 +5893,9 @@ theorem ad_lintegral_jacobian_le_volume_image {f : ℂ → ℂ} {D : Set ℂ} (h
   have hnull : volume (σ \ (σ ∩ {z | DifferentiableAt ℝ f z})) = 0 := by
     have h := hdiff
     rw [ae_restrict_iff' hD.measurableSet, ae_iff] at h
-    exact measure_mono_null (fun z hz => fun h' => hz.2 ⟨hz.1, h' (hσD hz.1)⟩) h
+    exact measure_mono_null (fun z hz => by exact fun h' => hz.2 ⟨hz.1, h' (hσD hz.1)⟩) h
   have hcv := lintegral_image_eq_lintegral_abs_det_fderiv_mul volume hSm
-    (fun z hz => hz.2.hasFDerivAt.hasFDerivWithinAt)
+    (fun z hz => by exact hz.2.hasFDerivAt.hasFDerivWithinAt)
     (hinj.mono fun z hz => hσD hz.1) (fun _ => 1)
   simp only [mul_one, setLIntegral_const, one_mul] at hcv
   calc ∫⁻ z in σ, ENNReal.ofReal (jacobian f z)
@@ -6710,7 +6710,7 @@ theorem abR_c_ac_of_local {φ : ℝ → ℂ} {c d : ℝ} (hcd : c ≤ d) {S : Se
     have h := integral_eq_of_hasDerivAt_off_countable_of_le
       (fun y => φ y - ∫ t in c..y, deriv φ t) (fun _ => (0 : ℂ)) hy.1 hS
       (hFc.mono (Icc_subset_Icc_right hy.2))
-      (fun t ht => hFd t ⟨⟨ht.1.1, ht.1.2.trans_le hy.2⟩, ht.2⟩)
+      (fun t ht => by exact hFd t ⟨⟨ht.1.1, ht.1.2.trans_le hy.2⟩, ht.2⟩)
       (continuous_const.intervalIntegrable _ _)
     rw [intervalIntegral.integral_zero] at h
     exact (sub_eq_zero.1 h.symm)
@@ -7457,7 +7457,7 @@ theorem ab_lower_bound {G : ℂ → ℂ} {K : ℝ} (hG : IsKQC G univ K) (hGs : 
     rwa [gsep_z_annulusAt_zero] at h
   have hAD : closure (toExt (annulus ρ 1)) ⊆ toExt univ :=
     (nf_e_closure_toExt_subset (isCompact_closedBall (0 : ℂ) 1)
-      fun w hw => mem_closedBall_zero_iff.2 hw.2.le).trans (image_mono (subset_univ _))
+      fun w hw => by exact mem_closedBall_zero_iff.2 hw.2.le).trans (image_mono (subset_univ _))
   obtain ⟨hB, hAB, -⟩ := thm7_4_dcModulus_quasi_invariance hF hA hAD
   have hBsub : F '' annulus ρ 1 ⊆ unitDisc := by
     rw [← hFΔ]
@@ -8121,7 +8121,7 @@ theorem abT_ae_image {f : ℂ → ℂ} {D : Set ℂ} {K : ℝ} (hf : IsKQC f D K
     refine measure_mono_null (fun z hz => ?_) h1
     exact fun h' => hz.2 (h' hz.1)
   have hS' : volume (f '' {z | z ∈ D ∧ ¬ p (f z)}) = 0 :=
-    thm9_6_cor1_null hf (fun z hz => hz.1) hS
+    thm9_6_cor1_null hf (fun z hz => by exact hz.1) hS
   have h2 : ∀ᵐ w, w ∉ f '' {z | z ∈ D ∧ ¬ p (f z)} := measure_eq_zero_iff_ae_notMem.1 hS'
   filter_upwards [ae_restrict_of_ae h2,
     ae_restrict_mem (isOpen_image_of_continuousOn_injOn hf.1 hf.2.2.1.1 hf.2.2.1.2.1).measurableSet]
@@ -8676,7 +8676,7 @@ theorem ahC_genHomeoSolution {ν ω : ℂ → ℂ} {p R : ℝ} (hp : 2 < p)
   have homs : ω =ᵐ[volume] omR := t2_omega_ae_eq_indicator hνR hsol
   have hcT : cauchyT ω = cauchyT omR := cauchyT_congr_ae homs
   have hHT : hilbertH ω = hilbertH omR := hilbertH_congr_ae homs
-  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall
+  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall.nullMeasurableSet
   have homRbdd : Bornology.IsBounded (Function.support omR) := t3_isBounded_support_indicator
   obtain ⟨hgp, heqbar, heqz⟩ := thm11_1 hp homRmem homRbdd
   have hgp' := t3_hasGenPartials_add_id hgp
@@ -8764,7 +8764,7 @@ theorem ahC_eLpNorm_le (R p : ℝ) :
   have hνm : AEStronglyMeasurable ν volume := by simpa using hν.1
   have hνb : ∀ᵐ z ∂(volume : Measure ℂ), ‖ν z‖ ≤ ε := by simpa using hν.2
   have hle : eLpNorm ν (ENNReal.ofReal p) volume ≤ X * ENNReal.ofReal ε := by
-    rw [hind, eLpNorm_indicator_eq_eLpNorm_restrict measurableSet_closedBall]
+    rw [hind, eLpNorm_indicator_eq_eLpNorm_restrict measurableSet_closedBall.nullMeasurableSet]
     have h := eLpNorm_le_of_ae_bound (p := ENNReal.ofReal p)
       (μ := volume.restrict (closedBall (0 : ℂ) R)) hνm.restrict (ae_restrict_of_ae hνb)
     rwa [Measure.restrict_apply_univ] at h
@@ -8988,7 +8988,7 @@ theorem ah_first_variation_compact (R : ℝ) :
   set omR : ℂ → ℂ := (closedBall (0 : ℂ) R').indicator ω with homRdef
   have homs : ω =ᵐ[volume] omR := t2_omega_ae_eq_indicator hνR' hsol
   have hcT : cauchyT ω = cauchyT omR := cauchyT_congr_ae homs
-  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall
+  have homRmem : MemLp omR (ENNReal.ofReal p) := hω.indicator measurableSet_closedBall.nullMeasurableSet
   have homRsupp : ∀ z : ℂ, R' < ‖z‖ → omR z = 0 := fun z hz =>
     indicator_of_notMem (by rwa [mem_closedBall_zero_iff, not_le]) _
   have hdmem : MemLp (fun ζ => omR ζ - ν ζ) (ENNReal.ofReal p) := homRmem.sub hνm
@@ -9136,7 +9136,7 @@ theorem ahI_f2_conformal {μ f : ℂ → ℂ} {K : ℝ} (hf : IsKQC f univ K) (h
   obtain ⟨hH, -, hK⟩ := ahI_f2_homeo hf hs h0
   have hopen : IsOpen (unitDisc \ {0}) := isOpen_ball.sdiff isClosed_singleton
   have hK' : IsKQC (nxInvConj f) (unitDisc \ {0}) K :=
-    nx_isKQC_restrict hK hopen (fun z hz => hz.2)
+    nx_isKQC_restrict hK hopen (fun z hz => by exact hz.2)
   have hd := nx_f2_dilatation hf hs h0 hdil
   have hd0 : ∀ᵐ z ∂(volume.restrict (unitDisc \ {0})), complexDilatation (nxInvConj f) z = 0 := by
     rw [ae_restrict_iff' hopen.measurableSet]
@@ -10103,7 +10103,7 @@ theorem ahQ_aestronglyMeasurable_comp_invFunOn {f μ : ℂ → ℂ} {K : ℝ} (h
       exact mem_univ w
     obtain ⟨z, hz, hzw⟩ := hw
     exact ⟨z, hz, hzw⟩
-  have hqmp : Measure.QuasiMeasurePreserving (Function.invFunOn f univ) volume volume := by
+  have hqmp : QuasiMeasurePreserving (Function.invFunOn f univ) volume volume := by
     refine ⟨hφm, Measure.AbsolutelyContinuous.mk fun s hsm hs0 => ?_⟩
     rw [Measure.map_apply hφm hsm]
     have hsub : Function.invFunOn f univ ⁻¹' s ⊆ f '' s := fun w hw =>
@@ -10344,7 +10344,7 @@ def ahT_dot (μd μ₀ f₀ : ℂ → ℂ) (w : ℂ) : ℂ :=
 quasi-measure-preserving: the preimage under `f₀⁻¹` of a null set lies in its `f₀`-image, which is null by
 Lusin's property (N) (`thm9_6_cor1_null`). -/
 theorem ahT_qmp_inv {f₀ : ℂ → ℂ} (hq : IsQuasiconformal f₀ univ) (himg : f₀ '' univ = univ) :
-    Measure.QuasiMeasurePreserving (Function.invFunOn f₀ univ) volume volume := by
+    QuasiMeasurePreserving (Function.invFunOn f₀ univ) volume volume := by
   obtain ⟨K, hK⟩ := hq
   have hcont : Continuous (Function.invFunOn f₀ univ) := by
     have h := hK.2.2.1.2.2.2
@@ -11319,10 +11319,10 @@ theorem s13x_ho_log_le {G : ℂ → ℂ} {D : Set ℂ} {K : ℝ} (hG : IsKQC G D
   have hA : IsDoublyConnected (annulusAt z₀ ρ δ) := nf_g_isDoublyConnected_annulusAt z₀ hρ hρδ
   have hAD : closure (toExt (annulusAt z₀ ρ δ)) ⊆ toExt D :=
     (nf_e_closure_toExt_subset (isCompact_closedBall z₀ δ)
-      fun w hw => mem_closedBall_iff_norm.2 hw.2.le).trans (image_mono hD)
+      fun w hw => by exact mem_closedBall_iff_norm.2 hw.2.le).trans (image_mono hD)
   obtain ⟨hB, hAB, -⟩ := thm7_4_dcModulus_quasi_invariance hG hA hAD
   have hBsub : G '' annulusAt z₀ ρ δ ⊆ unitDisc :=
-    (image_mono fun w hw => mem_ball_iff_norm.2 hw.2).trans hsub
+    (image_mono fun w hw => by exact mem_ball_iff_norm.2 hw.2).trans hsub
   have hsep : SeparatesSets (G '' annulusAt z₀ ρ δ) (toExt (sphere 0 1))
       {((0 : ℂ) : ExtPlane), ((r : ℂ) : ExtPlane)} := by
     have h := s13x_ho_separates hGc hGi hρδ hballD hopen hsub (a := z₀) (b := z₂)

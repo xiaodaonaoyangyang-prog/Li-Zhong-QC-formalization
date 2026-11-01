@@ -219,7 +219,7 @@ theorem s82dx_dirichlet {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) ℝ)} 
   let N : Set ℂ := ⋃ γ ∈ {γ : Matrix.SpecialLinearGroup (Fin 2) ℝ | γ ∈ Γ ∧ γ • z₀ ≠ z₀},
     {z : ℂ | ‖z - z₀‖ ^ 2 * (γ • z₀).im = ‖z - ((γ • z₀ : UpperHalfPlane) : ℂ)‖ ^ 2 * z₀.im}
   have hN : volume N = 0 := by
-    refine (measure_biUnion_null_iff (hcount.mono fun γ hγ => hγ.1)).2 ?_
+    refine (measure_biUnion_null_iff (hcount.mono (s₁ := {γ | γ ∈ Γ ∧ γ • z₀ ≠ z₀}) fun γ hγ => hγ.1)).2 ?_
     intro γ hγ
     exact s82dx_poly_bisector_null (a := z₀) (b := γ • z₀) (Ne.symm hγ.2)
   -- membership in `N`

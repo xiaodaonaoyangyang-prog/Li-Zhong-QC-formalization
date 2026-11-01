@@ -41,8 +41,8 @@ def IsKQCDiscInto (f : ℂ → ℂ) (K : ℝ) : Prop := IsKQC f unitDisc K ∧ f
 theorem s15_grotzschMu_continuousOn : ContinuousOn grotzschMu (Ioo 0 1) := by
   have hcont : ContinuousOn (fun r : ℝ => π * scSideA r / scSideB r) (Ioo 0 1) :=
     (continuousOn_const.mul continuousOn_scSideA).div continuousOn_scSideB
-      (fun r hr => (scSide_pos hr.1 hr.2).2.ne')
-  exact hcont.congr (fun r hr => gm_grotzschMu_eq hr.1 hr.2)
+      (fun r hr => by exact (scSide_pos hr.1 hr.2).2.ne')
+  exact hcont.congr (fun r hr => by exact gm_grotzschMu_eq hr.1 hr.2)
 
 /-- The slit `[0, s]` of the Grötzsch domain is the image of `[0, s]` under `ℝ → ℂ`. -/
 theorem s15_ring_slit_eq (s : ℝ) :
@@ -221,7 +221,7 @@ theorem s15_eq15_1_rho {f : ℂ → ℂ} {K : ℝ} (hf : IsKQCDiscInto f K) (hf0
   have hB := grotzschDomain_doublyConnected hs0 hs1
   have hBD : closure (toExt (grotzschDomain s)) ⊆ toExt D :=
     (nf_e_closure_toExt_subset (isCompact_closedBall (0 : ℂ) 1)
-      fun w hw => mem_closedBall_zero_iff.2 (mem_ball_zero_iff.1 hw.1).le).trans
+      fun w hw => by exact mem_closedBall_zero_iff.2 (mem_ball_zero_iff.1 hw.1).le).trans
       (image_mono (closedBall_subset_ball h1ρ))
   obtain ⟨hB', hBB', -⟩ := thm7_4_dcModulus_quasi_invariance hgK hB.1 hBD
   have hgΔ : g '' unitDisc ⊆ unitDisc := (image_mono hΔD).trans hgD
@@ -806,10 +806,10 @@ theorem m15_in_log_le {G : ℂ → ℂ} {D : Set ℂ} {K : ℝ} (hG : IsKQC G D 
   have hA : IsDoublyConnected (annulusAt z₀ ρ δ) := nf_g_isDoublyConnected_annulusAt z₀ hρ hρδ
   have hAD : closure (toExt (annulusAt z₀ ρ δ)) ⊆ toExt D :=
     (nf_e_closure_toExt_subset (isCompact_closedBall z₀ δ)
-      fun w hw => mem_closedBall_iff_norm.2 hw.2.le).trans (image_mono hD)
+      fun w hw => by exact mem_closedBall_iff_norm.2 hw.2.le).trans (image_mono hD)
   obtain ⟨hB, hAB, -⟩ := thm7_4_dcModulus_quasi_invariance hG hA hAD
   have hBsub : G '' annulusAt z₀ ρ δ ⊆ unitDisc :=
-    (image_mono fun w hw => mem_ball_iff_norm.2 hw.2).trans hsub
+    (image_mono fun w hw => by exact mem_ball_iff_norm.2 hw.2).trans hsub
   have hsep : SeparatesSets (G '' annulusAt z₀ ρ δ) (toExt (sphere 0 1))
       {((0 : ℂ) : ExtPlane), ((r : ℂ) : ExtPlane)} := by
     have h := s13x_ho_separates hGc hGi hρδ hballD hopen hsub ha hb
@@ -1149,7 +1149,7 @@ theorem m15_case_outer {f : ℂ → ℂ} {K : ℝ} (hf : IsKQC f unitDisc K) (hi
   have hB := nf_g_isDoublyConnected_annulusAt ((z₁ + z₂) / 2) hr hrR
   have hBD : closure (toExt (annulusAt ((z₁ + z₂) / 2) (‖z₁ - z₂‖ / 2) (1 / 2))) ⊆ toExt univ :=
     (nf_e_closure_toExt_subset (isCompact_closedBall ((z₁ + z₂) / 2) (1 / 2))
-      (fun z hz => mem_closedBall.2 (by rw [dist_eq_norm]; exact hz.2.le))).trans
+      (fun z hz => by exact mem_closedBall.2 (by rw [dist_eq_norm]; exact hz.2.le))).trans
       (image_mono (subset_univ _))
   obtain ⟨hFB, hle, -⟩ := thm7_4_dcModulus_quasi_invariance hFK hB hBD
   -- `d = |f z₁ - f z₂| ∈ (0, 2]`
@@ -2861,10 +2861,10 @@ theorem td_eta_inv (z : ℂ) : puncturedSphereDensity z⁻¹ = ‖z‖ ^ 2 * pun
     simp only [inv_zero, norm_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow,
       zero_mul]
     unfold puncturedSphereDensity
-    convert Real.sSup_empty
-    ext r
-    simp only [mem_empty_iff_false, iff_false]
-    rintro ⟨w, hw, hφ, -⟩
+    convert Real.sSup_empty using 2
+    refine Set.eq_empty_of_forall_notMem fun r hr => ?_
+    obtain ⟨w, hw, hφ, -⟩ := hr
+    -- (P11: `ext` overshoots on Set)
     exact td_modularPhi_ne_zero hw hφ
   have hzn : 0 < ‖z‖ := norm_pos_iff.2 hz
   unfold puncturedSphereDensity
@@ -3507,7 +3507,7 @@ theorem td_dist_lower {z₁ z₂ : ℂ} (_h₁ : z₁ ≠ 0 ∧ z₁ ≠ 1) (_h�
     exact (hC s hs).trans (Real.le_coe_toNNReal C)
   have hUlip : LipschitzOnWith C U (Icc m M) :=
     (convex_Icc m M).lipschitzOnWith_of_nnnorm_hasDerivWithin_le (f' := td_U')
-      (fun s hs => (td_hasDerivAt_logLambda (lt_of_lt_of_le hm hs.1)).hasDerivWithinAt) hC
+      (fun s hs => by exact (td_hasDerivAt_logLambda (lt_of_lt_of_le hm hs.1)).hasDerivWithinAt) hC
   have hu : LipschitzOnWith K u (Icc (0 : ℝ) 1) :=
     LipschitzWith.comp_lipschitzOnWith lipschitzWith_one_norm hK |>.weaken (one_mul K).le
   have hmaps : MapsTo u (Icc (0 : ℝ) 1) (Icc m M) := fun t ht => hbd t ht

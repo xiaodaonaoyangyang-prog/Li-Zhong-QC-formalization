@@ -199,7 +199,7 @@ theorem s36a_approx_packet (hΓ : IsFuchsian Γ)
   -- Norm transfer uses a measurable extension on the two nonreal halves only.
   let U : Set ℂ := {z : ℂ | z.im ≠ 0}
   have hUo : IsOpen U := isOpen_ne_fun continuous_im continuous_const
-  have hψU : ContinuousOn ψ U := (hψd.mono hΩH).continuousOn
+  have hψU : ContinuousOn ψ U := (hψd.mono (fun z hz => hΩH z hz)).continuousOn
   let W : ℂ → ℝ≥0∞ := U.piecewise (fun z => ENNReal.ofReal ‖ψ z‖) (fun _ => 0)
   have hWm : Measurable W :=
     ContinuousOn.measurable_piecewise

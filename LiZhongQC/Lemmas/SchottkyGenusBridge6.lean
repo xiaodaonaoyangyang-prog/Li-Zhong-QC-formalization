@@ -101,7 +101,8 @@ theorem s78dg_dbl_loop_lift {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ 
     exact key _ hsd _
   intro f hf hx
   subst hf
-  have hγ' : Path.Homotopic.Quotient.map γ e = Path.Homotopic.Quotient.mk ℓU := hγ
+  have hγ' : Path.Homotopic.Quotient.map γ.asHom e = Path.Homotopic.Quotient.mk ℓU :=
+    congrArg CategoryTheory.End.asHom hγ
   rw [FundamentalGroup.mapOfEq_apply, Path.Homotopic.Quotient.map_comp, hγ', hℓeq]
   rw [Path.Homotopic.Quotient.mk_cast]
   rfl
@@ -329,7 +330,8 @@ theorem s78dg_double_generation {S : Type u} [TopologicalSpace S] [ChartedSpace 
   intro γ _
   obtain ⟨ℓ, hℓ⟩ := Quotient.exists_rep (FundamentalGroup.toPath γ)
   obtain ⟨b, hb, h, hPh, heq⟩ := key ℓ
-  have hγ : γ = FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ) := hℓ.symm
+  have hγ : γ = FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk ℓ) :=
+    CategoryTheory.End.ext hℓ.symm
   rw [hγ, heq]
   exact hP _ _ hPh (hPs b _ (hc b _ hb))
 

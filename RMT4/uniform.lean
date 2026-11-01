@@ -13,7 +13,7 @@ namespace UniformSpace -- uniform thickening
 def thickening (U : Set (α × α)) (S : Set α) : Set α := ⋃ x ∈ S, ball x U
 
 lemma mem_thickening : a ∈ thickening u s ↔ ∃ x ∈ s, (x, a) ∈ u := by
-  simp only [thickening, ball, mem_iUnion, Set.mem_preimage, exists_prop]
+  simp [thickening, ball]
 
 @[simp] lemma thickening_singleton : thickening u {a} = ball a u := by
   simp only [thickening, mem_singleton_iff, iUnion_iUnion_eq_left]
@@ -21,14 +21,14 @@ lemma mem_thickening : a ∈ thickening u s ↔ ∃ x ∈ s, (x, a) ∈ u := by
 @[simp] lemma monotone_thickening : Monotone (thickening · s) := by
   intro u v huv
   apply iUnion₂_mono
-  simp only [ball, le_eq_subset] at huv ⊢
-  exact λ _ _ => preimage_mono huv
+  exact λ x _ => ball_mono huv x
 
 lemma thickening_mono : Monotone (thickening u) :=
   λ _ _ h => iUnion₂_mono' (λ a ha => ⟨a, h ha, subset_rfl⟩)
 
 @[simp] lemma thickening_comp : thickening v (thickening u s) = thickening (u ○ v) s := by
   ext; simp [thickening, ball]
+  constructor <;> rintro ⟨i, hi, b, h1, h2⟩ <;> exact ⟨i, hi, b, h2, h1⟩
 
 lemma disjoint_ball_iff : Disjoint (ball a u) t ↔ ∀ b ∈ t, (a, b) ∉ u := by
   rw [← compl_compl (ball a u), disjoint_compl_left_iff_subset]

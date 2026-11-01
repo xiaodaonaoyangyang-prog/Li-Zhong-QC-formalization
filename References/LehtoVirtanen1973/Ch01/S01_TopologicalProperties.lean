@@ -169,7 +169,7 @@ theorem lv11_image_mem_nhds {w : ExtPlane → ExtPlane} {G : Set ExtPlane} (hG :
     rfl
   have hfc : ContinuousOn (fun x : ℂ => fv (v x)) U := by
     rw [OnePoint.isOpenEmbedding_coe.toIsEmbedding.toIsInducing.continuousOn_iff]
-    exact (hvc.comp OnePoint.continuous_coe.continuousOn fun x hx => hx.1).congr fun x hx => (hfin x hx).symm
+    exact (hvc.comp OnePoint.continuous_coe.continuousOn fun x (hx : x ∈ U) => hx.1).congr fun x hx => (hfin x hx).symm
   have hfi : InjOn (fun x : ℂ => fv (v x)) U := fun x hx y hy h => by
     have h' : v x = v y := by rw [hfin x hx, hfin y hy]; exact congrArg _ h
     exact OnePoint.coe_injective (hvi hx.1 hy.1 h')

@@ -479,7 +479,7 @@ theorem s78rb_winding_hom {X : Type*} [TopologicalSpace X] (f : C(X, AddCircle (
   let Φ := hp.fundamentalGroupToMulOpposite e
   let M := FundamentalGroup.map f x₀
   let val : FundamentalGroup X x₀ → ℝ := fun c => (((Φ (M c)).unop.toAdd : AddSubgroup.zmultiples (1 : ℝ)) : ℝ)
-  have hval : ∀ c, val c + e₀ = (cov.monodromy (M c) e).1 := by
+  have hval : ∀ c, val c + e₀ = (cov.monodromy (M c).asHom e).1 := by
     intro c
     have := hp.unop_fundamentalGroupToMulOpposite_smul (e := e) (γ := M c)
     rw [← this]
@@ -489,7 +489,7 @@ theorem s78rb_winding_hom {X : Type*} [TopologicalSpace X] (f : C(X, AddCircle (
       map_zero' := by
         show val 1 = 0
         have h := hval 1
-        have h1 : cov.monodromy (1 : FundamentalGroup (AddCircle (1 : ℝ)) (f x₀)) e = e :=
+        have h1 : cov.monodromy (1 : FundamentalGroup (AddCircle (1 : ℝ)) (f x₀)).asHom e = e :=
           congrFun cov.monodromy_refl e
         rw [map_one, h1] at h
         show val 1 = 0
@@ -504,7 +504,7 @@ theorem s78rb_winding_hom {X : Type*} [TopologicalSpace X] (f : C(X, AddCircle (
   show val c = _
   set a' : Path (f x₀) (f y) := a.map f.continuous with ha'
   set ℓ' : Path (f y) (f y) := ℓ.map f.continuous with hℓ'
-  have hMc : M c = ((Path.Homotopic.Quotient.mk a').trans (Path.Homotopic.Quotient.mk ℓ')).trans
+  have hMc : (M c).asHom = ((Path.Homotopic.Quotient.mk a').trans (Path.Homotopic.Quotient.mk ℓ')).trans
       (Path.Homotopic.Quotient.mk a').symm := by
     show Path.Homotopic.Quotient.map (Path.Homotopic.Quotient.mk ((a.trans ℓ).trans a.symm)) f = _
     rw [← Path.Homotopic.Quotient.mk_map, Path.map_trans, Path.map_trans, ← Path.map_symm,
@@ -555,7 +555,7 @@ theorem s78rb_winding_hom {X : Type*} [TopologicalSpace X] (f : C(X, AddCircle (
     ext t
     show ((A (unitInterval.symm t) + D : ℝ) : AddCircle (1 : ℝ)) = a' (unitInterval.symm t)
     rw [AddCircle.coe_add, hD0, add_zero, hAl]
-  have hfinal : ((cov.monodromy (M c) e : ℝ)) = e₀ + D := by
+  have hfinal : ((cov.monodromy (M c).asHom e : ℝ)) = e₀ + D := by
     rw [hMc, cov.monodromy_trans_apply, cov.monodromy_trans_apply, ← he1def, hclaimA, hclaimB]
   have := hval c
   linarith

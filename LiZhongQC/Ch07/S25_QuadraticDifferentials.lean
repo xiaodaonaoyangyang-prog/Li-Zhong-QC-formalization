@@ -6909,9 +6909,9 @@ theorem s25s_polygon_class_closed [T2Space S] {N : ℕ} (hN : 0 < N)
   change IsClosed A
   apply isClosed_of_closure_subset
   intro x hx
-  have hx0 : x 0 = a := closure_minimal (fun y hy => hy.1)
+  have hx0 : x 0 = a := closure_minimal (fun y (hy : y ∈ A) => hy.1)
     (isClosed_eq (continuous_apply 0) continuous_const) hx
-  have hx1 : x (Fin.last N) = b := closure_minimal (fun y hy => hy.2.1)
+  have hx1 : x (Fin.last N) = b := closure_minimal (fun y (hy : y ∈ A) => hy.2.1)
     (isClosed_eq (continuous_apply (Fin.last N)) continuous_const) hx
   have hxK : ∀ i : Fin N, x i.castSucc ∈ K i ∧ x i.succ ∈ K i := by
     intro i

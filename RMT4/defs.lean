@@ -11,7 +11,7 @@ def compacts (U : Set ℂ) : Set (Set ℂ) := {K ⊆ U | IsCompact K}
   subset_antisymm (λ _ ⟨_, hK, hz⟩ => hK.1 hz)
     (λ z hz => ⟨{z}, ⟨singleton_subset_iff.2 hz, isCompact_singleton⟩, mem_singleton z⟩)
 
-def 𝔻 : Set ℂ := ball 0 1
+noncomputable def 𝔻 : Set ℂ := ball 0 1
 
 lemma mem_𝔻_iff : u ∈ 𝔻 ↔ ‖u‖ < 1 :=
   mem_ball_zero_iff

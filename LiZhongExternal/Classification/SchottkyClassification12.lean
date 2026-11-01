@@ -11,6 +11,8 @@ import LiZhongExternal.Classification.SchottkyClassification01
 import LiZhongExternal.Classification.SchottkyClassification11
 
 /- BEGIN ClassificationOfSurfaces.Moise.PolygonalSchoenflies | 516463a67f8b5e50bfbf9cea929249e00860f2730c2bd7656521f24b6c8ec7ed -/
+noncomputable section
+
 section schottkyclassification12_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

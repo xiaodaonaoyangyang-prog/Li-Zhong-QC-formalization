@@ -863,11 +863,11 @@ theorem gm5_ends {U : Set ℂ} {g : ℂ → ℂ} {r R : ℝ} (hr : 0 < r) (hrR :
         exact ⟨hz ▸ hm1, hz ▸ hm2⟩
       rw [hdecomp, closure_union, closure_union, hsphcl.closure_eq] at hpcl
       rcases hpcl with (h | h) | h
-      · rcases gm5_closure_in hg (fun q => Iff.rfl) hm2 h with h' | h'
+      · rcases gm5_closure_in (Cin := Cin) hg (fun q => Iff.rfl) hm2 h with h' | h'
         · exact absurd h' hpU
         · exact Or.inl h'
       · exact absurd (hdecomp ▸ (Or.inl (Or.inr h) : p ∈ _ ∪ _ ∪ _)) hpU
-      · rcases gm5_closure_out hg (fun q => Iff.rfl) hm1 h with h' | h'
+      · rcases gm5_closure_out (Cout := Cout) hg (fun q => Iff.rfl) hm1 h with h' | h'
         · exact absurd h' hpU
         · exact Or.inr h'
     · intro hp

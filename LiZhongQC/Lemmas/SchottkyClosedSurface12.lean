@@ -241,8 +241,8 @@ theorem s78dg_cs_pi1_closed_base (p : ℕ) (hp : 1 ≤ p) :
         (b : Quot (OrientableRel p 0)) hx₀ false γ') := by
     have h2 : FundamentalGroup.mapOfEq (interToLeft (s78dg_cs_U p 0) (s78dg_cs_V p 0))
         (interToLeft_overlapBasepoint (s78dg_cs_U p 0) (s78dg_cs_V p 0)
-          (b : Quot (OrientableRel p 0)) hx₀) (Path.Homotopic.Quotient.mk γ) =
-        Path.Homotopic.Quotient.mk c :=
+          (b : Quot (OrientableRel p 0)) hx₀) (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)) =
+        FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk c) :=
       s78dg_pi1_mapOfEq_mk (interToLeft _ _) _ _
         (interToLeft_overlapBasepoint _ _ _ hx₀) γ c (fun t => rfl)
     have h1 : fundamentalGroupAmalgamation (s78dg_cs_U p 0) (s78dg_cs_V p 0)

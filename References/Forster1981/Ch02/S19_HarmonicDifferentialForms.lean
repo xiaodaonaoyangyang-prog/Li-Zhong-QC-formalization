@@ -78,7 +78,7 @@ def FormsOrthogonal (w₁ w₂ : Form1 X) : Prop := InnerForms w₁ w₂ 0
 def SubspacesOrthogonal (A B : Submodule ℂ (Form1 X)) : Prop := ∀ u ∈ A, ∀ v ∈ B, FormsOrthogonal u v
 
 /-- The space `d′ℰ(X)`. -/
-def dHolImage (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] : Submodule ℂ (Form1 X) :=
+noncomputable def dHolImage (X : Type) [TopologicalSpace X] [ChartedSpace ℂ X] : Submodule ℂ (Form1 X) :=
   Submodule.span ℂ (dFormHol '' (smoothFunOn X ⊤ : Set (X → ℂ)))
 
 /-- The space `*A = {*ω : ω ∈ A}` for a subspace `A` of 1-forms. -/

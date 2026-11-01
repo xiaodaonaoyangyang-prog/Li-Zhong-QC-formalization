@@ -18,27 +18,27 @@ corollary and numbered formula is stated and proved.
 
 ## Building
 
-The project uses Lean `v4.35.0-rc2` (`lean-toolchain`) and Mathlib at commit
-`2f3d8f63005779e9d708eb9adf3feca54aa24ceb` (2026-09-22).
+The project uses Lean `v4.36.0-rc2` (`lean-toolchain`) and Mathlib at tag `v4.36.0-rc2`
+(commit `9d581dff`, 2026-10-27).
 
-`lakefile.toml` points to a local checkout of that commit (`D:/lean/mathlib4-latest`). To build elsewhere:
+`lakefile.toml` points to a local checkout of that tag (`D:/lean/mathlib4-v436rc2`). To build elsewhere:
 1. Replace that `[[require]]` block by
 
    ```toml
    [[require]]
    name = "mathlib"
    git = "https://github.com/leanprover-community/mathlib4"
-   rev = "2f3d8f63005779e9d708eb9adf3feca54aa24ceb"
+   rev = "v4.36.0-rc2"
    ```
 
 2. Run `lake update mathlib`.
-3. Optionally run `lake exe cache get`, if prebuilt Mathlib files exist for that commit.
+3. Run `lake exe cache get` to download the prebuilt Mathlib files for that tag.
 
 ```
 lake build            # builds the default libraries (root modules `LiZhongQC`, `References`, `DouadyEarle`)
 ```
 
-The build succeeds (full clean rebuild 2026-10-18: 10212 jobs, 0 errors). `LiZhongQC` has no `sorry` warning. The
+The build succeeds (rebuild on Mathlib `v4.36.0-rc2`, 2026-11-01: all libraries, 0 errors). `LiZhongQC` has no `sorry` warning. The
 remaining warnings are the `sorry` warnings of the statements of `References` (by design, see below), and some
 deprecation and linter hints.
 

@@ -3352,7 +3352,7 @@ theorem para3_1_finite_dim [IsManifold 𝓘(ℂ) ω R]
   obtain ⟨C, hC⟩ := gl31_fd_estimate hfin hJ
   have hs : Tendsto (fun n => ∑ p ∈ J, ‖φ n p.1 p.2‖) atTop (𝓝 0) := by
     have h : Tendsto (fun n => ∑ p ∈ J, ‖φ n p.1 p.2‖) atTop (𝓝 (∑ p ∈ J, (0 : ℝ))) :=
-      tendsto_finset_sum _ fun p _ => by
+      tendsto_finsetSum _ fun p _ => by
         by_cases hz : p.2 ∈ (chartAt ℂ p.1).target
         · have := ((hφ.2 p.1).tendsto_at hz).norm
           simpa using this

@@ -39,7 +39,7 @@ def fundamentalGroupMulEquivOfHomeomorph {X Y : Type*} [TopologicalSpace X] [Top
   toFun := FundamentalGroup.mapOfEq (f : C(X, Y)) h
   invFun := FundamentalGroup.mapOfEq (f.symm : C(Y, X)) (by rw [← h]; exact f.symm_apply_apply x)
   left_inv := by
-    rintro ⟨γ⟩
+    rintro ⟨⟨γ⟩⟩
     show FundamentalGroup.mapOfEq (f.symm : C(Y, X)) _
       (FundamentalGroup.mapOfEq (f : C(X, Y)) h
         (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ))) =
@@ -49,7 +49,7 @@ def fundamentalGroupMulEquivOfHomeomorph {X Y : Type*} [TopologicalSpace X] [Top
     refine Path.ext (funext fun t => ?_)
     simp [Path.cast_coe, Path.map_coe]
   right_inv := by
-    rintro ⟨γ⟩
+    rintro ⟨⟨γ⟩⟩
     show FundamentalGroup.mapOfEq (f : C(X, Y)) h
       (FundamentalGroup.mapOfEq (f.symm : C(Y, X)) _
         (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ))) =
@@ -2136,7 +2136,7 @@ theorem utm_d_teich_deriv [IsManifold 𝓘(ℂ) ω S₀] [IsManifold 𝓘(ℂ) �
   have hσd' : deriv σ b ≠ 0 := (s23_transition (f₀ p) y hbt hbs').2
   have hσb : σ b = chartAt ℂ (f₀ p) (f₀ p) := by simp only [hσ, chartTransition, hbs]
   have hσan : AnalyticAt ℂ σ b :=
-    DifferentiableOn.analyticAt (fun w hw => (s23_transition (f₀ p) y hw.1 hw.2).1.differentiableWithinAt)
+    DifferentiableOn.analyticAt (by exact fun w hw => (s23_transition (f₀ p) y hw.1 hw.2).1.differentiableWithinAt)
       (((chartAt ℂ y).isOpen_inter_preimage_symm (chartAt ℂ (f₀ p)).open_source).mem_nhds ⟨hbt, hbs'⟩)
   have hζ'an : AnalyticAt ℂ ζ' (σ b) := by rw [hσb]; exact hζ'.1
   set B := ζ' ∘ σ with hB

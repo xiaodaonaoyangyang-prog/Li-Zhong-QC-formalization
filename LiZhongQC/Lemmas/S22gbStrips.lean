@@ -231,11 +231,11 @@ theorem s22gb_annulus_stokes (u : ℂ → ℝ) (α : ℂ → ℂ → ℝ) {a b c
         (∫ z in wv_rectK ⟨c.re, a.im⟩ ⟨d.re, c.im⟩, F z) +
         (∫ z in wv_rectK ⟨c.re, d.im⟩ ⟨d.re, b.im⟩, F z) := by
     rw [hE, s22gb_annulus_eq h1 h2 h3 h4 h5 h6]
-    rw [integral_union_ae ((d14.union_left d24).union_left d34) (hmeas _ _)
+    rw [setIntegral_union₀ ((d14.union_left d24).union_left d34) (hmeas _ _)
       (((hint _ _ hS1).union (hint _ _ hS2)).union (hint _ _ hS3)) (hint _ _ hS4),
-      integral_union_ae (d13.union_left d23) (hmeas _ _)
+      setIntegral_union₀ (d13.union_left d23) (hmeas _ _)
         ((hint _ _ hS1).union (hint _ _ hS2)) (hint _ _ hS3),
-      integral_union_ae d12 (hmeas _ _) (hint _ _ hS1) (hint _ _ hS2)]
+      setIntegral_union₀ d12 (hmeas _ _) (hint _ _ hS1) (hint _ _ hS2)]
   -- boundary algebra
   have hlineP : ∀ y0 : ℝ, a.im ≤ y0 → y0 ≤ b.im → (y0 ≤ c.im ∨ d.im ≤ y0) →
       ContinuousOn (fun x : ℝ => u ((x : ℂ) + (y0 : ℂ) * I) * α ((x : ℂ) + (y0 : ℂ) * I) 1)

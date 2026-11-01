@@ -137,7 +137,7 @@ theorem gl3_l1_holo_limit {U : Set ℂ} (hU : IsOpen U) {f : ℕ → ℂ → ℂ
 /-- Helper for `thm3_6`: `z ↦ 1/z` maps the punctured disc `0 < |w| < 1/R` conformally onto `|z| > R`. -/
 theorem gl3_inv_conformal {R : ℝ} (hR : 0 < R) :
     LiZhongQC.IsConformalOnto (fun w : ℂ => w⁻¹) (ball 0 R⁻¹ \ {0}) {z : ℂ | R < ‖z‖} := by
-  refine ⟨fun w hw => (differentiableAt_inv hw.2).differentiableWithinAt, inv_injective.injOn, ?_⟩
+  refine ⟨fun w hw => by exact (differentiableAt_inv hw.2).differentiableWithinAt, inv_injective.injOn, ?_⟩
   ext z
   constructor
   · rintro ⟨w, ⟨hw, hw0⟩, rfl⟩
@@ -304,7 +304,7 @@ theorem para3_4_z_quotient {Λ : Set ExtPlane} (hΛ : IsClosed Λ) {V : (ℂ →
   -- Hahn–Banach on `L¹(ℂ)`: the representing `ν` has `‖ν‖∞ ≤ ‖V‖`, and every representative has `‖V‖ ≤ ‖·‖∞`
   have _hΛ := hΛ
   obtain ⟨h0, hadd, hsmul⟩ := gl3_zq_closed Λ
-  obtain ⟨ν, hνm, hνb, hνrep⟩ := gl3_dual_repr MeasurableSet.univ (fun φ hφ => hφ.1.integrableOn) h0 hadd hsmul hV
+  obtain ⟨ν, hνm, hνb, hνrep⟩ := gl3_dual_repr MeasurableSet.univ (fun φ hφ => by exact hφ.1.integrableOn) h0 hadd hsmul hV
   have hrep : ∀ φ ∈ aSpaceClosed Λ, V φ = beltramiPairing univ ν φ := hνrep
   refine ⟨ν, ⟨_, hνm, hνb⟩, hrep, le_antisymm ?_ ?_, fun ν' _ hν' => ?_⟩
   · rw [Measure.restrict_univ] at hνb hνm
@@ -1408,7 +1408,7 @@ theorem thm3_7_d {μ : ℂ → ℂ} (hμ : ∃ k : ℝ, IsBeltramiCoeff μ univ 
       simp
     filter_upwards [h0, h1] with ζ a b
     exact ⟨a, b⟩
-  rw [integral_congr_ae (hae.mono fun ζ hζ => hinner ζ hζ.1 hζ.2), integral_const_mul]
+  rw [integral_congr_ae (hae.mono fun ζ hζ => by exact hinner ζ hζ.1 hζ.2), integral_const_mul]
   have hπ : (π : ℂ) ≠ 0 := by exact_mod_cast Real.pi_pos.ne'
   field_simp
 

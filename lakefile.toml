@@ -11,7 +11,7 @@ name = "LiZhongQC"
 
 [[require]]
 name = "mathlib"
-path = "D:/lean/mathlib4-latest"
+path = "D:/lean/mathlib4-v436rc2"
 
 [[lean_lib]]
 name = "JordanCurveTheorem"

@@ -287,7 +287,7 @@ theorem hilbertH_fam_ae {s : MeasureTheory.SimpleFunc ℂ ℂ} {p p₁ : ℝ} (z
   · simp [hc0, famCoeff]
   · have hfin := MeasureTheory.SimpleFunc.measure_preimage_lt_top_of_memLp
       hpne0 ENNReal.ofReal_ne_top s hs c hc0
-    exact memLp_indicator_const 2 (s.measurableSet_fiber c) _ (Or.inr hfin.ne)
+    exact memLp_indicator_const 2 (s.measurableSet_fiber c).nullMeasurableSet _ (Or.inr hfin.ne)
 
 /-! ## Entireness of the family's coefficients -/
 
@@ -351,7 +351,7 @@ theorem hilbertH_fam_ae' {s : MeasureTheory.SimpleFunc ℂ ℂ} {p p₁ : ℝ} (
   have hcne : c ≠ 0 := (Finset.mem_erase.mp hc).1
   have hfin := MeasureTheory.SimpleFunc.measure_preimage_lt_top_of_memLp
     hpne0 ENNReal.ofReal_ne_top s hs c hcne
-  exact memLp_indicator_const 2 (s.measurableSet_fiber c) _ (Or.inr hfin.ne)
+  exact memLp_indicator_const 2 (s.measurableSet_fiber c).nullMeasurableSet _ (Or.inr hfin.ne)
 
 /-- The fixed (z-independent) pairing constant between an `s`-level-set image under `hilbertH`
 and a `g`-level-set. -/
@@ -373,9 +373,9 @@ theorem integrable_pairConst_term {s g : MeasureTheory.SimpleFunc ℂ ℂ} {p q 
   have hfind := MeasureTheory.SimpleFunc.measure_preimage_lt_top_of_memLp
     hqne0 ENNReal.ofReal_ne_top g hg d hd
   have hmemc : MemLp ((s ⁻¹' {c}).indicator (1 : ℂ → ℂ)) 2 volume :=
-    memLp_indicator_const 2 (s.measurableSet_fiber c) _ (Or.inr hfinc.ne)
+    memLp_indicator_const 2 (s.measurableSet_fiber c).nullMeasurableSet _ (Or.inr hfinc.ne)
   have hmemd : MemLp ((g ⁻¹' {d}).indicator (1 : ℂ → ℂ)) 2 volume :=
-    memLp_indicator_const 2 (g.measurableSet_fiber d) _ (Or.inr hfind.ne)
+    memLp_indicator_const 2 (g.measurableSet_fiber d).nullMeasurableSet _ (Or.inr hfind.ne)
   exact (hilbertH_memLp_two hmemc).1.integrable_mul hmemd
 
 theorem integral_hilbertH_fam_mul_fam {s g : MeasureTheory.SimpleFunc ℂ ℂ} {p p₁ q p₁' : ℝ}
@@ -452,7 +452,7 @@ theorem memLp_fam {s : MeasureTheory.SimpleFunc ℂ ℂ} {p p₁ : ℝ} (hp1' : 
     simp only [Ne, ENNReal.ofReal_eq_zero, not_le]; linarith
   have hfin := MeasureTheory.SimpleFunc.measure_preimage_lt_top_of_memLp
     hpne0 ENNReal.ofReal_ne_top s hs c hcne
-  exact (memLp_indicator_const (ENNReal.ofReal r) (s.measurableSet_fiber c) _
+  exact (memLp_indicator_const (ENNReal.ofReal r) (s.measurableSet_fiber c).nullMeasurableSet _
     (Or.inr hfin.ne)).const_smul _
 
 /-- ENNReal `X^r` cast to a real number equals the real `.toReal`-power, when `X ≠ ⊤`. -/

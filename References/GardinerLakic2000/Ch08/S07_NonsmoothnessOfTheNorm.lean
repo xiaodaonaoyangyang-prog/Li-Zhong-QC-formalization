@@ -521,7 +521,7 @@ theorem gl81_planar_back {S : Set ℂ} {F G : ℂ → ℂ} (hF : IntegrableOn F 
     · filter_upwards [hF0] with w hw
       exact gl81_pt_deriv2 hw
   unfold HasSecondDerivAtZero
-  refine ⟨ε, hε, fun t ht => (hA t (abs_lt.2 ⟨ht.1, ht.2⟩)).differentiableAt, ?_⟩
+  refine ⟨ε, hε, fun t ht => by exact (hA t (abs_lt.2 ⟨ht.1, ht.2⟩)).differentiableAt, ?_⟩
   have heq : (fun s : ℝ => ∫ w in S, (G w * conj (F w + (s : ℂ) * G w)).re / ‖F w + (s : ℂ) * G w‖) =ᶠ[𝓝 0]
       deriv (fun s : ℝ => ∫ w in S, ‖F w + (s : ℂ) * G w‖) := by
     filter_upwards [Ioo_mem_nhds (neg_lt_zero.2 hε) hε] with t ht

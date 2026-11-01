@@ -27,6 +27,7 @@ theorem s78dg_pi1_comp_bijective {A B C : Type*} [TopologicalSpace A] [Topologic
   have h : ∀ x, FundamentalGroup.map (g.comp f) a x =
       FundamentalGroup.map g (f a) (FundamentalGroup.map f a x) := by
     intro x
+    obtain ⟨x⟩ := x
     induction x using Quotient.inductionOn with
     | h γ => rfl
   have h2 : (FundamentalGroup.map (g.comp f) a : _ → _) =
@@ -130,7 +131,7 @@ theorem s78dg_cs_S_succ (p k : ℕ) :
     s78dg_cs_S p (fun m => m < k + 1) =
       s78dg_cs_S p (fun m => m < k) ∪ s78dg_cs_S p (fun m => m = k) := by
   ext u
-  simp only [s78dg_cs_S, Set.mem_setOf_eq, Set.mem_union]
+  simp only [s78dg_cs_S, Set.mem_ofPred_eq, Set.mem_union]
   have key : ∀ n : ℕ, n < k + 1 ↔ n < k ∨ n = k := fun n => by omega
   rw [key]
   tauto
@@ -139,7 +140,7 @@ theorem s78dg_cs_S_inter (p k : ℕ) :
     s78dg_cs_S p (fun m => m < k) ∩ s78dg_cs_S p (fun m => m = k) =
       s78dg_cs_S p (fun _ => False) := by
   ext u
-  simp only [s78dg_cs_S, Set.mem_setOf_eq, Set.mem_inter_iff]
+  simp only [s78dg_cs_S, Set.mem_ofPred_eq, Set.mem_inter_iff]
   have key : ∀ n : ℕ, ¬ (n < k ∧ n = k) := fun n => by omega
   have := key (s78dg_cs_kappa p ⌊u⌋)
   tauto
@@ -268,7 +269,7 @@ theorem s78dg_cs_petal_step (p : ℕ) (hp : 1 ≤ p) (one : Set.Ioc (0 : ℝ) 1)
   let eB : FundamentalGroup (AddCircle (1 : ℝ)) 0 ≃* FreeGroup Unit :=
     φ.trans (FreeGroup.mulEquivIntOfUnique (α := Unit)).symm
   have heB : eB (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ)) = FreeGroup.of () := by
-    show (FreeGroup.mulEquivIntOfUnique (α := Unit)).symm (φ (Path.Homotopic.Quotient.mk γ)) = _
+    show (FreeGroup.mulEquivIntOfUnique (α := Unit)).symm (φ (FundamentalGroup.fromPath (Path.Homotopic.Quotient.mk γ))) = _
     rw [hφ]
     rw [MulEquiv.symm_apply_eq]
     simp [FreeGroup.mulEquivIntOfUnique, FreeGroup.equivIntOfUnique]

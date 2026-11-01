@@ -163,7 +163,7 @@ theorem integral_psi_eq [T2Space X] [CompactSpace X] [ConnectedSpace X] [Nonempt
 /-! #### Step 2 — bridging the per-pole integrand to the ledger shape -/
 
 /-- The window of the `(a,j)` ledger piece: the pole chart's source meets the PoU chart. -/
-def poleWindow [T2Space X] [CompactSpace X] (a : X)
+noncomputable def poleWindow [T2Space X] [CompactSpace X] (a : X)
     (j : Fin ((chartCover : Finset X).card)) : Set X :=
   (chartAt (H := ℂ) a).source ∩ chartOpen (X := X) (coverCenter j)
 

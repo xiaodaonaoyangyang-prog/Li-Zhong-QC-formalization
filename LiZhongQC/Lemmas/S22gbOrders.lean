@@ -118,7 +118,7 @@ theorem s22gb_area_eq_orders {Γ : Subgroup (Matrix.SpecialLinearGroup (Fin 2) �
         (chartAt ℂ x x - (r : ℂ) * (1 + I)) (chartAt ℂ x x + (r : ℂ) * (1 + I)))
         (𝓝[>] (0 : ℝ)) (𝓝 (-∑ x ∈ Z, -(2 * π *
           ((meromorphicOrderAt (q x) (chartAt ℂ x x)).untop₀ : ℝ)))) :=
-      (tendsto_finset_sum Z fun x _ => s22gb_boundary_limit hp hα x (hmer x) (hord x)).neg
+      (tendsto_finsetSum Z fun x _ => s22gb_boundary_limit hp hα x (hmer x) (hord x)).neg
     have hval : (-∑ x ∈ Z, -(2 * π * ((meromorphicOrderAt (q x) (chartAt ℂ x x)).untop₀ : ℝ))) = L := by
       rw [hL, Finset.sum_neg_distrib, neg_neg, Finset.mul_sum]
     rw [hval] at hsum

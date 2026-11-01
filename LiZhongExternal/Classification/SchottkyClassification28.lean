@@ -8,6 +8,8 @@ import LiZhongExternal.Classification.SchottkyClassification23
 import LiZhongExternal.Classification.SchottkyClassification21
 
 /- BEGIN ClassificationOfSurfaces.FiniteCyclicTerminalNormalization | db30eafb8fe4f21cfed51f2704bba5c6d56d8bec490abeef2e216795bb6fefc6 -/
+noncomputable section
+
 section schottkyclassification28_block_01
 /-
 Copyright (c) 2026 ClassificationOfSurfaces contributors. All rights reserved.

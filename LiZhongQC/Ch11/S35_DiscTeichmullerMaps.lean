@@ -757,7 +757,7 @@ theorem a35_cross_left {f : ℝ → ℂ} {ζ : ℂ} {r x₀ : ℝ} (hx₀ : 0 < 
     (hlim.eventually (ball_mem_nhds ζ hr)).mono fun t ht => by rwa [dist_eq_norm] at ht
   obtain ⟨t, ht1, ht2⟩ := (h1.and (Ioo_mem_nhdsGT hx₀)).exists
   have hg : ContinuousOn (fun s => ‖f s - ζ‖) (Icc t x₀) :=
-    ((hf.mono fun s hs => ⟨ht2.1.trans_le hs.1, hs.2⟩).sub continuousOn_const).norm
+    ((hf.mono fun s (hs : s ∈ Icc t x₀) => ⟨ht2.1.trans_le hs.1, hs.2⟩).sub continuousOn_const).norm
   obtain ⟨x, hx', hxr⟩ := intermediate_value_Icc ht2.2.le hg ⟨ht1.le, hx⟩
   exact ⟨x, ⟨ht2.1.trans_le hx'.1, hx'.2⟩, hxr⟩
 
@@ -770,7 +770,7 @@ theorem a35_cross_right {f : ℝ → ℂ} {ζ : ℂ} {r x₀ : ℝ} (hx₀ : x�
     (hlim.eventually (ball_mem_nhds ζ hr)).mono fun t ht => by rwa [dist_eq_norm] at ht
   obtain ⟨t, ht1, ht2⟩ := (h1.and (Ioo_mem_nhdsLT hx₀)).exists
   have hg : ContinuousOn (fun s => ‖f s - ζ‖) (Icc x₀ t) :=
-    ((hf.mono fun s hs => ⟨hs.1, hs.2.trans_lt ht2.2⟩).sub continuousOn_const).norm
+    ((hf.mono fun s (hs : s ∈ Icc x₀ t) => ⟨hs.1, hs.2.trans_lt ht2.2⟩).sub continuousOn_const).norm
   obtain ⟨x, hx', hxr⟩ := intermediate_value_Icc' ht2.1.le hg ⟨ht1.le, hx⟩
   exact ⟨x, ⟨hx'.1, hx'.2.trans_lt ht2.2⟩, hxr⟩
 

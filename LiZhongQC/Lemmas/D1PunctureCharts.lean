@@ -132,7 +132,7 @@ theorem s36d1_puncture_charts {S : Type u} [TopologicalSpace S] [ChartedSpace �
       exact ((hlift i w hw).2).symm.trans
         ((congrArg (fun z : ℂ => (z : ExtPlane)) hζeq.symm).trans (hlift i w' hw').2)
     · change MDifferentiableOn 𝓘(ℂ) 𝓘(ℂ) (P ∘ ζ i) D
-      exact hPdiff.comp ((hehol i).mono (fun w hw => ⟨hw.1, hw.2.trans (by norm_num)⟩)).mdifferentiableOn
+      exact hPdiff.comp ((hehol i).mono (by exact fun w hw => ⟨hw.1, hw.2.trans (by norm_num)⟩)).mdifferentiableOn
         (fun w hw => (hlift i w hw).1)
     · intro W hWo hWD
       have hop := hPopen (ζ i '' W) (hζopen i W hWo hWD) (by

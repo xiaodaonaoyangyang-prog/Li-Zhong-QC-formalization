@@ -194,9 +194,9 @@ theorem s24q_torus_cover {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] 
     obtain ⟨hcov, hhol, hsurj, -⟩ := s22ct_pathCover_upperHalf_input x₀ eP
     let G : Set (Matrix.SpecialLinearGroup (Fin 2) ℝ) := {m | ∃ γ : FundamentalGroup S x₀,
       ∃ F : UpperHalfPlane ≃ₜ UpperHalfPlane, MDifferentiable 𝓘(ℂ) 𝓘(ℂ) F ∧
-        (∀ y, F y = eP (RiemannDynamics.pathCoverDeck x₀ γ (eP.symm y))) ∧ ∀ τ, F τ = m • τ}
+        (∀ y, F y = eP (RiemannDynamics.pathCoverDeck x₀ γ.asHom (eP.symm y))) ∧ ∀ τ, F τ = m • τ}
     have hDeckG : ∀ γ : FundamentalGroup S x₀, ∃ m ∈ G, ∃ F : UpperHalfPlane ≃ₜ UpperHalfPlane,
-        (∀ y, F y = eP (RiemannDynamics.pathCoverDeck x₀ γ (eP.symm y))) ∧ ∀ τ, F τ = m • τ := by
+        (∀ y, F y = eP (RiemannDynamics.pathCoverDeck x₀ γ.asHom (eP.symm y))) ∧ ∀ τ, F τ = m • τ := by
       intro γ
       obtain ⟨F, hF, hform, -, -⟩ := s22ct_pathCover_conjugate_deck x₀ eP γ
       obtain ⟨m, hm⟩ := k22c5_eq_smul_of_mdifferentiable F hF
@@ -1053,7 +1053,8 @@ theorem s24q_sm_simply {S : Type u} [TopologicalSpace S] [ChartedSpace ℂ S] [C
     obtain ⟨γ', rfl⟩ :=
       (FundamentalGroup.fundamentalGroupMulEquivOfPathConnected x₀ x).surjective γ
     rw [htriv γ', map_one]
-  have h1 : u.trans v.symm = Path.Homotopic.Quotient.refl x := hx (u.trans v.symm)
+  have h1 : u.trans v.symm = Path.Homotopic.Quotient.refl x :=
+    congrArg CategoryTheory.End.asHom (hx (FundamentalGroup.fromPath (u.trans v.symm)))
   have h2 := congrArg (fun η : Path.Homotopic.Quotient x x => η.trans v) h1
   simpa only [Path.Homotopic.Quotient.trans_assoc, Path.Homotopic.Quotient.symm_trans,
     Path.Homotopic.Quotient.trans_refl, Path.Homotopic.Quotient.refl_trans] using h2
